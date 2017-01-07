@@ -2,9 +2,11 @@
 Author: Dolgubon
 Filename: LibLazyCrafting.lua
 Version: 0.1
+
+This is a work in progress.
 ]]--
 
-
+-- Initialize libraries
 local libLoaded
 local LIB_NAME, VERSION = "LibLazyCrafting", 0.1
 local LibLazyCrafting, oldminor = LibStub:NewLibrary(LIB_NAME, VERSION)
