@@ -69,14 +69,7 @@ local craftResultFunctions =
 --GetItemLinkInfo(string itemLink)
 --GetItemId(number bagId, number slotIndex)
 --|H1:item:72129:369:50:26845:370:50:0:0:0:0:0:0:0:0:0:15:1:1:0:17:0|h|h
---[[
-/script 
 
-
-|H1:item:43849:30:1:0:0:0:0:0:0:0:0:0:0:0:0:1:0:0:0:10000:0
-|H1:item:48711:30:1:0:0:0:0:0:0:0:0:0:0:0:0:1:0:0:0:10000:0|h|h
-|H1:item:48711:30:1:0:0:0:0:0:0:0:0:0:0:0:0:2:0:0:0:10000:0|h|h
-]]
 
 local craftingQueue = 
 {
@@ -88,6 +81,7 @@ local craftingQueue =
 	[CRAFTING_TYPE_PROVISIONING] = {},
 }
 
+--NOTE: Templates are just for reference
 --Template for a craft request. Changes into an improvement request after crafting
 local CraftSmithingRequestItem = 
 {
@@ -134,7 +128,7 @@ local ProvisioningRequest =
 	["RecipeID"] = 0,
 }
 
-local waitingOnCraftComplete = 
+local waitingOnSmithingCraftComplete = 
 {
 	["craftFunction"] = function() end,
 	["slotID"] = 0,
@@ -213,7 +207,8 @@ function LibLazyCrafting:Init()
 
 		if canCraftItemHere(station, setIndex) then
 			if quality>0 then
-				local slotID = FindFirstEmptySlotInBag(BAG_BACKPACK)
+				waitingOnSmithingCraftComplete = {}
+				waitingOnSmithingCraftComplete["slotID"] = FindFirstEmptySlotInBag(BAG_BACKPACK)
 				local itemLink = GetSmithingPatternResultLink(patternIndex, materialIndex, materialQuantity, styleIndex, traitIndex, 0)
 				CraftSmithingItem(patternIndex, materialIndex, materialQuantity, styleIndex, traitIndex, useUniversalStyleItem)
 
@@ -227,6 +222,11 @@ function LibLazyCrafting:Init()
 		else
 			craftingQueue[station] = SmithingRequest
 		end
+	end
+
+
+	-- We do take the bag and slot index here, because we need to know what to upgrade
+	function LLC_ImproveSmithingItem(BagIndex, SlotIndex, newQuality)
 	end
 
 	-- Since bag indexes can change, this ignores those. Instead, it takes in the name, or the index (table of indexes is found in table above, and is specific to this library)
@@ -252,9 +252,6 @@ function LibLazyCrafting:Init()
 	function LLC_GetSmithingPatternInfo(patternIndex, station, set)
 	end
 
-	-- We do take the bag and slot index here, because we need to know what to upgrade
-	function LLC_ImproveSmithingItem(BagIndex, SlotIndex, newQuality)
-	end
 
 	-- Why use this instead of the EVENT_CRAFT_COMPLETE?
 	-- Using this will allow the library to tell you how the craft failed, at least for some problems.
@@ -280,14 +277,6 @@ local function CraftComplete(event, station)
 		v(event, station, LLCResult)
 	end
 end
-
-
-
-
-
-
-
-
 
 
 local function OnAddonLoaded()
