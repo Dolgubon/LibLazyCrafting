@@ -12,7 +12,10 @@ local LIB_NAME, VERSION = "LibLazyCrafting", 0.1
 local LibLazyCrafting, oldminor = LibStub:NewLibrary(LIB_NAME, VERSION)
 if not LibLazyCrafting then return end
 
-local SetIndexes = -- First is the name of the set. Second is the name of the equipment. Third is the number of required traits.
+
+-- First is the name of the set. Second is the name of the equipment. Third is the number of required traits.
+-- This is pretty much arbitrary, sorted by when the set was introduced, and how many traits are needed.
+local SetIndexes =
 {
 	[0]  = {"No Set"						,"No Set"					,0},
 	[1]  = {"Death's Wind"					,"Death's Wind"				,2},
@@ -53,6 +56,7 @@ local SetIndexes = -- First is the name of the set. Second is the name of the eq
 
 }
 
+-- Index starts at 0 because that's how many upgrades are needed.
 local qualityIndexes = 
 {
 	[0] = "White",
@@ -72,7 +76,7 @@ local craftResultFunctions =
 --GetItemId(number bagId, number slotIndex)
 --|H1:item:72129:369:50:26845:370:50:0:0:0:0:0:0:0:0:0:15:1:1:0:17:0|h|h
 
-
+-- Crafting request Queue. Split by stations. Not sure how to handle multiple stations for furniture.
 local craftingQueue = 
 {
 	[CRAFTING_TYPE_WOODWORKING] = {},
@@ -84,7 +88,7 @@ local craftingQueue =
 }
 
 --NOTE: Templates are just for reference
---Template for a craft request. Changes into an improvement request after crafting
+--Template for a craft request. Changes into an improvement request after crafting if quality>0
 local CraftSmithingRequestItem = 
 {
 	["pattern"] =0,
@@ -130,6 +134,9 @@ local ProvisioningRequest =
 	["RecipeID"] = 0,
 }
 
+-- This is filled out after crafting. It's so we can make sure that:
+-- A: The item was crafted and
+-- B: The unique Item ID so we can know exactly what we made.
 local waitingOnSmithingCraftComplete = 
 {
 	["craftFunction"] = function() end,
@@ -139,12 +146,11 @@ local waitingOnSmithingCraftComplete =
 	["finalQuality"] = "",
 }
 
-
+-- Just a random help function; can probably be taken out but I'll leave it in for now
 function GetID(itemLink) return string.match(itemLink,"|H%d:item:(%d+)") end
 
 -- Returns SetIndex, Set Full Name, Set Item Name, Traits Required
 function GetCurrentSetInteractionIndex()
-	local baseSetPatternName
 	local baseSetPatternName
 	local currentStation = GetCraftingInteractionType()
 	if currentStation == CRAFTING_TYPE_BLACKSMITHING then
@@ -164,7 +170,9 @@ function GetCurrentSetInteractionIndex()
 	return 0, SetIndexes[0][1], SetIndexes[0][2] , SetIndexes[0][3]
 end
 
+-- Can an item be crafted here, based on set and station indexes
 function canCraftItemHere(station, setIndex)
+	if not setIndex then setIndex 0 end
 	if GetCraftingInteractionType()==station then
 		if GetCurrentSetInteractionIndex(setIndex)==setIndex or setIndex==0 then
 			return true
@@ -196,16 +204,7 @@ function LibLazyCrafting:Init()
 		else
 			station = stationOverride
 		end
-		local SmithingRequest = 
-		{
-			["pattern"] =patternIndex,
-			["style"] = styleIndex,
-			["trait"] = traitIndex,
-			["materialIndex"] = materialIndex,
-			["materialQuantity"] = materialQuantity,
-			["setIndex"] = setIndex,
-			["quality"] = quality,
-		}
+
 
 		if canCraftItemHere(station, setIndex) then
 			if quality>0 then
@@ -222,7 +221,18 @@ function LibLazyCrafting:Init()
 				CraftSmithingItem(patternIndex, materialIndex, materialQuantity, styleIndex, traitIndex, useUniversalStyleItem)
 			end
 		else
-			craftingQueue[station] = SmithingRequest
+			-- create smithing request table and add to te queue
+			craftingQueue[station] =
+			{
+				["pattern"] =patternIndex,
+				["style"] = styleIndex,
+				["trait"] = traitIndex,
+				["materialIndex"] = materialIndex,
+				["materialQuantity"] = materialQuantity,
+				["setIndex"] = setIndex,
+				["quality"] = quality,
+			}
+		
 		end
 	end
 
@@ -267,12 +277,15 @@ function LibLazyCrafting:Init()
 
 end
 
+
+-- Called when a crafting station is opened. Should then craft anything needed in the queue
 local function CraftInteract(event, station)
 
 
 end
 
-
+-- Called when a crafting request is done. If this function is called, it probably means that 
+-- the  craft was successful, but let's check anyway.
 local function CraftComplete(event, station)
 	local LLCResult = nil
 	for k, v in pairs(craftResultFunctions) do
