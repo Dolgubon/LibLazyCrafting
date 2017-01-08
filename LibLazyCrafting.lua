@@ -89,16 +89,7 @@ local craftingQueue =
 
 --NOTE: Templates are just for reference
 --Template for a craft request. Changes into an improvement request after crafting if quality>0
-local CraftSmithingRequestItem = 
-{
-	["pattern"] =0,
-	["style"] = 0,
-	["trait"] = 0,
-	["materialIndex"] = 0,
-	["materialQuantity"] = 0,
-	["setIndex"] = 0,
-	["quality"] = 0,
-}
+
 
 --Template for an improvement request
 local ImprovementRequestItem = 
@@ -170,9 +161,10 @@ function GetCurrentSetInteractionIndex()
 	return 0, SetIndexes[0][1], SetIndexes[0][2] , SetIndexes[0][3]
 end
 
+
 -- Can an item be crafted here, based on set and station indexes
 function canCraftItemHere(station, setIndex)
-	if not setIndex then setIndex 0 end
+	if not setIndex then setIndex = 0 end
 	if GetCraftingInteractionType()==station then
 		if GetCurrentSetInteractionIndex(setIndex)==setIndex or setIndex==0 then
 			return true
@@ -182,13 +174,70 @@ function canCraftItemHere(station, setIndex)
 
 end
 
+local CraftSmithingRequestItem = 
+{
+	["pattern"] =0,
+	["style"] = 0,
+	["trait"] = 0,
+	["materialIndex"] = 0,
+	["materialQuantity"] = 0,
+	["setIndex"] = 0,
+	["quality"] = 0,
+	["useUniversalStyleItem"] = false,
+}
+
+
+function canCraftItem(craftRequestTable)
+	--CanSmithingStyleBeUsedOnPattern()
+	-- Check stylemats
+	if GetCurrentSmithingStyleItemCount(craftRequestTable["style"]) >0 then
+		-- Check trait mats
+		if GetCurrentSmithingTraitItemCount(craftRequestTable["trait"])> 0 or craftRequestTable["trait"]==1 then
+			-- Check wood/ingot/cloth mats
+			if GetCurrentSmithingMaterialItemCount(craftRequestTable["pattern"],craftRequestTable["materialIndex"])>craftRequestTable["materialQuantity"] then
+				-- Check if enough traits are known
+				local _,_,_,_,traitsRequired, traitsKnown = GetSmithingPatternInfo(craftRequestTable["pattern"])
+				if traitsRequired<= traitsKnown then
+					-- Check if the specific trait is known
+					if IsSmithingTraitKnownForResult(craftRequestTable["pattern"], craftRequestTable["materialIndex"], craftRequestTable["materialQuantity"],craftRequestTable["style"], craftRequestTable["trait"]) then
+						-- Check if the style is known for that piece
+						if IsSmithingStyleKnown(craftRequestTable["style"], craftRequestTable["pattern"]) then
+							return true
+						else
+							d("Style Unknown")
+						end
+						d("Trait unknown")
+					end
+				else
+					d("Not enough traits known")
+				end
+			else
+				d("Not enough materials")
+			end
+		else
+			d("Not enough trait mats")
+		end
+	else
+		d("Not enough style mats")
+	end
+	return false
+	
+end
 
 function LibLazyCrafting:Init()
 
 	-- Same as the normal crafting function, with a few extra parameters.
+	-- However, doesn't craft it, just adds it to the queue. (TODO: Maybe change this? But do we want auto craft?)
 	-- StationOverride 
+	-- test: /script LLC_CraftSmithingItem(1, 1, 7, 2, 1, false, 1, 0, 0 )
+	-- test: /script LLC_CraftSmithingItem(1, 1, 7, 2, 1, false, 5, 0, 0)
+
 	function LLC_CraftSmithingItem(patternIndex, materialIndex, materialQuantity, styleIndex, traitIndex, useUniversalStyleItem, stationOverride, setIndex, quality)
 		local station
+		if not (stationOverride==CRAFTING_TYPE_BLACKSMITHING or stationOverride == CRAFTING_TYPE_WOODWORKING or stationOverride == CRAFTING_TYPE_CLOTHIER) then
+			d("Invalid Station")
+			return
+		end
 		--Handle the extra values. If they're nil, assign default values.
 		if not quality then setIndex = 0 end
 		if not quality then quality = 0 end
@@ -205,37 +254,52 @@ function LibLazyCrafting:Init()
 			station = stationOverride
 		end
 
+		-- create smithing request table and add to the queue
+		d("Item added")
+		craftingQueue[station][#craftingQueue[station] + 1] =
+		{
+			["pattern"] =patternIndex,
+			["style"] = styleIndex,
+			["trait"] = traitIndex,
+			["materialIndex"] = materialIndex,
+			["materialQuantity"] = materialQuantity,
+			["setIndex"] = setIndex,
+			["quality"] = quality,
+			["useUniversalStyleItem"] = useUniversalStyleItem,
+		}
 
-		if canCraftItemHere(station, setIndex) then
-			if quality>0 then
+	end
+
+	function LLC_CraftQueue()
+
+		local station = GetCraftingInteractionType()
+		if station == 0 then d("You must be at a crafting station") return end
+		d(craftingQueue[station][1])
+		if canCraftItemHere(station, craftingQueue[station][1]["setIndex"]) and not IsPerformingCraftProcess() then
+			local craftThis = craftingQueue[station][1]
+			if not craftThis then d("Nothing queued") return end
+			if canCraftItem(craftThis) then
+				local patternIndex, materialIndex, materialQuantity, styleIndex, traitIndex, quality = craftThis["pattern"], craftThis["materialIndex"], craftThis["materialQuantity"], craftThis["style"], craftThis["trait"], craftThis["quality"]
 				waitingOnSmithingCraftComplete = {}
 				waitingOnSmithingCraftComplete["slotID"] = FindFirstEmptySlotInBag(BAG_BACKPACK)
-				local itemLink = GetSmithingPatternResultLink(patternIndex, materialIndex, materialQuantity, styleIndex, traitIndex, 0)
-				CraftSmithingItem(patternIndex, materialIndex, materialQuantity, styleIndex, traitIndex, useUniversalStyleItem)
-
-				local ItemCreater = GetDisplayName()
-				local FinalQuality = quality
+				waitingOnSmithingCraftComplete["itemLink"] = GetSmithingPatternResultLink(patternIndex, materialIndex, materialQuantity, styleIndex, traitIndex, 0)
+				waitingOnSmithingCraftComplete["craftFunction"] = 
+				function()
+					CraftSmithingItem(patternIndex, materialIndex, materialQuantity, styleIndex, traitIndex, useUniversalStyleItem)
+				end
+				waitingOnSmithingCraftComplete["craftFunction"]()
+				waitingOnSmithingCraftComplete["creater"] = GetDisplayName()
+				waitingOnSmithingCraftComplete["finalQuality"] = quality
 
 				return
 			else
-				CraftSmithingItem(patternIndex, materialIndex, materialQuantity, styleIndex, traitIndex, useUniversalStyleItem)
+				d("User does not have the skill to craft this")
 			end
+
 		else
-			-- create smithing request table and add to te queue
-			craftingQueue[station] =
-			{
-				["pattern"] =patternIndex,
-				["style"] = styleIndex,
-				["trait"] = traitIndex,
-				["materialIndex"] = materialIndex,
-				["materialQuantity"] = materialQuantity,
-				["setIndex"] = setIndex,
-				["quality"] = quality,
-			}
-		
+			if IsPerformingCraftProcess() then d("Already Crafting") else d("Item cannot be crafted here") end
 		end
 	end
-
 
 	-- We do take the bag and slot index here, because we need to know what to upgrade
 	function LLC_ImproveSmithingItem(BagIndex, SlotIndex, newQuality)
@@ -264,6 +328,10 @@ function LibLazyCrafting:Init()
 	function LLC_GetSmithingPatternInfo(patternIndex, station, set)
 	end
 
+	function LLC_GetSetIndexTable()
+		return SetIndexes
+	end
+
 
 	-- Why use this instead of the EVENT_CRAFT_COMPLETE?
 	-- Using this will allow the library to tell you how the craft failed, at least for some problems.
@@ -271,7 +339,7 @@ function LibLazyCrafting:Init()
 	-- AddonName is your addon. It will be used as a reference to the function
 	-- funct is the function that will be called where:
 	-- funct(event, station, LLCResult)
-	function LLC_SetCraftCompleteFunction(AddonName, funct)
+	function LLC_DesignateCraftCompleteFunction(AddonName, funct)
 		craftResultFunctions[AddonName] = funct
 	end
 
