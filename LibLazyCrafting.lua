@@ -5,7 +5,7 @@ Version: 0.1
 
 This is a work in progress.
 ]]--
-
+--- also testing
 -- Initialize libraries
 local libLoaded
 local LIB_NAME, VERSION = "LibLazyCrafting", 0.1
@@ -350,7 +350,7 @@ function LibLazyCrafting:Init()
 	LLC_ITEM_TO_IMPROVE_NOT_FOUND = 2 -- extra result: Improvement request table
 	LLC_INSUFFICIENT_MATERIALS = 3 -- extra result: what is missing, item identifier
 	LLC_INSUFFICIENT_SKILL  = 4 -- extra result: what skills are missing; both if not enough traits, not enough styles, or trait unknown
-	
+
 
 end
 
