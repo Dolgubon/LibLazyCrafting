@@ -12,7 +12,7 @@ local LIB_NAME, VERSION = "LibLazyCrafting", 0.1
 local LibLazyCrafting, oldminor = LibStub:NewLibrary(LIB_NAME, VERSION)
 if not LibLazyCrafting then return end
 
-
+-- test test test
 -- First is the name of the set. Second is the name of the equipment. Third is the number of required traits.
 -- This is pretty much arbitrary, sorted by when the set was introduced, and how many traits are needed.
 local SetIndexes =
