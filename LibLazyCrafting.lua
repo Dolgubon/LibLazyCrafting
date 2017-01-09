@@ -5,7 +5,7 @@ Version: 0.1
 
 This is a work in progress.
 ]]--
---- also testing
+--- also testing test
 -- Initialize libraries
 local libLoaded
 local LIB_NAME, VERSION = "LibLazyCrafting", 0.1
