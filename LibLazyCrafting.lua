@@ -94,6 +94,7 @@ local craftingQueue =
 --Template for an improvement request
 local ImprovementRequestItem = 
 {
+	["Requester"] = "", -- ADDON NAME
 	["ItemLink"] = "",
 	["ItemBagID"] = 0,
 	["ItemSlotID"] = 0,
@@ -232,7 +233,7 @@ function LibLazyCrafting:Init()
 	-- test: /script LLC_CraftSmithingItem(1, 1, 7, 2, 1, false, 1, 0, 0 )
 	-- test: /script LLC_CraftSmithingItem(1, 1, 7, 2, 1, false, 5, 0, 0)
 
-	function LLC_CraftSmithingItem(patternIndex, materialIndex, materialQuantity, styleIndex, traitIndex, useUniversalStyleItem, stationOverride, setIndex, quality)
+	function LLC_CraftSmithingItem(patternIndex, materialIndex, materialQuantity, styleIndex, traitIndex, useUniversalStyleItem, stationOverride, setIndex, quality, addonName)
 		local station
 		if not (stationOverride==CRAFTING_TYPE_BLACKSMITHING or stationOverride == CRAFTING_TYPE_WOODWORKING or stationOverride == CRAFTING_TYPE_CLOTHIER) then
 			d("Invalid Station")
@@ -258,6 +259,7 @@ function LibLazyCrafting:Init()
 		d("Item added")
 		craftingQueue[station][#craftingQueue[station] + 1] =
 		{
+			["Requester"] = addonName,
 			["pattern"] =patternIndex,
 			["style"] = styleIndex,
 			["trait"] = traitIndex,
@@ -338,10 +340,17 @@ function LibLazyCrafting:Init()
 	-- Or that the craft was completed.
 	-- AddonName is your addon. It will be used as a reference to the function
 	-- funct is the function that will be called where:
-	-- funct(event, station, LLCResult)
+	-- funct(event, station, LLCResult, extraLLCResultInfo)
+
 	function LLC_DesignateCraftCompleteFunction(AddonName, funct)
 		craftResultFunctions[AddonName] = funct
 	end
+	-- Response codes
+	LLC_CRAFT_SUCCESS = 1 -- extra result: Position of item, item link, maybe other stuff?
+	LLC_ITEM_TO_IMPROVE_NOT_FOUND = 2 -- extra result: Improvement request table
+	LLC_INSUFFICIENT_MATERIALS = 3 -- extra result: what is missing, item identifier
+	LLC_INSUFFICIENT_SKILL  = 4 -- extra result: what skills are missing; both if not enough traits, not enough styles, or trait unknown
+	
 
 end
 
