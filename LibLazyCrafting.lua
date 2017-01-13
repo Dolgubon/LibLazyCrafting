@@ -5,56 +5,23 @@ Version: 0.1
 
 This is a work in progress.
 ]]--
---- test 
+
+------------------
+--NOTES
+-- Should Legendary upgrading be attempted? Is the risk worth it?
+-- How to structure requests, and internal tables
+-- What would addon developers want, to be able to interact with the library?
+
 -- Initialize libraries
 local libLoaded
 local LIB_NAME, VERSION = "LibLazyCrafting", 0.1
 local LibLazyCrafting, oldminor = LibStub:NewLibrary(LIB_NAME, VERSION)
 if not LibLazyCrafting then return end
 
----- tessoijtoij
+
 -- First is the name of the set. Second is the name of the equipment. Third is the number of required traits.
 -- This is pretty much arbitrary, sorted by when the set was introduced, and how many traits are needed.
-local SetIndexes =
-{
-	[0]  = {"No Set"						,"No Set"					,0},
-	[1]  = {"Death's Wind"					,"Death's Wind"				,2},
-	[2]  = {"Night's Silence"				,"Night's Silence"			,2},
-	[3]  = {"Ashen Grip"					,"Ashen Grip"				,2},
-	[4]  = {"Torug's Pact"					,"Torug's Pact"				,3},
-	[5]  = {"Twilight's Embrace"			,"Twilight's Embrace"		,3},
-	[6]  = {"Armour of the Seducer"			,"Seducer"					,3},
-	[7]  = {"Magnus' Gift"					,"Magnus'"					,4},
-	[8]  = {"Hist Bark"						,"Hist Bark"				,4},
-	[9]  = {"Whitestrake's Retribution"		,"Whitestrake's"			,4},
-	[10] = {"Vampire's Kiss"				,"Vampire's Kiss"			,5},
-	[11] = {"Song of the Lamae"				,"Song of the Lamae"		,5},
-	[12] = {"Alessia's Bulwark"				,"Alessia's Bulwark"		,5},
-	[13] = {"Night Mother's Gaze"			,"Night Mother"				,6},
-	[14] = {"Willow's Path"					,"Willow's Path"			,6},
-	[15] = {"Hunding's Rage"				,"Hunding's Rage"			,6},
-	[16] = {"Kagrenac's Hope"				,"Kagrenac's Hope"			,8},
-	[17] = {"Orgnum's Scales"				,"Orgnum's Scales"			,8},
-	[18] = {"Eyes of Mara"					,"Eyes of Mara"				,8},
-	[19] = {"Shalidor's Curse"				,"Shalidor's Curse"			,8},
-	[20] = {"Oblivion's Foe"				,"Oblivion's Foe"			,8},
-	[21] = {"Spectre's Eye"					,"Spectre's Eye"			,8},
-	[22] = {"Way of the Arena"				,"Arena"					,8},
-	[23] = {"Twice-Born Star"				,"Twice Born Star"			,9},
-	[24] = {"Noble's Conquest"				,"Noble's Conquest"			,5},
-	[25] = {"Redistributor"					,"Redistributor"			,7},
-	[26] = {"Armour Master"					,"Armor Master"				,9},
-	[27] = {"Trial by Fire"					,"Trials"					,3},
-	[28] = {"Law of Julianos"				,"Julianos"					,6},
-	[29] = {"Morkudlin"						,"Morkudlin"				,9},
-	[30] = {"Tava's Favour"					,"Tava's Favor"				,5},
-	[31] = {"Clever Alchemist"				,"Clever Alchemist"			,7},
-	[32] = {"Eternal Hunt"					,"Eternal Hunt"				,9},
-	[33] = {"Kvatch Gladiator"				,"Gladiator's"				,5},
-	[34] = {"Varen's Legacy"				,"Varen's Legacy"			,7},
-	[35] = {"Pelinal's Aptitude"			,"Pelinal's"				,9},
-
-}
+local SetIndexes ={}
 
 -- Index starts at 0 because that's how many upgrades are needed.
 local qualityIndexes = 
@@ -86,6 +53,11 @@ local craftingQueue =
 	[CRAFTING_TYPE_ALCHEMY] = {},
 	[CRAFTING_TYPE_PROVISIONING] = {},
 }
+
+-- Not sure if this is needed, but we'll see. Values here will simply be references to the table in craftingQueue
+-- This table will probably be meant as an easy way for addons to get all of their requests
+-- The former table can't easily be used that way, because it's not sorted by addon name. 
+
 
 --NOTE: Templates are just for reference
 --Template for a craft request. Changes into an improvement request after crafting if quality>0
@@ -138,8 +110,15 @@ local waitingOnSmithingCraftComplete =
 	["finalQuality"] = "",
 }
 
+-- Clears a table, and ALL references to it! 
+local function clearTable(t)
+	for k,v in pairs(t) do
+		t[k] = nil
+	end
+end
+
 -- Just a random help function; can probably be taken out but I'll leave it in for now
-function GetID(itemLink) return string.match(itemLink,"|H%d:item:(%d+)") end
+function GetItemIDFromLink(itemLink) return string.match(itemLink,"|H%d:item:(%d+)") end
 
 -- Returns SetIndex, Set Full Name, Set Item Name, Traits Required
 function GetCurrentSetInteractionIndex()
@@ -225,7 +204,39 @@ function canCraftItem(craftRequestTable)
 	
 end
 
+
+function findItem(itemID)
+	for i=0, GetBagSize(BAG_BANK) do
+		if GetItemId(BAG_BANK,i)==itemID  then
+			return BAG_BANK, i
+		end
+	end
+	for i=0, GetBagSize(BAG_BACKPACK) do
+		if GetItemId(BAG_BACKPACK,i)==itemID then
+			return BAG_BACKPACK,i
+		end
+	end
+	if GetItemId(BAG_VIRTUAL, itemID) then
+		
+		return BAG_VIRTUAL, itemID
+
+	end
+	return nil, item
+end
+
 function LibLazyCrafting:Init()
+
+
+	function LibLazyCrafting:AddRequestingAddon(addonName)
+		-- Add the 'open functions' here.
+		local LLCAddonInteractionTable = {}
+		if LLCAddonInteractionTable.addonName then
+			d("LibLazyCrafting:AddRequestingAddon has been called twice, or the chosen reference to the interaction table has already been used")
+		end
+		LLCAddonInteractionTable.addonName = addonName -- Ensures that any request will have an addon name attached to it.
+
+		return LLCAddonInteractionTable
+	end
 
 	-- Same as the normal crafting function, with a few extra parameters.
 	-- However, doesn't craft it, just adds it to the queue. (TODO: Maybe change this? But do we want auto craft?)
@@ -383,3 +394,45 @@ local function OnAddonLoaded()
 end
 
 EVENT_MANAGER:RegisterForEvent(LIB_NAME, EVENT_ADD_ON_LOADED, OnAddonLoaded)
+
+
+SetIndexes =
+{
+	[0]  = {"No Set"						,"No Set"					,0},
+	[1]  = {"Death's Wind"					,"Death's Wind"				,2},
+	[2]  = {"Night's Silence"				,"Night's Silence"			,2},
+	[3]  = {"Ashen Grip"					,"Ashen Grip"				,2},
+	[4]  = {"Torug's Pact"					,"Torug's Pact"				,3},
+	[5]  = {"Twilight's Embrace"			,"Twilight's Embrace"		,3},
+	[6]  = {"Armour of the Seducer"			,"Seducer"					,3},
+	[7]  = {"Magnus' Gift"					,"Magnus'"					,4},
+	[8]  = {"Hist Bark"						,"Hist Bark"				,4},
+	[9]  = {"Whitestrake's Retribution"		,"Whitestrake's"			,4},
+	[10] = {"Vampire's Kiss"				,"Vampire's Kiss"			,5},
+	[11] = {"Song of the Lamae"				,"Song of the Lamae"		,5},
+	[12] = {"Alessia's Bulwark"				,"Alessia's Bulwark"		,5},
+	[13] = {"Night Mother's Gaze"			,"Night Mother"				,6},
+	[14] = {"Willow's Path"					,"Willow's Path"			,6},
+	[15] = {"Hunding's Rage"				,"Hunding's Rage"			,6},
+	[16] = {"Kagrenac's Hope"				,"Kagrenac's Hope"			,8},
+	[17] = {"Orgnum's Scales"				,"Orgnum's Scales"			,8},
+	[18] = {"Eyes of Mara"					,"Eyes of Mara"				,8},
+	[19] = {"Shalidor's Curse"				,"Shalidor's Curse"			,8},
+	[20] = {"Oblivion's Foe"				,"Oblivion's Foe"			,8},
+	[21] = {"Spectre's Eye"					,"Spectre's Eye"			,8},
+	[22] = {"Way of the Arena"				,"Arena"					,8},
+	[23] = {"Twice-Born Star"				,"Twice Born Star"			,9},
+	[24] = {"Noble's Conquest"				,"Noble's Conquest"			,5},
+	[25] = {"Redistributor"					,"Redistributor"			,7},
+	[26] = {"Armour Master"					,"Armor Master"				,9},
+	[27] = {"Trial by Fire"					,"Trials"					,3},
+	[28] = {"Law of Julianos"				,"Julianos"					,6},
+	[29] = {"Morkudlin"						,"Morkudlin"				,9},
+	[30] = {"Tava's Favour"					,"Tava's Favor"				,5},
+	[31] = {"Clever Alchemist"				,"Clever Alchemist"			,7},
+	[32] = {"Eternal Hunt"					,"Eternal Hunt"				,9},
+	[33] = {"Kvatch Gladiator"				,"Gladiator's"				,5},
+	[34] = {"Varen's Legacy"				,"Varen's Legacy"			,7},
+	[35] = {"Pelinal's Aptitude"			,"Pelinal's"				,9},
+
+}
