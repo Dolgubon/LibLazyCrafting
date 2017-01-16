@@ -34,73 +34,77 @@ local qualityIndexes =
 }
 
 
-local craftResultFunctions = 
-{
 
-}
 --GetItemLinkSetInfo(string itemLink, boolean equipped)
 --GetItemLinkInfo(string itemLink)
 --GetItemId(number bagId, number slotIndex)
 --|H1:item:72129:369:50:26845:370:50:0:0:0:0:0:0:0:0:0:15:1:1:0:17:0|h|h
 
--- Crafting request Queue. Split by stations. Not sure how to handle multiple stations for furniture.
+-- Crafting request Queue. Split by addon. Further split by station. Each request has a timestamp for when it was requested.
+-- Due to how requests are added, each addon's requests withing station should be sorted by oldest to newest. We'll assume that. (maybe check once in a while)
+-- Thus, all that's needed to find the oldest request is cycle through each addon, and check only their first request.
+-- Unless a user has hundreds of addons using this library (unlikely) it shouldn't be a big strain. (shouldn't anyway)
+-- Not sure how to handle multiple stations for furniture. needs more research for that.
 local craftingQueue = 
 {
-	[CRAFTING_TYPE_WOODWORKING] = {},
-	[CRAFTING_TYPE_BLACKSMITHING] = {},
-	[CRAFTING_TYPE_CLOTHIER] = {},
-	[CRAFTING_TYPE_ENCHANTING] = {},
-	[CRAFTING_TYPE_ALCHEMY] = {},
-	[CRAFTING_TYPE_PROVISIONING] = {},
-}
-
--- Not sure if this is needed, but we'll see. Values here will simply be references to the table in craftingQueue
--- This table will probably be meant as an easy way for addons to get all of their requests
--- The former table can't easily be used that way, because it's not sorted by addon name. 
-
-
---NOTE: Templates are just for reference
---Template for a craft request. Changes into an improvement request after crafting if quality>0
-
-
---Template for an improvement request
-local ImprovementRequestItem = 
-{
-	["Requester"] = "", -- ADDON NAME
-	["ItemLink"] = "",
-	["ItemBagID"] = 0,
-	["ItemSlotID"] = 0,
-	["ItemUniqueID"] = 0,
-	["ItemCreater"] = "",
-	["FinalQuality"] = 0,
-}
-
-local CraftGlyphRequest = 
-{
-	["essenceItemID"] = 0,
-	["aspectItemID"] = 0,
-	["potencyItemID"] = 0,
-}
-
-local CraftAlchemyRequest = 
-{
-	["SolvenItemID"] = 0,
-	["Reagents"] = 
+	["GenericTesting"] = {}, -- This is for say, calling from chat.
+	["ExampleAddon"] = -- This contains examples of all the crafting requests. It is removed upon initialization. Most values are random/default.
 	{
-		[1] = 0,
-		[2] = 0,
-		[3] = 0,
-	}
-}
-
-local ProvisioningRequest = 
-{
-	["RecipeID"] = 0,
+		["craftResultCallback"] = function() --[[ handler - specific to each single addon.]] end,
+		[CRAFTING_TYPE_WOODWORKING] = 
+		{
+			["type"] = "smithing",
+			["pattern"] =0,
+			["style"] = 0,
+			["trait"] = 0,
+			["materialIndex"] = 0,
+			["materialQuantity"] = 0,
+			["setIndex"] = 0,
+			["quality"] = 0,
+			["useUniversalStyleItem"] = false,
+			["timestamp"] = 1111111, 
+		},
+		[CRAFTING_TYPE_BLACKSMITHING] = 
+		{
+			["type"] = "improvement",
+			["Requester"] = "", -- ADDON NAME
+			["ItemLink"] = "",
+			["ItemBagID"] = 0,
+			["ItemSlotID"] = 0,
+			["ItemUniqueID"] = 0,
+			["ItemCreater"] = "",
+			["FinalQuality"] = 0,
+			["timestamp"] = 1112222,
+		},
+		[CRAFTING_TYPE_ENCHANTING] = 
+		{
+			["essenceItemID"] = 0,
+			["aspectItemID"] = 0,
+			["potencyItemID"] = 0,
+			["timestamp"] = 12345667,
+		},
+		[CRAFTING_TYPE_ALCHEMY] = 
+		{	
+			["SolvenItemID"] = 0,
+			["Reagents"] = 
+			{
+				[1] = 0,
+				[2] = 0,
+				[3] = 0,
+			},
+			["timestamp"] = 1234555,
+		},
+		[CRAFTING_TYPE_PROVISIONING] = 
+		{
+			["RecipeID"] = 0,
+			["timestamp"] = 111111,
+		},
+	},
 }
 
 -- This is filled out after crafting. It's so we can make sure that:
 -- A: The item was crafted and
--- B: The unique Item ID so we can know exactly what we made.
+-- B: Find it. Includes itemLink and other stuff just in case it doesn't go to the expected slot (It should)
 local waitingOnSmithingCraftComplete = 
 {
 	["craftFunction"] = function() end,
@@ -110,14 +114,8 @@ local waitingOnSmithingCraftComplete =
 	["finalQuality"] = "",
 }
 
--- Clears a table, and ALL references to it! 
-local function clearTable(t)
-	for k,v in pairs(t) do
-		t[k] = nil
-	end
-end
-
 -- Just a random help function; can probably be taken out but I'll leave it in for now
+-- Pretty helpful function for exploration.
 function GetItemIDFromLink(itemLink) return string.match(itemLink,"|H%d:item:(%d+)") end
 
 -- Returns SetIndex, Set Full Name, Set Item Name, Traits Required
@@ -224,16 +222,76 @@ function findItem(itemID)
 	return nil, item
 end
 
+local function LLC_CraftSmithingItem(self, patternIndex, materialIndex, materialQuantity, styleIndex, traitIndex, useUniversalStyleItem, stationOverride, setIndex, quality, addonName)
+	local station
+	if type(self) == "number" then
+		d("Please call using colon notation: e.g LLC:CraftSmithingItem()")
+	end
+	if not (stationOverride==CRAFTING_TYPE_BLACKSMITHING or stationOverride == CRAFTING_TYPE_WOODWORKING or stationOverride == CRAFTING_TYPE_CLOTHIER) then
+		d("Invalid Station")
+		return
+	end
+	--Handle the extra values. If they're nil, assign default values.
+	if not quality then setIndex = 0 end
+	if not quality then quality = 0 end
+	if not stationOverride then 
+		if overallStationOverride then
+			station = overallStationOverride
+		else
+			station = GetCraftingInteractionType()
+			if station == 0 then
+				d("Error: You must be at a crafting station, or specify a station Override")
+			end
+		end
+	else
+		station = stationOverride
+	end
+
+	-- create smithing request table and add to the queue
+	d("Item added")
+	self.personalQueue[station][#self.personalQueue[station] + 1] =
+	{
+		["pattern"] =patternIndex,
+		["style"] = styleIndex,
+		["trait"] = traitIndex,
+		["materialIndex"] = materialIndex,
+		["materialQuantity"] = materialQuantity,
+		["setIndex"] = setIndex,
+		["quality"] = quality,
+		["useUniversalStyleItem"] = useUniversalStyleItem,
+		["timestamp"] = GetTimeStamp(),
+	}
+
+end
+
 function LibLazyCrafting:Init()
 
-
-	function LibLazyCrafting:AddRequestingAddon(addonName)
+	-- Call this to register the addon with the library.
+	-- Really this is mostly arbitrary, I just want to force an addon to give me their name ;p. But it's an easy way, and only needs to be done once.
+	-- Returns a table with all the functions, as well as the addon's personal queue.
+	-- nilable:boolean Autocraft will cause the library to automatically craft anything in the queue when at a crafting station. 
+	function LibLazyCrafting:AddRequestingAddon(addonName, autocraft)
 		-- Add the 'open functions' here.
 		local LLCAddonInteractionTable = {}
-		if LLCAddonInteractionTable.addonName then
-			d("LibLazyCrafting:AddRequestingAddon has been called twice, or the chosen reference to the interaction table has already been used")
+		if LLCAddonInteractionTable[addonName] then
+			d("LibLazyCrafting:AddRequestingAddon has been called twice, or the chosen addon name has already been used")
 		end
-		LLCAddonInteractionTable.addonName = addonName -- Ensures that any request will have an addon name attached to it.
+		craftingQueue[addonName] = { {}, {}, {}, {}, {}, {},} -- Initialize the addon's personal queue. The tables are empty, station specific queues.
+
+		-- Ensures that any request will have an addon name attached to it, if needed.
+		LLCAddonInteractionTable["addonName"] = addonName 
+		-- The crafting queue is added. Consider hiding this.
+		-- Pro: It hides it, prevents addon people from messing with the queue. More OOP. Don't have to deal with devs messing other addons up
+		-- Cons: Prevents them from messing with it. Maybe no scroll menus! It's up to them if they want to manually add something, too.
+		-- But can easily add 'if type(timestamp) ~= number then ignore end.' On the other hand, addons can mess with the timestamps, and change priority
+		LLCAddonInteractionTable["personalQueue"]  = craftingQueue[addonName]
+
+		LLCAddonInteractionTable["autocraft"] = autocraft
+		-- Add all the functions to the interaction table!!
+		-- On the other hand, then addon devs can mess up the functions?
+		LLCAddonInteractionTable.CraftSmithingItem = LLC_CraftSmithingItem
+		
+
 
 		return LLCAddonInteractionTable
 	end
@@ -244,44 +302,7 @@ function LibLazyCrafting:Init()
 	-- test: /script LLC_CraftSmithingItem(1, 1, 7, 2, 1, false, 1, 0, 0 )
 	-- test: /script LLC_CraftSmithingItem(1, 1, 7, 2, 1, false, 5, 0, 0)
 
-	function LLC_CraftSmithingItem(patternIndex, materialIndex, materialQuantity, styleIndex, traitIndex, useUniversalStyleItem, stationOverride, setIndex, quality, addonName)
-		local station
-		if not (stationOverride==CRAFTING_TYPE_BLACKSMITHING or stationOverride == CRAFTING_TYPE_WOODWORKING or stationOverride == CRAFTING_TYPE_CLOTHIER) then
-			d("Invalid Station")
-			return
-		end
-		--Handle the extra values. If they're nil, assign default values.
-		if not quality then setIndex = 0 end
-		if not quality then quality = 0 end
-		if not stationOverride then 
-			if overallStationOverride then
-				station = overallStationOverride
-			else
-				station = GetCraftingInteractionType()
-				if station == 0 then
-					d("Error: You must be at a crafting station, or specify a station Override")
-				end
-			end
-		else
-			station = stationOverride
-		end
 
-		-- create smithing request table and add to the queue
-		d("Item added")
-		craftingQueue[station][#craftingQueue[station] + 1] =
-		{
-			["Requester"] = addonName,
-			["pattern"] =patternIndex,
-			["style"] = styleIndex,
-			["trait"] = traitIndex,
-			["materialIndex"] = materialIndex,
-			["materialQuantity"] = materialQuantity,
-			["setIndex"] = setIndex,
-			["quality"] = quality,
-			["useUniversalStyleItem"] = useUniversalStyleItem,
-		}
-
-	end
 
 	function LLC_CraftQueue()
 
@@ -376,9 +397,9 @@ end
 -- the  craft was successful, but let's check anyway.
 local function CraftComplete(event, station)
 	local LLCResult = nil
-	for k, v in pairs(craftResultFunctions) do
-		v(event, station, LLCResult)
-	end
+	--for k, v in pairs(craftResultFunctions) do
+	--	v(event, station, LLCResult)
+	--end
 end
 
 
@@ -436,3 +457,29 @@ SetIndexes =
 	[35] = {"Pelinal's Aptitude"			,"Pelinal's"				,9},
 
 }
+--[[
+function ActivityManager:QueueActivity(activity)
+    local queue, lookup = self.queue, self.lookup
+    local key = activity:GetKey()
+    if(lookup[key]) then return false end
+    queue[#queue + 1] = activity
+    lookup[key] = activity
+    table.sort(queue, ByPriority)
+    return true
+end
+
+function ActivityManager:RemoveActivity(activity)
+    self.lookup[activity:GetKey()] = nil
+    for i = 1, #self.queue do
+        if(self.queue[i]:GetKey() == activity:GetKey()) then
+            table.remove(self.queue, i)
+            break
+        end
+    end
+end
+
+
+
+
+
+]]
