@@ -144,7 +144,7 @@ function GetItemIDFromLink(itemLink) return tonumber(string.match(itemLink,"|H%d
 -- Mostly a queue function, but kind of a helper function too
 local function isItemCraftable(request, station)
 	if LibLazyCrafting.craftInteractionTables[station]["isItemCraftable"] then 
-		return LibLazyCrafting.craftInteractionTables[station]["isItemCraftable"](station) 
+		return LibLazyCrafting.craftInteractionTables[station]["isItemCraftable"](station, request) 
 	end
 
 	if station ==CRAFTING_TYPE_ENCHANTING or station == CRAFTING_TYPE_PROVISIONING or station == CRAFTING_TYPE_ALCHEMY then
@@ -165,6 +165,24 @@ function findItemLocationById(itemID)
 			return BAG_BACKPACK,i
 		end
 	end
+	if GetItemId(BAG_VIRTUAL, item) ~=0 then
+		
+		return BAG_VIRTUAL, itemID
+
+	end
+	return nil, item
+end
+function findItemLocationById(itemID)
+	for i=0, GetBagSize(BAG_BANK) do
+		if GetItemId(BAG_BANK,i)==itemID  then
+			return BAG_BANK, i
+		end
+	end
+	for i=0, GetBagSize(BAG_BACKPACK) do
+		if GetItemId(BAG_BACKPACK,i)==itemID then
+			return BAG_BACKPACK,i
+		end
+	end
 	if GetItemId(BAG_VIRTUAL, itemID) then
 		
 		return BAG_VIRTUAL, itemID
@@ -172,7 +190,6 @@ function findItemLocationById(itemID)
 	end
 	return nil, item
 end
-
 
 LibLazyCrafting.functionTable.findItemLocationById = findItemLocationById
 
@@ -193,13 +210,20 @@ LibLazyCrafting.sortCraftQueue = sortCraftQueue
 
 -- Finds the highest priority request.
 local function findEarliestRequest(station)
+
 	local earliest = {["timestamp"] = GetTimeStamp() + 100000} -- should be later than anything else, as it's 'in the future'
 	local addonName = nil
 	local position = 0
+
 	for addon, requestTable in pairs(craftingQueue) do
+
 		for i = 1, #requestTable[station] do
+
+
 			if isItemCraftable(requestTable[station][i],station)  and requestTable[station][i]["autocraft"] then
+
 				if requestTable[station][i]["timestamp"] < earliest["timestamp"] then
+
 					earliest = requestTable[station][i]
 					addonName = addon
 					position = i
@@ -221,7 +245,15 @@ end
 
 LibLazyCrafting.findEarliestRequest = findEarliestRequest
 
+local function LLC_CraftAllItems(self)
+	for i = 1, #craftingQueue[self.addonName] do
+		for j = 1, #craftingQueue[self.addonName][i] do
+			craftingQueue[self.addonName][i][j]["autocraft"] = true 
+		end
+	end
+end
 
+LibLazyCrafting.functionTable.CraftAllItems = LLC_CraftAllItems
 
 function LibLazyCrafting:Init()
 
@@ -332,7 +364,7 @@ function LibLazyCrafting:Init()
 	LLC_INSUFFICIENT_SKILL  = 4 -- extra result: what skills are missing; both if not enough traits, not enough styles, or trait unknown
 
 	LLC_Global = LibLazyCrafting:AddRequestingAddon("LLC_Global",true, function(event, station, result) d("Craft")
-		d(result)d(tostring(result.quantity).." "..result.link.." crafted") end)
+		d(tostring(result.quantity).." "..result.link.." crafted at slot "..result.slot) end)
 
 	--craftingQueue["ExampleAddon"] = nil
 end
@@ -340,6 +372,7 @@ end
 
 -- Called when a crafting station is opened. Should then craft anything needed in the queue
 local function CraftInteract(event, station)
+
 	for k,v in pairs(LibLazyCrafting.craftInteractionTables) do
 		if v["check"](station) then
 			v["function"](station)
@@ -347,16 +380,34 @@ local function CraftInteract(event, station)
 	end
 end
 
-LibLazyCrafting.craftInteract = craftInteract
+LibLazyCrafting.craftInteract = CraftInteract
 
--- Called when a crafting request is done. If this function is called, it probably means that 
--- the  craft was successful, but let's check anyway.
+local function endInteraction(event, station)
+	for k,v in pairs(LibLazyCrafting.craftInteractionTables) do
+		if v["check"](station) then
+			v["endInteraction"](station)
+
+		end
+	end
+end
+
+-- Called when a crafting request is done. 
+-- Note that this function is called both when you finish crafting and when you leave the station
+-- Additionally, the craft complete event is called BEFORE the end crafting station interaction event
+-- So this function will check if the interaction is still going on, and call the endinteraction function if needed
+-- which bypasses the event Manager, so that it is called first.
+timetest = 10
 local function CraftComplete(event, station)
 	local LLCResult = nil
 	for k,v in pairs(LibLazyCrafting.craftInteractionTables) do
 		if v["check"](station) then
-			v["complete"](station)
-			v["function"](station)
+			if GetCraftingInteractionType()==0 then
+				endInteraction(EVENT_END_CRAFTING_STATION_INTERACT, station)
+				zo_callLater(function() v["complete"](station) end, timetest)
+			else
+				v["complete"](station)
+				v["function"](station) 
+			end
 		end
 	end
 	--for k, v in pairs(craftResultFunctions) do
@@ -364,16 +415,7 @@ local function CraftComplete(event, station)
 	--end
 end
 
-local function endInteraction(event, station)
-	
-	for k,v in pairs(LibLazyCrafting.craftInteractionTables) do
-		if v["check"](station) then
-			v["endInteraction"](station)
-		end
-	end
 
-
-end
 
 
 local function OnAddonLoaded()
@@ -384,7 +426,7 @@ local function OnAddonLoaded()
 		EVENT_MANAGER:UnregisterForEvent(LIB_NAME, EVENT_ADD_ON_LOADED)
 		EVENT_MANAGER:RegisterForEvent(LIB_NAME, EVENT_CRAFTING_STATION_INTERACT,CraftInteract)
 		EVENT_MANAGER:RegisterForEvent(LIB_NAME, EVENT_CRAFT_COMPLETED, CraftComplete)
-		EVENT_MANAGER:RegisterForEvent(LIB_NAME, EVENT_END_CRAFTING_STATION_INTERACT, endInteraction)
+		--EVENT_MANAGER:RegisterForEvent(LIB_NAME, EVENT_END_CRAFTING_STATION_INTERACT, endInteraction)
 	end
 end
 

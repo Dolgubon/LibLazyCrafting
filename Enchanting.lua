@@ -48,7 +48,8 @@ local function LLC_CraftEnchantingGlyphItemID(self, potencyItemID, essenceItemID
 	)
 
 	sortCraftQueue()
-	if GetCraftingInteractionType()==CRAFTING_TYPE_ENCHANTING then d("goooooood") LibLazyCrafting.craftInteract() end
+	if GetCraftingInteractionType()==CRAFTING_TYPE_ENCHANTING then 
+		LibLazyCrafting.craftInteract(event, CRAFTING_TYPE_ENCHANTING) end
 end
 
 local function LLC_CraftEnchantingGlyph(self, potencyBagId, potencySlot, essenceBagId, essenceSlot, aspectBagId, aspectSlot)
@@ -68,11 +69,13 @@ local currentCraftAttempt =
 	["Requester"] = "",
 	["slot"]  = 0,
 	["link"] = "",
+	["callback"] = function() end,
+	["position"] = 0,
+
 }
 
-local timeGiven = 1000
+timeGiven = 1800
 local function LLC_EnchantingCraftinteraction(event, station)
-
 	local earliest, addon , position = LibLazyCrafting.findEarliestRequest(CRAFTING_TYPE_ENCHANTING)
 	if earliest then
 		local locations = 
@@ -83,22 +86,32 @@ local function LLC_EnchantingCraftinteraction(event, station)
 		select(2,findItemLocationById(earliest["essenceItemID"])),
 		findItemLocationById(earliest["aspectItemID"]),
 		}
-		CraftEnchantingItem(unpack(locations))
-		
-		currentCraftAttempt= copy(earliest)
-		currentCraftAttempt.callback = LibLazyCrafting.craftResultFunctions[addon]
-		currentCraftAttempt.slot = FindFirstEmptySlotInBag(BAG_BACKPACK)
-		currentCraftAttempt.link = GetEnchantingResultingItemLink(unpack(locations))
-		currentCraftAttempt.position = position
-		currentCraftAttempt.timestamp = GetTimeStamp()
-		currentCraftAttempt.addon = addon
-		timeGiven = timeGiven + 100
-		zo_callLater(function() SCENE_MANAGER:ShowBaseScene() d(timeGiven) end, timeGiven)
+		if locations[1] and locations[5] and locations[3] then
+			d("craft")
+			CraftEnchantingItem(unpack(locations))
+			
+			currentCraftAttempt= copy(earliest)
+			currentCraftAttempt.callback = LibLazyCrafting.craftResultFunctions[addon]
+			currentCraftAttempt.slot = FindFirstEmptySlotInBag(BAG_BACKPACK)
+			currentCraftAttempt.link = GetEnchantingResultingItemLink(unpack(locations))
+			currentCraftAttempt.position = position
+			currentCraftAttempt.timestamp = GetTimeStamp()
+			currentCraftAttempt.addon = addon
+
+			ENCHANTING.potencySound = SOUNDS["NONE"]
+			ENCHANTING.potencyLength = 0
+			ENCHANTING.essenceSound = SOUNDS["NONE"]
+			ENCHANTING.essenceLength = 0
+			ENCHANTING.aspectSound = SOUNDS["NONE"]
+			ENCHANTING.aspectLength = 0
+			--zo_callLater(function() SCENE_MANAGER:ShowBaseScene() end, timeGiven)
+		end
 	end
 end
 
-local function LLC_EnchantingCraftingComplete(event, station)
-	
+
+local function LLC_EnchantingCraftingComplete(event, station, lastCheck)
+
 	if GetItemLinkName(GetItemLink(BAG_BACKPACK, currentCraftAttempt.slot,0)) == GetItemLinkName(currentCraftAttempt.link)
 		and GetItemLinkQuality(GetItemLink(BAG_BACKPACK, currentCraftAttempt.slot,0)) == GetItemLinkQuality(currentCraftAttempt.link)
 		and (GetTimeStamp() - 4000) < currentCraftAttempt.timestamp
@@ -116,19 +129,23 @@ local function LLC_EnchantingCraftingComplete(event, station)
 		}
 		currentCraftAttempt.callback(LLC_CRAFT_SUCCESS, CRAFTING_TYPE_ENCHANTING, resultTable)
 		currentCraftAttempt = {}
+	elseif lastCheck then
+		-- give up on finding it.
+		currentCraftAttempt = {}
 	else
-		if GetCraftingInteractionType() == 0 then
-			-- must have exited the station early. 
-			-- Do nothing, I guess. Might need to come back to this later
-		end
+		-- further search
+		-- search again later
+		zo_callLater(function() LLC_EnchantingCraftingComplete(event, station, true) end,100)
 	end
 
 
 end
 
 local function LLC_EnchantingEndInteraction(event ,station)
-	d(GetItemLink(1,currentCraftAttempt.slot))
-	currentCraftAttempt = nil
+
+	local slot = FindFirstEmptySlotInBag(BAG_BACKPACK)
+	zo_callLater(function() d(GetItemLink(1,slot)) end, 3000)
+	--currentCraftAttempt = nil
 
 end
 
@@ -146,7 +163,5 @@ LibLazyCrafting.functionTable.CraftEnchantingItemId = LLC_CraftEnchantingGlyphIt
 LibLazyCrafting.functionTable.CraftEnchantingGlyph = LLC_CraftEnchantingGlyph
 
 --- testers:
--- /script LLC_Global:CraftEnchantingItemId(45816, 45838, 45851)
-
-
+-- /script LLC_Global:CraftEnchantingItemId(45830, 45838, 45851)
 
