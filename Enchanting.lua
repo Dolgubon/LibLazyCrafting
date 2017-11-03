@@ -1,8 +1,36 @@
+-----------------------------------------------------------------------------------
+-- Library Name: LibLazyCrafting
+-- Creator: Dolgubon (Joseph Heinzle)
+-- Library Ideal: Allow addons to craft anything, anywhere
+-- Library Creation Date: December, 2016
+-- Publication Date: Febuary 5, 2017
+--
+-- File Name: Enchanting.lua
+-- File Description: Contains the functions for Enchanting
+-- Load Order Requirements: After LibLazyCrafting.lua
+-- 
+-----------------------------------------------------------------------------------
+
 local LibLazyCrafting = LibStub("LibLazyCrafting")
 local sortCraftQueue = LibLazyCrafting.sortCraftQueue
 
+local widgetType = 'enchanting'
+local widgetVersion = 1
+if not LibLazyCrafting:RegisterWidget(widgetType, widgetVersion) then return false end
+
+local function dbug(...)
+	if not DolgubonGlobalDebugOutput then return end
+	DolgubonGlobalDebugOutput(...)
+end
+
+local craftingQueue = LibLazyCrafting.craftingQueue
+
 --------------------------------------
 -- ENCHANTING HELPER FUNCTIONS
+
+local function getItemLinkFromItemId(itemId) local name = GetItemLinkName(ZO_LinkHandler_CreateLink("Test Trash", nil, ITEM_LINK_TYPE,itemId, 1, 26, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 5, 0, 0, 0, 10000, 0)) 
+	return ZO_LinkHandler_CreateLink(zo_strformat("<<t:1>>",name), nil, ITEM_LINK_TYPE,itemId, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0) end
+
 local function areIdsValid(potency, essence, aspect)
 	if GetItemLinkEnchantingRuneClassification( getItemLinkFromItemId(potency)) ~= ENCHANTING_RUNE_POTENCY
 		or GetItemLinkEnchantingRuneClassification( getItemLinkFromItemId(aspect)) ~= ENCHANTING_RUNE_ASPECT
@@ -22,15 +50,14 @@ local function copy(t)
 	return a
 end
 
-
-
 -----------------------------------------------------
 -- ENCHANTING USER INTERACTION FUNCTIONS
 
 -- Since bag indexes can change, this ignores those. Instead, it takes in the name, or the index (table of indexes is found in table above, and is specific to this library)
 -- Bag indexes will be determined at time of crafting	
-local function LLC_CraftEnchantingGlyphItemID(self, potencyItemID, essenceItemID, aspectItemID, autocraft)
-
+local function LLC_CraftEnchantingGlyphItemID(self, potencyItemID, essenceItemID, aspectItemID, autocraft, reference)
+	dbug('FUNCTION:LLCEnchantCraft')
+	if reference == nil then reference = "" end
 	if not self then d("Please call with colon notation") end
 	if autocraft==nil then autocraft = self.autocraft end
 	if not potencyItemID or not essenceItemID or not aspectItemID then  return end
@@ -44,16 +71,19 @@ local function LLC_CraftEnchantingGlyphItemID(self, potencyItemID, essenceItemID
 		["timestamp"] = GetTimeStamp(),
 		["autocraft"] = autocraft,
 		["Requester"] = self.addonName,
+		["reference"] = reference,
+		["station"] = CRAFTING_TYPE_ENCHANTING,
 	}
 	)
 
 	sortCraftQueue()
 	if GetCraftingInteractionType()==CRAFTING_TYPE_ENCHANTING then 
-		LibLazyCrafting.craftInteract(event, CRAFTING_TYPE_ENCHANTING) end
+		LibLazyCrafting.craftInteract(event, CRAFTING_TYPE_ENCHANTING) 
+	end
 end
 
-local function LLC_CraftEnchantingGlyph(self, potencyBagId, potencySlot, essenceBagId, essenceSlot, aspectBagId, aspectSlot)
-	LLC_CraftEnchantingGlyphItemID(self, GetItemId(potencyBagId, potencySlot),GetItemId(essenceBagId, essenceSlot),GetItemId(aspectBagId,aspectSlot))
+local function LLC_CraftEnchantingGlyph(self, potencyBagId, potencySlot, essenceBagId, essenceSlot, aspectBagId, aspectSlot, autocraft, reference)
+	LLC_CraftEnchantingGlyphItemID(self, GetItemId(potencyBagId, potencySlot),GetItemId(essenceBagId, essenceSlot),GetItemId(aspectBagId,aspectSlot),autocraft, reference)
 end
 
 ------------------------------------------------------------------------
@@ -76,8 +106,9 @@ local currentCraftAttempt =
 
 timeGiven = 1800
 local function LLC_EnchantingCraftinteraction(event, station)
+	dbug("FUNCTION:LLCEnchantCraft")
 	local earliest, addon , position = LibLazyCrafting.findEarliestRequest(CRAFTING_TYPE_ENCHANTING)
-	if earliest then
+	if earliest and not IsPerformingCraftProcess() then
 		local locations = 
 		{
 		select(1,findItemLocationById(earliest["potencyItemID"])),
@@ -87,7 +118,7 @@ local function LLC_EnchantingCraftinteraction(event, station)
 		findItemLocationById(earliest["aspectItemID"]),
 		}
 		if locations[1] and locations[5] and locations[3] then
-			d("craft")
+			dbug("CALL:ZOEnchantCraft")
 			CraftEnchantingItem(unpack(locations))
 			
 			currentCraftAttempt= copy(earliest)
@@ -111,12 +142,13 @@ end
 
 
 local function LLC_EnchantingCraftingComplete(event, station, lastCheck)
-
+	dbug("EVENT:CraftComplete")
+	if not currentCraftAttempt.addon then return end
 	if GetItemLinkName(GetItemLink(BAG_BACKPACK, currentCraftAttempt.slot,0)) == GetItemLinkName(currentCraftAttempt.link)
 		and GetItemLinkQuality(GetItemLink(BAG_BACKPACK, currentCraftAttempt.slot,0)) == GetItemLinkQuality(currentCraftAttempt.link)
-		and (GetTimeStamp() - 4000) < currentCraftAttempt.timestamp
 	then
-	 
+		-- We found it!
+		dbug("ACTION:RemoveQueueItem")
 		craftingQueue[currentCraftAttempt.addon][CRAFTING_TYPE_ENCHANTING][currentCraftAttempt.position] = nil
 		sortCraftQueue()
 		local resultTable = 
@@ -126,16 +158,20 @@ local function LLC_EnchantingCraftingComplete(event, station, lastCheck)
 			['link'] = currentCraftAttempt.link,
 			['uniqueId'] = GetItemUniqueId(BAG_BACKPACK, currentCraftAttempt.slot),
 			["quantity"] = 1,
+			["reference"] = currentCraftAttempt.reference,
 		}
 		currentCraftAttempt.callback(LLC_CRAFT_SUCCESS, CRAFTING_TYPE_ENCHANTING, resultTable)
 		currentCraftAttempt = {}
+
 	elseif lastCheck then
+
 		-- give up on finding it.
 		currentCraftAttempt = {}
 	else
+
 		-- further search
 		-- search again later
-		zo_callLater(function() LLC_EnchantingCraftingComplete(event, station, true) end,100)
+		if GetCraftingInteractionType()==0 then zo_callLater(function() LLC_EnchantingCraftingComplete(event, station, true) end,100) end
 	end
 
 
@@ -149,6 +185,17 @@ local function LLC_EnchantingEndInteraction(event ,station)
 
 end
 
+local function haveEnoughMats(...)
+	local IDs = {...}
+	for k, itemId in pairs (IDs) do
+		local bag, bank, craft = GetItemLinkStacks(getItemLinkFromItemId(itemId))
+		if bag + bank + craft == 0 then -- i.e.if the stack count of all is 0
+			return false
+		end
+	end
+	return true
+end
+
 
 LibLazyCrafting.craftInteractionTables[CRAFTING_TYPE_ENCHANTING] =
 {
@@ -156,7 +203,11 @@ LibLazyCrafting.craftInteractionTables[CRAFTING_TYPE_ENCHANTING] =
 	['function'] = LLC_EnchantingCraftinteraction,
 	["complete"] = LLC_EnchantingCraftingComplete,
 	["endInteraction"] = function(station) --[[endInteraction()]] end,
-	["isItemCraftable"] = function(station) if station == CRAFTING_TYPE_ENCHANTING then return true else return false end end,
+	["isItemCraftable"] = function(station, request) 
+		if station == CRAFTING_TYPE_ENCHANTING and haveEnoughMats(request.potencyItemID, request.essenceItemID, request.aspectItemID) then 
+			return true else return false 
+		end 
+	end,
 }
 
 LibLazyCrafting.functionTable.CraftEnchantingItemId = LLC_CraftEnchantingGlyphItemID
