@@ -22,6 +22,9 @@ local LibLazyCrafting, oldminor = LibStub:NewLibrary(LIB_NAME, VERSION)
 if not LibLazyCrafting then return end
 local LLC = LibLazyCrafting
 
+LLC.name, LLC.version = LIB_NAME, VERSION
+
+
 LibLazyCrafting.craftInteractionTables =
 {
 	["example"] =
