@@ -407,10 +407,12 @@ LibLazyCrafting.functionTable.craftItem = LLC_CraftItem
 LibLazyCrafting.functionTable.CraftAllItems = LLC_CraftAllItems
 LibLazyCrafting.functionTable.findItemByReference =  LLC_FindItemByReference
 
+
 local function LLC_GetMatRequirements(self, requestTable)
-
-	return LibLazyCrafting.craftInteractionTables[requestTable.station]:materialRequirements( requestTable)
-
+	
+	if requestTable.station then 
+		return LibLazyCrafting.craftInteractionTables[requestTable.station]:materialRequirements( requestTable)
+	end
 end
 
 LibLazyCrafting.functionTable.getMatRequirements =  LLC_GetMatRequirements

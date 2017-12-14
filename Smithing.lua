@@ -896,6 +896,16 @@ local function getImprovementLevel(station)
 	end
 end
 
+local function compileImprovementRequirements(request, station)
+	local requirements = {}
+	local currentQuality = GetItemQuality(request.ItemBagID, request.ItemSlotID)
+	local improvementLevel = getImprovementLevel(station)
+	
+	for i  = 1, request.quality - 1 do
+		requirements[GetItemIDFromLink( GetSmithingImprovementItemLink(station, i, 0) )] = improvementChances[improvementLevel][i]
+	end
+	return requirements
+end
 
 function compileRequirements(request, station)-- Ingot/style mat/trait mat/improvement mat
 	local requirements = {}
@@ -912,15 +922,18 @@ function compileRequirements(request, station)-- Ingot/style mat/trait mat/impro
 			requirements[ GetItemIDFromLink( traitLink)] = 1
 		end
 		if request.quality==1 then return requirements end
+	
+
+		local improvementLevel = getImprovementLevel(station)
+
+		for i  = 1, request.quality - 1 do
+			requirements[GetItemIDFromLink( GetSmithingImprovementItemLink(station, i, 0) )] = improvementChances[improvementLevel][i]
+		end
+
+		return requirements
+	else
+		return compileImprovementRequirements(request, station)
 	end
-
-	local improvementLevel = getImprovementLevel(station)
-
-	for i  = 1, request.quality - 1 do
-		requirements[GetItemIDFromLink( GetSmithingImprovementItemLink(station, i, 0) )] = improvementChances[improvementLevel][i]
-	end
-
-	return requirements
 	
 end
 -- /script LibStub("LibLazyCrafting"):craftInteractionTables[CRAFTING_TYPE_CLOTHIER]["materialRequirements"]()
