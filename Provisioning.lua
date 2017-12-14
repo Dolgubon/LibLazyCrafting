@@ -19,7 +19,7 @@ local LibLazyCrafting = LibStub("LibLazyCrafting")
 local sortCraftQueue = LibLazyCrafting.sortCraftQueue
 
 local widgetType = 'provisioning'
-local widgetVersion = 1.3
+local widgetVersion = 1.4
 if not LibLazyCrafting:RegisterWidget(widgetType, widgetVersion) then return false end
 
 local function dbug(...)
@@ -69,7 +69,8 @@ end
 local function LLC_ProvisioningCraftInteraction(event, station)
     dbug("FUNCTION:LLCProvisioningCraft")
     local earliest, addon , position = LibLazyCrafting.findEarliestRequest(CRAFTING_TYPE_PROVISIONING)
-    if (not earliest) or IsPerformingCraftProcess() then return end
+    if not earliest then LibLazyCrafting.SendCraftEvent( LLC_NO_FURTHER_CRAFT_POSSIBLE,  station) return end
+    if IsPerformingCraftProcess()  then return end
 
     dbug("CALL:ZOProvisioningCraft")
     local recipeArgs = { earliest.recipeListIndex, earliest.recipeIndex }

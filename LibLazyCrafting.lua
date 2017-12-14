@@ -17,7 +17,7 @@ local function dbug(...)
 	--DolgubonDebugRunningDebugString(...)
 end
 local libLoaded
-local LIB_NAME, VERSION = "LibLazyCrafting", 1.7
+local LIB_NAME, VERSION = "LibLazyCrafting", 1.8
 local LibLazyCrafting, oldminor = LibStub:NewLibrary(LIB_NAME, VERSION)
 if not LibLazyCrafting then return end
 local LLC = LibLazyCrafting
@@ -269,7 +269,7 @@ function LibLazyCrafting.stackableCraftingComplete(event, station, lastCheck, cr
 				["quantity"] = 1,
 				["reference"] = currentCraftAttempt.reference,
 			}
-			currentCraftAttempt.callback(LLC_CRAFT_SUCCESS, craftingType, resultTable)
+			LibLazyCrafting.SendCraftEvent( LLC_CRAFT_SUCCESS,  station, currentCraftAttempt.addon,resultTable )
 			tableClear(currentCraftAttempt)
 		else
 			-- Loop to craft multiple copies
@@ -415,6 +415,29 @@ end
 
 LibLazyCrafting.functionTable.getMatRequirements =  LLC_GetMatRequirements
 
+function LibLazyCrafting.SendCraftEvent( event,  station, requester, returnTable )
+	if event == LLC_NO_FURTHER_CRAFT_POSSIBLE then
+		for requester, callbackFunction in pairs(LibLazyCrafting.craftResultFunctions) do
+			if requester ~= "LLC_Global" then 
+				local errorFound, err =  pcall(function() callbackFunction(event, station )end)
+				if not errorFound then
+					d("Callback to LLC resulted in an error. Please contact the author of "..requester)
+					d(err)
+				end
+			end
+		end
+	else
+		local errorFound, err =  pcall(function()LibLazyCrafting.craftResultFunctions[requester](event, station, 
+			returnTable )end)
+		if not errorFound then
+			d("Callback to LLC resulted in an error. Please contact the author of "..requester)
+			d(err)
+		end
+	end
+end
+
+
+
 function LibLazyCrafting:Init()
 
 	-- Call this to register the addon with the library.
@@ -506,6 +529,8 @@ function LibLazyCrafting:Init()
 	LLC_ITEM_TO_IMPROVE_NOT_FOUND = "item not found" -- extra result: Improvement request table
 	LLC_INSUFFICIENT_MATERIALS = "not enough mats" -- extra result: what is missing, item identifier
 	LLC_INSUFFICIENT_SKILL  = "not enough skill" -- extra result: what skills are missing; both if not enough traits, not enough styles, or trait unknown
+	LLC_NO_FURTHER_CRAFT_POSSIBLE = "no further craft items possible" -- Thrown when there is no more items that can be made at the station
+	LLC_INITIAL_CRAFT_SUCCESS = "initial stage of crafting complete" -- Thrown when the white item of a higher quality item is created
 
 	LLC_Global = LibLazyCrafting:AddRequestingAddon("LLC_Global",true, function(event, station, result)
 		d(GetItemLink(result.bag,result.slot).." crafted at slot "..tostring(result.slot).." with reference "..result.reference) end)
@@ -529,6 +554,14 @@ end
 
 LibLazyCrafting.craftInteract = CraftInteract
 
+local function endInteraction(event, station)
+	for k,v in pairs(LibLazyCrafting.craftInteractionTables) do
+		if v:check(station) then
+			v["endInteraction"](station)
+
+		end
+	end
+end
 
 -- Called when a crafting request is done.
 -- Note that this function is called both when you finish crafting and when you leave the station
@@ -544,9 +577,10 @@ local function CraftComplete(event, station)
 		if v:check( station) then
 			if GetCraftingInteractionType()==0 then -- This is called when the user exits the crafting station while the game is crafting
 
-				endInteraction(self, EVENT_END_CRAFTING_STATION_INTERACT, station)
+				endInteraction(EVENT_END_CRAFTING_STATION_INTERACT, station)
 				zo_callLater(function() v["complete"]( station) LibLazyCrafting.isCurrentlyCrafting = {false, "", ""} end, timetest)
 			else
+				
 				v["complete"]( station)
 				LibLazyCrafting.isCurrentlyCrafting = {false, "", ""}
 				v["function"]( station)

@@ -17,7 +17,7 @@ local LibLazyCrafting = LibStub("LibLazyCrafting")
 local sortCraftQueue = LibLazyCrafting.sortCraftQueue
 
 local widgetType = 'alchemy'
-local widgetVersion = 1.3
+local widgetVersion = 1.4
 if not LibLazyCrafting:RegisterWidget(widgetType, widgetVersion) then return false end
 
 local function dbug(...)
@@ -76,7 +76,8 @@ end
 local function LLC_AlchemyCraftInteraction(event, station)
 	dbug("FUNCTION:LLCAlchemyCraft")
 	local earliest, addon , position = LibLazyCrafting.findEarliestRequest(CRAFTING_TYPE_ALCHEMY)
-	if (not earliest) or IsPerformingCraftProcess() then return end
+	if not earliest then LibLazyCrafting.SendCraftEvent( LLC_NO_FURTHER_CRAFT_POSSIBLE,  station) return end
+	if IsPerformingCraftProcess() then return end
 
 	-- Find bag locations of each material used in the crafting attempt.
 	local solventBagId, solventSlotIndex = findItemLocationById(earliest["solventId"])
