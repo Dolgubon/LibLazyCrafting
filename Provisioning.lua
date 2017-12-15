@@ -19,7 +19,7 @@ local LibLazyCrafting = LibStub("LibLazyCrafting")
 local sortCraftQueue = LibLazyCrafting.sortCraftQueue
 
 local widgetType = 'provisioning'
-local widgetVersion = 1.4
+local widgetVersion = 1.5
 if not LibLazyCrafting:RegisterWidget(widgetType, widgetVersion) then return false end
 
 local function dbug(...)

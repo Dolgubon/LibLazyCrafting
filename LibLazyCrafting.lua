@@ -17,7 +17,7 @@ local function dbug(...)
 	--DolgubonDebugRunningDebugString(...)
 end
 local libLoaded
-local LIB_NAME, VERSION = "LibLazyCrafting", 1.8
+local LIB_NAME, VERSION = "LibLazyCrafting", 1.9
 local LibLazyCrafting, oldminor = LibStub:NewLibrary(LIB_NAME, VERSION)
 if not LibLazyCrafting then return end
 local LLC = LibLazyCrafting
@@ -545,7 +545,6 @@ end
 
 -- Called when a crafting station is opened. Should then craft anything needed in the queue
 local function CraftInteract(event, station)
-
 	for k,v in pairs(LibLazyCrafting.craftInteractionTables) do
 		if v:check( station) then
 			
