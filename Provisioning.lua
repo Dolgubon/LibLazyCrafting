@@ -60,7 +60,7 @@ local function LLC_CraftProvisioningItemByRecipeId(self, recipeId, timesToMake, 
     }
     )
 
-    sortCraftQueue()
+    --sortCraftQueue()
     if GetCraftingInteractionType()==CRAFTING_TYPE_PROVISIONING then
         LibLazyCrafting.craftInteract(event, CRAFTING_TYPE_PROVISIONING)
     end

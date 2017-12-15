@@ -76,7 +76,7 @@ local function LLC_CraftEnchantingGlyphItemID(self, potencyItemID, essenceItemID
 	}
 	)
 
-	sortCraftQueue()
+	--sortCraftQueue()
 	if GetCraftingInteractionType()==CRAFTING_TYPE_ENCHANTING then 
 		LibLazyCrafting.craftInteract(event, CRAFTING_TYPE_ENCHANTING) 
 	end
@@ -151,8 +151,8 @@ local function LLC_EnchantingCraftingComplete(event, station, lastCheck)
 	then
 		-- We found it!
 		dbug("ACTION:RemoveQueueItem")
-		craftingQueue[currentCraftAttempt.addon][CRAFTING_TYPE_ENCHANTING][currentCraftAttempt.position] = nil
-		sortCraftQueue()
+		table.remove(craftingQueue[currentCraftAttempt.addon][CRAFTING_TYPE_ENCHANTING] , currentCraftAttempt.position )
+		--sortCraftQueue()
 		local resultTable = 
 		{
 			["bag"] = BAG_BACKPACK,

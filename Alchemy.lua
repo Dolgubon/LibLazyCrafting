@@ -49,7 +49,7 @@ local function LLC_CraftAlchemyItemByItemId(self, solventId, reagentId1, reagent
 	}
 	)
 
-	sortCraftQueue()
+	--sortCraftQueue()
 	if GetCraftingInteractionType()==CRAFTING_TYPE_ALCHEMY then
 		LibLazyCrafting.craftInteract(event, CRAFTING_TYPE_ALCHEMY)
 	end

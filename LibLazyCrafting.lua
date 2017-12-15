@@ -258,8 +258,8 @@ function LibLazyCrafting.stackableCraftingComplete(event, station, lastCheck, cr
 		dbug("RESULT:StackableMade")
 		if currentCraftAttempt["timesToMake"] < 2 then
 			dbug("ACTION:RemoveQueueItem")
-			craftingQueue[currentCraftAttempt.addon][craftingType][currentCraftAttempt.position] = nil
-			LibLazyCrafting.sortCraftQueue()
+			table.remove( craftingQueue[currentCraftAttempt.addon][craftingType] , currentCraftAttempt.position ) 
+			--LibLazyCrafting.sortCraftQueue()
 			local resultTable =
 			{
 				["bag"] = BAG_BACKPACK,

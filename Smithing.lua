@@ -377,7 +377,7 @@ local function LLC_CraftSmithingItem(self, patternIndex, materialIndex, material
 	}
 	table.insert(craftingQueue[self.addonName][station],requestTable)
 
-	sortCraftQueue()
+	--sortCraftQueue()
 	if not IsPerformingCraftProcess() and GetCraftingInteractionType()~=0 then
 		LibLazyCrafting.craftInteractionTables[GetCraftingInteractionType()]["function"](GetCraftingInteractionType()) 
 	end
@@ -443,7 +443,7 @@ function LLC_ImproveSmithingItem(self, BagIndex, SlotIndex, newQuality, autocraf
 	["station"] = station,
 	["timestamp"] = GetTimeStamp(),}
 	table.insert(craftingQueue[self.addonName][station], a)
-	sortCraftQueue()
+	--sortCraftQueue()
 	if not IsPerformingCraftProcess() and GetCraftingInteractionType()~=0 and not LibLazyCrafting.isCurrentlyCrafting[1] then
 		LibLazyCrafting.craftInteractionTables[GetCraftingInteractionType()]["function"](GetCraftingInteractionType())
 
@@ -538,7 +538,7 @@ local function LLC_SmithingCraftInteraction( station)
 				
 
 				currentCraftAttempt = {}
-				sortCraftQueue()
+				--sortCraftQueue()
 				LLC_SmithingCraftInteraction(station)
 				return
 			end
@@ -618,9 +618,10 @@ local backupPosition
 local function smithingCompleteNewItemHandler(station)
 
 	dbug("ACTION:RemoveRequest")
-	
+
 	--d("Item found")
 	local removedRequest =  table.remove(craftingQueue[currentCraftAttempt.Requester][station],currentCraftAttempt.position )
+
 	if currentCraftAttempt.quality>1 then
 		--d("Improving #".. tostring(currentCraftAttempt.reference))
 		removedRequest.bag = BAG_BACKPACK
@@ -661,7 +662,7 @@ local function SmithingCraftCompleteFunction(station)
 			end
 		end
 		currentCraftAttempt = {}
-		sortCraftQueue()
+		--sortCraftQueue()
 		backupPosition = nil
 		
 	elseif currentCraftAttempt.type == "improvement" then
@@ -673,7 +674,7 @@ local function SmithingCraftCompleteFunction(station)
 			LibLazyCrafting.SendCraftEvent( LLC_CRAFT_SUCCESS,  station,currentCraftAttempt.Requester, returnTable )
 		end
 		currentCraftAttempt = {}
-		sortCraftQueue()
+		--sortCraftQueue()
 		backupPosition = nil
 	else
 		return
@@ -817,42 +818,55 @@ local materialItemIDs =
 {
 	[CRAFTING_TYPE_BLACKSMITHING] = 
 	{
-	5413,
-	4487,
-	23107,
-	6000,
-	6001,
-	46127,
-	46128,
-	46129,
-	46130,
-	64489,
+		5413,
+		4487,
+		23107,
+		6000,
+		6001,
+		46127,
+		46128,
+		46129,
+		46130,
+		64489,
 	},
 	[CRAFTING_TYPE_CLOTHIER] = 
 	{
-	811,
-	4463,
-	23125,
-	23126,
-	23127,
-	46131,
-	46132,
-	46133,
-	46134,
-	64504,
+		811,
+		4463,
+		23125,
+		23126,
+		23127,
+		46131,
+		46132,
+		46133,
+		46134,
+		64504,
+	},
+	[3] = -- Leather mats
+	{
+		794,
+		4447,
+		23099,
+		23100,
+		23101,
+		46135,
+		46136,
+		46137,
+		46138,
+		64506,
 	},
 	[CRAFTING_TYPE_WOODWORKING] = 
 	{
-	803,
-	533,
-	23121,
-	23122,
-	23123,
-	46139,
-	46140,
-	46141,
-	46142,
-	64502,
+		803,
+		533,
+		23121,
+		23122,
+		23123,
+		46139,
+		46140,
+		46141,
+		46142,
+		64502,
 	},
 }
 
@@ -916,7 +930,9 @@ function compileRequirements(request, station)-- Ingot/style mat/trait mat/impro
 	if request["type"] == "smithing" then
 		
 		local matId = materialItemIDs[station][findMatTierByIndex(request.materialIndex)]
-		
+		if station == CRAFTING_TYPE_CLOTHIER and request.pattern > 8 then
+			matId = materialItemIDs[3][findMatTierByIndex(request.materialIndex)]
+		end
 		requirements[matId] = request.materialQuantity
 
 		requirements[ GetItemIDFromLink( GetItemStyleMaterialLink(request.style , 0))] = 1
