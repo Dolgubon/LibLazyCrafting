@@ -335,6 +335,7 @@ end
 
 local function LLC_CraftSmithingItem(self, patternIndex, materialIndex, materialQuantity, styleIndex, traitIndex, useUniversalStyleItem, stationOverride, setIndex, quality, autocraft, reference)
 	dbug("FUNCTION:LLCSmithing")
+	
 	if reference == nil then reference = "" end
 	if not self then d("Please call with colon notation") end
 	if autocraft==nil then autocraft = self.autocraft end
@@ -380,6 +381,7 @@ local function LLC_CraftSmithingItem(self, patternIndex, materialIndex, material
 	if not IsPerformingCraftProcess() and GetCraftingInteractionType()~=0 then
 		LibLazyCrafting.craftInteractionTables[GetCraftingInteractionType()]["function"](GetCraftingInteractionType()) 
 	end
+	
 	return requestTable
 end
 
@@ -388,7 +390,7 @@ local function isValidLevel(isCP, lvl)
 		if lvl %10 ~= 0 then return  false end
 		if lvl > 160 or lvl <10 then return false  end
 	else
-		if lvl % 2 ~=0 or lvl ~= 1 then return false end
+		if lvl % 2 ~=0 and lvl ~= 1 then return false end
 		if lvl <1 or lvl > 50 then return false end
 	end
 	return true
@@ -426,6 +428,7 @@ function LLC_ImproveSmithingItem(self, BagIndex, SlotIndex, newQuality, autocraf
 	end
 	if station == -1 then d("Cannot be improved") return end
 	if autocraft==nil then autocraft = self.autocraft end
+	local station = GetRearchLineInfoFromRetraitItem(BagIndex, SlotIndex)
 	local a = {
 	["type"] = "improvement",
 	["Requester"] = self.addonName, -- ADDON NAME
@@ -437,6 +440,7 @@ function LLC_ImproveSmithingItem(self, BagIndex, SlotIndex, newQuality, autocraf
 	["ItemCreater"] = GetItemCreatorName(BagIndex, SlotIndex),
 	["quality"] = newQuality,
 	["reference"] = reference,
+	["station"] = station,
 	["timestamp"] = GetTimeStamp(),}
 	table.insert(craftingQueue[self.addonName][station], a)
 	sortCraftQueue()
