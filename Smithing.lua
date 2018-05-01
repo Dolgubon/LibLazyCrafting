@@ -424,8 +424,9 @@ local function LLC_CraftSmithingItem(self, patternIndex, materialIndex, material
 	if autocraft==nil then autocraft = self.autocraft end
 	local station
 	if type(self) == "number" then
-		d("Please call using colon notation: e.g LLC:CraftSmithingItem(). If you are seeing this and you are not a developer please contact the author of the addon")
+		d("LLC: Please call using colon notation: e.g LLC:CraftSmithingItem(). If you are seeing this and you are not a developer please contact the author of the addon")
 	end
+  
 	local validStations = 
 	{
 		[CRAFTING_TYPE_BLACKSMITHING]  = true,
@@ -435,8 +436,8 @@ local function LLC_CraftSmithingItem(self, patternIndex, materialIndex, material
 	}
 	if not validStations[stationOverride] then
 		station = GetCraftingInteractionType()
-		if not validStations[stationOverride] then
-			d("Invalid Station")
+		if not validStations[station] then
+			d("LLC: No station specified, and you are not at a crafting station")
 			return
 		end
 	else
@@ -520,7 +521,7 @@ function LLC_ImproveSmithingItem(self, BagIndex, SlotIndex, newQuality, autocraf
 	if station == -1 then d("Cannot be improved") return end
 	if autocraft==nil then autocraft = self.autocraft end
 	local station = GetRearchLineInfoFromRetraitItem(BagIndex, SlotIndex)
-	local a = {
+	local craftingRequestTable = {
 	["type"] = "improvement",
 	["Requester"] = self.addonName, -- ADDON NAME
 	["autocraft"] = autocraft,
@@ -533,13 +534,13 @@ function LLC_ImproveSmithingItem(self, BagIndex, SlotIndex, newQuality, autocraf
 	["reference"] = reference,
 	["station"] = station,
 	["timestamp"] = GetSmithingQueueOrder(),}
-	table.insert(craftingQueue[self.addonName][station], a)
+	table.insert(craftingQueue[self.addonName][station], craftingRequestTable)
 	--sortCraftQueue()
 	if not IsPerformingCraftProcess() and GetCraftingInteractionType()~=0 and not LibLazyCrafting.isCurrentlyCrafting[1] then
 		LibLazyCrafting.craftInteractionTables[GetCraftingInteractionType()]["function"](GetCraftingInteractionType())
 
 	end
-	return a
+	return craftingRequestTable
 end
 
 LibLazyCrafting.functionTable.ImproveSmithingItem = LLC_ImproveSmithingItem
@@ -941,6 +942,7 @@ function GetSetIndexes()
 
 	return SetIndexes
 end
+LibLazyCrafting.functionTable.GetSetIndexes = GetSetIndexes
 
 -- IDs for stuff like Sanded Ruby Ash, Iron Ingots, etc.
 local materialItemIDs =
@@ -1085,6 +1087,8 @@ function compileRequirements(request, station)-- Ingot/style mat/trait mat/impro
 	end
 
 end
+
+LibLazyCrafting.functionTable.CompileRequirements = compileRequirements
 -- /script LibStub("LibLazyCrafting"):craftInteractionTables[CRAFTING_TYPE_CLOTHIER]["materialRequirements"]()
 local itemSetIds ={ -- This table contains data on all the itemIds for crafted gear in the game!
 -- The first number in each table is the starting itemId. Thereafter, each even indexed number (indexes in lua start at 1)
