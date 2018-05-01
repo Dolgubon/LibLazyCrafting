@@ -243,7 +243,7 @@ function canCraftItem(craftRequestTable)
 		-- Check if the specific trait is known
 		if IsSmithingTraitKnownForResult(craftRequestTable["pattern"], craftRequestTable["materialIndex"], craftRequestTable["materialQuantity"],craftRequestTable["style"], craftRequestTable["trait"]) then
 			-- Check if the style is known for that piece
-			if (craftRequestTable["station"] == CRAFTING_TYPE_JEWELRYCRAFTING) or IsSmithingStyleKnown(craftRequestTable["style"], craftRequestTable["pattern"]) then
+			if (craftRequestTable["station"] == CRAFTING_TYPE_JEWELRY) or IsSmithingStyleKnown(craftRequestTable["style"], craftRequestTable["pattern"]) then
 				return true
 			else
 
