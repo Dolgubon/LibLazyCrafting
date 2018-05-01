@@ -19,7 +19,7 @@ local LibLazyCrafting = LibStub("LibLazyCrafting")
 local sortCraftQueue = LibLazyCrafting.sortCraftQueue
 
 local widgetType = 'provisioning'
-local widgetVersion = 1.1
+local widgetVersion = 1.5
 if not LibLazyCrafting:RegisterWidget(widgetType, widgetVersion) then return false end
 
 local function dbug(...)
@@ -64,19 +64,22 @@ local function LLC_CraftProvisioningItemByRecipeId(self, recipeId, timesToMake, 
     }
     )
 
-    sortCraftQueue()
+    --sortCraftQueue()
     if GetCraftingInteractionType()==CRAFTING_TYPE_PROVISIONING then
         LibLazyCrafting.craftInteract(event, CRAFTING_TYPE_PROVISIONING)
     end
 end
 
 local function LLC_ProvisioningCraftInteraction(event, station)
+    
     dbug("FUNCTION:LLCProvisioningCraft")
     local earliest, addon , position = LibLazyCrafting.findEarliestRequest(CRAFTING_TYPE_PROVISIONING)
-    if (not earliest) or IsPerformingCraftProcess() then return end
+    if not earliest then LibLazyCrafting.SendCraftEvent( LLC_NO_FURTHER_CRAFT_POSSIBLE,  station) return end
+    if IsPerformingCraftProcess()  then return end
 
     dbug("CALL:ZOProvisioningCraft")
     local recipeArgs = { earliest.recipeListIndex, earliest.recipeIndex }
+    LibLazyCrafting.isCurrentlyCrafting = {true, "provisioning", earliest["Requester"]}
     CraftProvisionerItem(unpack(recipeArgs))
 
     currentCraftAttempt = LibLazyCrafting.tableShallowCopy(earliest)
@@ -117,11 +120,13 @@ end
 
 LibLazyCrafting.craftInteractionTables[CRAFTING_TYPE_PROVISIONING] =
 {
-    ["check"] = function(station) return station == CRAFTING_TYPE_PROVISIONING end,
+    ["station"] = CRAFTING_TYPE_PROVISIONING,
+    ["check"] = function(self, station) return station == self.station end,
     ['function'] = LLC_ProvisioningCraftInteraction,
     ["complete"] = LLC_ProvisioningCraftingComplete,
     ["endInteraction"] = function(station) --[[endInteraction()]] end,
     ["isItemCraftable"] = LLC_ProvisioningIsItemCraftable
+
 }
 
 LibLazyCrafting.functionTable.CraftProvisioningItemByRecipeId = LLC_CraftProvisioningItemByRecipeId
