@@ -290,6 +290,31 @@ function LibLazyCrafting.stackableCraftingComplete(event, station, lastCheck, cr
 	end
 end
 
+local function getItemLinkFromItemId(itemId) local name = GetItemLinkName(ZO_LinkHandler_CreateLink("Test Trash", nil, ITEM_LINK_TYPE,itemId, 1, 26, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 5, 0, 0, 0, 10000, 0))
+    return ZO_LinkHandler_CreateLink(zo_strformat("<<t:1>>",name), nil, ITEM_LINK_TYPE,itemId, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0)
+end
+
+function LibLazyCrafting.HaveMaterials(materialList)
+    for _, mat in ipairs(materialList) do
+        local itemLink = mat.itemLink
+        if (not itemLink) and mat.itemId then
+            itemLink = getItemLinkFromItemId(mat.itemId)
+        end
+        if itemLink then
+            local bagCt, bankCt, craftBagCt = GetItemLinkStacks(itemLink)
+            local haveCt = bagCt + bankCt + craftBagCt
+            if haveCt < mat.requiredCt then
+            			-- Zig: What's the correct way to report "skipping this
+            			-- request beccause you're out of Perfect Roe"?
+                d("LibLazyCrafting: insufficient materials: "..tostring(itemLink)
+                    ..": require "..tostring(mat.requiredCt)
+                    .."  have "..tostring(haveCt))
+                return false
+            end
+        end
+    end
+    return true
+end
 
 -------------------------------------
 -- QUEUE FUNCTIONS

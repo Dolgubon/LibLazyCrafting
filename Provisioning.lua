@@ -29,6 +29,10 @@ end
 
 local craftingQueue = LibLazyCrafting.craftingQueue
 
+local function getItemLinkFromItemId(itemId) local name = GetItemLinkName(ZO_LinkHandler_CreateLink("Test Trash", nil, ITEM_LINK_TYPE,itemId, 1, 26, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 5, 0, 0, 0, 10000, 0))
+    return ZO_LinkHandler_CreateLink(zo_strformat("<<t:1>>",name), nil, ITEM_LINK_TYPE,itemId, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0)
+end
+
 local function toRecipeLink(recipeId)
     return string.format("|H1:item:%s:3:1:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0|h|h", tostring(recipeId))
 end
@@ -92,14 +96,37 @@ local function LLC_ProvisioningCraftingComplete(event, station, lastCheck)
     LibLazyCrafting.stackableCraftingComplete(event, station, lastCheck, CRAFTING_TYPE_PROVISIONING, currentCraftAttempt)
 end
 
+local function LLC_ProvisioningIsItemCraftable(station, request)
+    if station ~= CRAFTING_TYPE_PROVISIONING then return false end
+
+    local materialList  = {}
+    local recipeLink    = getItemLinkFromItemId(request.recipeId)
+    local ingrCt        = GetItemLinkRecipeNumIngredients(recipeLink)
+    for ingrIndex = 1,ingrCt do
+        local _, _, ingrReqCt = GetItemLinkRecipeIngredientInfo(recipeLink, ingrIndex)
+        local ingrLink = GetItemLinkRecipeIngredientItemLink(recipeLink, ingrIndex, LINK_STYLE_DEFAULT)
+        if       ingrReqCt
+            and (0 < ingrReqCt)
+            and  ingrLink
+            and (ingrLink ~= "") then
+            local mat = { itemLink   = ingrLink
+                        , requiredCt = ingrReqCt * request.timesToMake
+                        }
+            table.insert(materialList, mat)
+        end
+    end
+    return LibLazyCrafting.HaveMaterials(materialList)
+end
+
 LibLazyCrafting.craftInteractionTables[CRAFTING_TYPE_PROVISIONING] =
 {
     ["station"] = CRAFTING_TYPE_PROVISIONING,
     ["check"] = function(self, station) return station == self.station end,
     ['function'] = LLC_ProvisioningCraftInteraction,
     ["complete"] = LLC_ProvisioningCraftingComplete,
-    ["endInteraction"] = function(self, station) --[[endInteraction()]] end,
-    ["isItemCraftable"] = function(self, station) if station == CRAFTING_TYPE_PROVISIONING then return true else return false end end,
+    ["endInteraction"] = function(station) --[[endInteraction()]] end,
+    ["isItemCraftable"] = LLC_ProvisioningIsItemCraftable
+
 }
 
 LibLazyCrafting.functionTable.CraftProvisioningItemByRecipeId = LLC_CraftProvisioningItemByRecipeId
