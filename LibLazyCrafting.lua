@@ -11,11 +11,11 @@
 --
 -----------------------------------------------------------------------------------
 
--- Initialize libraries
-
 local function dbug(...)
 	--DolgubonDebugRunningDebugString(...)
 end
+
+-- Initialize libraries
 local libLoaded
 local LIB_NAME, VERSION = "LibLazyCrafting", 1.9
 local LibLazyCrafting, oldminor = LibStub:NewLibrary(LIB_NAME, VERSION)
