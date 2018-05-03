@@ -403,6 +403,27 @@ end
 
 LibLazyCrafting.functionTable.GetMatRequirements = GetMatRequirements
 
+local function getImprovementLevel(station)
+	local SKILL_INDEX = 
+	{
+		[1] = {2,6}, -- bs, temper expertise
+		[2] = {3,6}, -- cl, tannin expertise
+		[6] = {7,6}, -- ww, rosin experise
+		[7] = {5,5} -- jw, platings expertise
+	}
+	local skillIndex   = SKILL_INDEX[station][1]
+	local abilityIndex = SKILL_INDEX[station][2]
+	local currentSkill, maxSkill = GetSkillAbilityUpgradeInfo(SKILL_TYPE_TRADESKILL,skillIndex,abilityIndex)
+	return currentSkill , maxSkill
+end
+
+---------------------------------
+-- SMITHING CRAFTING FUNCTIONS
+---------------------------------
+---------------------------------
+
+
+
 -- When crafting jewelry:
 -- pass anything for styleIndex
 -- pass 1 + ITEM_TRAIT_TYPE_JEWELRY_XXX for whatever trait you want (or just 1 for no trait)
@@ -621,15 +642,7 @@ local function LLC_SmithingCraftInteraction( station)
 			--d("Making reference #"..tostring(currentCraftAttempt.reference).." link: "..currentCraftAttempt.link)
 		elseif earliest.type =="improvement" then
 			local parameters = {}
-			local SKILL_INDEX = {
-						[1] = {2,6}, -- bs, temper expertise
-			                    	[2] = {3,6}, -- cl, tannin expertise
-			                    	[6] = {7,6}, -- ww, rosin experise
-			                    	[7] = {5,5} -- jw, platings expertise
-			                    }
-		    local skillIndex   = SKILL_INDEX[station][1]
-		    local abilityIndex = SKILL_INDEX[station][2]
-			local currentSkill, maxSkill = GetSkillAbilityUpgradeInfo(SKILL_TYPE_TRADESKILL,skillIndex,abilityIndex)
+			local currentSkill, maxSkill = getImprovementLevel(station)
 			if earliest.quality==GetItemLinkQuality(GetItemLink(earliest.ItemBagID, earliest.ItemSlotID))then
 				dbug("ACTION:RemoveImprovementRequest")
 				d("Bad improvement Request; this shouldn't appear, but it might.")
@@ -930,7 +943,11 @@ SetIndexes =
 	{{136417 , 136437, [6] = 136424, [7] = 138730},9},  -- 44 nocturnal's favor
 	{{136067 , 136087, [6] = 136074, [7] = 138722},6},  -- 45 sload's semblance
 }
-
+if GetAPIVersion() == 100022 then
+	SetIndexes[43] = nil
+	SetIndexes[44] = nil
+	SetIndexes[45] = nil
+end
 for i = 1,#SetIndexes do
 	local _, a = GetItemLinkSetInfo(getItemLinkFromItemId(SetIndexes[i][1][1]),false)
 
@@ -1034,16 +1051,6 @@ local abilityTextures =
 	[6] = "/esoui/art/icons/ability_tradecraft_001.dds",
 }
 
-local function getImprovementLevel(station)
-
-	for i = 1, 6 do
-		local _, texture = GetSkillAbilityInfo(SKILL_TYPE_TRADESKILL, i, 6)
-		if texture == abilityTextures[station] then
-			local level = GetSkillAbilityUpgradeInfo(SKILL_TYPE_TRADESKILL, i, 6)
-			return level
-		end
-	end
-end
 
 local function compileImprovementRequirements(request, station)
 	local requirements = {}
