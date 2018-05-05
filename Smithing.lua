@@ -18,7 +18,7 @@
 local LibLazyCrafting = LibStub("LibLazyCrafting")
 
 local widgetType = 'smithing'
-local widgetVersion = 1.8
+local widgetVersion = 1.9
 if not LibLazyCrafting:RegisterWidget(widgetType, widgetVersion) then return  end
 
 local function dbug(...)
@@ -406,27 +406,15 @@ LibLazyCrafting.functionTable.GetMatRequirements = GetMatRequirements
 local function getImprovementLevel(station)
 	local SKILL_INDEX = 
 	{
-		[CRAFTING_TYPE_BLACKSMITHING] = "esoui/art/icons/ability_smith_004.dds", -- bs, temper expertise esoui/art/icons/ability_smith_004.dds
-		[CRAFTING_TYPE_CLOTHIER] = "esoui/art/icons/ability_tradecraft_004.dds", -- cl, tannin expertise esoui/art/icons/ability_tradecraft_004.dds
-		[CRAFTING_TYPE_WOODWORKING] = "esoui/art/icons/ability_tradecraft_001.dds", -- ww, rosin experise esoui/art/icons/ability_tradecraft_001.dds
-		--[CRAFTING_TYPE_JEWELRY] = {5,5} -- jw, platings expertise Jewelry is currently using WW textures
+		[1] = {2,6}, -- bs, temper expertise
+		[2] = {3,6}, -- cl, tannin expertise
+		[6] = {7,6}, -- ww, rosin experise
+		[7] = {5,5} -- jw, platings expertise
 	}
-	local skillType, skillIndex = GetCraftingSkillLineIndices(station)
-	local abilityIndex = nil
-	for i = 1, GetNumSkillAbilities(skillType, skillIndex) do
-		local _, texture = GetSkillAbilityInfo(skillType, skillIndex, i)
-		if texture == SkillTextures[station] then
-			abilityIndex = i
-		end
-	end
-	if abilityIndex then
-
-		local currentSkill, maxSkill = GetSkillAbilityUpgradeInfo(skillType,skillIndex,abilityIndex)
-
-		return currentSkill , maxSkill
-	else
-		return 3,3
-	end
+	local skillIndex   = SKILL_INDEX[station][1]
+	local abilityIndex = SKILL_INDEX[station][2]
+	local currentSkill, maxSkill = GetSkillAbilityUpgradeInfo(SKILL_TYPE_TRADESKILL,skillIndex,abilityIndex)
+	return currentSkill , maxSkill
 end
 
 ---------------------------------
