@@ -409,7 +409,7 @@ local function getImprovementLevel(station)
 		[CRAFTING_TYPE_BLACKSMITHING] = "esoui/art/icons/ability_smith_004.dds", -- bs, temper expertise esoui/art/icons/ability_smith_004.dds
 		[CRAFTING_TYPE_CLOTHIER] = "esoui/art/icons/ability_tradecraft_004.dds", -- cl, tannin expertise esoui/art/icons/ability_tradecraft_004.dds
 		[CRAFTING_TYPE_WOODWORKING] = "esoui/art/icons/ability_tradecraft_001.dds", -- ww, rosin experise esoui/art/icons/ability_tradecraft_001.dds
-		--[CRAFTING_TYPE_JEWELRYCRAFTING] = {5,5} -- jw, platings expertise Jewelry is currently using WW textures
+		[CRAFTING_TYPE_JEWELRYCRAFTING] = "/esoui/art/icons/passive_platingexpertise.dds" -- jw, platings expertise /esoui/art/icons/passive_platingexpertise.dds
 	}
 	local skillType, skillIndex = GetCraftingSkillLineIndices(station)
 	local abilityIndex = nil
