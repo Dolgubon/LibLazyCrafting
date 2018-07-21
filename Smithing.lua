@@ -244,27 +244,50 @@ local function findMatTierByIndex(index)
 	return 10
 end
 
+local SKILL_LINE =
+{
+	[CRAFTING_TYPE_BLACKSMITHING] = {
+		skill_line_id = 79,
+		base_ability_id = 70041,		-- "Metalworking"
+		improve_ability_id = 48168,		-- "Temper Expertise"
+		},
+	[CRAFTING_TYPE_CLOTHIER] = {
+		skill_line_id = 81,
+		base_ability_id = 70044, 		-- "Tailoring"
+		improve_ability_id = 48198,		-- "Tannin Expertise"
+		},
+	[CRAFTING_TYPE_WOODWORKING] = {
+		skill_line_id = 80,
+		base_ability_id = 70046, 		-- "Woodworking"
+		improve_ability_id = 48177, 	-- "Resin Expertise"
+		},
+	[CRAFTING_TYPE_JEWELRYCRAFTING] = {
+		skill_line_id = 141,
+		base_ability_id = 103636, 		-- "Engraver"
+		improve_ability_id = 103648,	-- "Platings Expertise"
+		},
+	[CRAFTING_TYPE_ALCHEMY] = {
+		skill_line_id = 77,
+		base_ability_id = 70043,		-- "Solvent Expertise"
+		improve_ability_id = nil,		-- no blue/purple/gold in alchemy
+		},
+	[CRAFTING_TYPE_ENCHANTING] = {
+		skill_line_id = 78,
+		base_ability_id = 70045,		-- "Potency Improvement" -- glyph level
+		improve_ability_id = 46763,		-- "Aspect Improvement", allows gold Kuta
+		},
+	[CRAFTING_TYPE_PROVISIONING] = {
+		skill_line_id = 76,
+		base_ability_id = 44650, 		-- "Recipe Improvement" = recipe level
+		improve_ability_id = 69953, 	-- "Recipe Quality", allows use of gold recipes
+		},
+}
 
 local function getCraftLevel(station)
-	local SkillTextures = 
-	{
-		[CRAFTING_TYPE_BLACKSMITHING] = "/esoui/art/icons/ability_smith_007.dds", -- bs, temper expertise esoui/art/icons/ability_smith_004.dds
-		[CRAFTING_TYPE_CLOTHIER] = "/esoui/art/icons/ability_tradecraft_008.dds", -- cl, tannin expertise esoui/art/icons/ability_tradecraft_004.dds
-		[CRAFTING_TYPE_WOODWORKING] = "/esoui/art/icons/ability_tradecraft_009.dds", -- ww, rosin experise esoui/art/icons/ability_tradecraft_001.dds
-		[CRAFTING_TYPE_JEWELRYCRAFTING] = "/esoui/art/icons/passive_jewelerengraver.dds" -- jw, platings expertise /esoui/art/icons/passive_platingexpertise.dds
-	}
-	local skillType, skillIndex = GetCraftingSkillLineIndices(station)
-	local abilityIndex = nil
-	for i = 1, GetNumSkillAbilities(skillType, skillIndex) do
-		local _, texture = GetSkillAbilityInfo(skillType, skillIndex, i)
-		if texture == SkillTextures[station] then
-			abilityIndex = i
-		end
-	end
+	local skillLine = SKILL_LINE[station]
+	local skillType, skillIndex, abilityIndex, morphChoice, rankindex = GetSpecificSkillAbilityKeysByAbilityId(skillLine.base_ability_id)
 	if abilityIndex then
-
 		local currentSkill, maxSkill = GetSkillAbilityUpgradeInfo(skillType,skillIndex,abilityIndex)
-
 		return currentSkill , maxSkill
 	else
 		return 0,1
@@ -297,10 +320,10 @@ function canCraftItem(craftRequestTable)
 	else
 		matIndex = findMatTierByIndex(craftRequestTable['materialIndex'])
 	end
-	
+
 	if level >= matIndex then
-		
-	
+
+
 
 		if traitsRequired<= traitsKnown then
 
@@ -350,7 +373,7 @@ local function GetCurrentSetInteractionIndex()
 		return nil , nil, nil, nil
 	end
 	-- If no set
-	if not sampleId then  
+	if not sampleId then
 		return 1, SetIndexes[1][1],  SetIndexes[1][3]
 	end
 	-- find set index
@@ -452,7 +475,7 @@ end
 LibLazyCrafting.functionTable.GetMatRequirements = GetMatRequirements
 
 local function getImprovementLevel(station)
-	local SkillTextures = 
+	local SkillTextures =
 	{
 		[CRAFTING_TYPE_BLACKSMITHING] = "/esoui/art/icons/ability_smith_004.dds", -- bs, temper expertise esoui/art/icons/ability_smith_004.dds
 		[CRAFTING_TYPE_CLOTHIER] = "/esoui/art/icons/ability_tradecraft_004.dds", -- cl, tannin expertise esoui/art/icons/ability_tradecraft_004.dds
@@ -507,8 +530,8 @@ local function LLC_CraftSmithingItem(self, patternIndex, materialIndex, material
 	if type(self) == "number" then
 		d("LLC: Please call using colon notation: e.g LLC:CraftSmithingItem(). If you are seeing this and you are not a developer please contact the author of the addon")
 	end
-  
-	local validStations = 
+
+	local validStations =
 	{
 		[CRAFTING_TYPE_BLACKSMITHING]  = true,
 		[CRAFTING_TYPE_WOODWORKING]  = true,
@@ -1077,7 +1100,7 @@ local materialItemIDs =
 		46142,
 		64502,
 	},
-	[CRAFTING_TYPE_JEWELRYCRAFTING] = 
+	[CRAFTING_TYPE_JEWELRYCRAFTING] =
 	{
 		135138,
 		135140,
