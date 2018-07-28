@@ -45,7 +45,7 @@ local abc = 1
 local improvementChances = {}
 
 local CRAFTING_TYPE_JEWELRYCRAFTING = CRAFTING_TYPE_JEWELRYCRAFTING or 7
-GetItemLinkItemId = GetItemLinkItemId or GetItemIDFromLink
+
 
 -- This is filled out after crafting. It's so we can make sure that:
 -- A: The item was crafted and
@@ -111,7 +111,8 @@ local requirementJumps = { -- At these material indexes, the material required c
 
 }
 
-additionalRequirements = -- Seperated by station. The additional amount of mats added to the base amount.
+-- Seperated by station. The additional amount of mats added to the base amount.
+local additionalRequirements =
 {
 	[CRAFTING_TYPE_BLACKSMITHING] =
 	{ 2, 2, 2, 4, 4, 4, 1, 6, 4, 4, 4, 5, 4, 4,
@@ -174,7 +175,7 @@ local JEWELY_MAT_REQUIREMENT = {
 }
 
 local currentStep = 1
-baseRequirements = {}
+local baseRequirements = {}
 for i = 1, 41 do
 	if i == 41 then
 		baseRequirements[i] = baseRequirements[40]
@@ -295,7 +296,7 @@ local function getCraftLevel(station)
 end
 
 
-function canCraftItem(craftRequestTable)
+local function canCraftItem(craftRequestTable)
 	local missing =
 	{
 		["knowledge"] = {},
@@ -351,9 +352,6 @@ function canCraftItem(craftRequestTable)
 	return false, missing
 
 end
-LibLazyCrafting.canCraftItemHere = canCraftItemHere
-
-
 
 -- Returns SetIndex, Set Full Name, Traits Required
 local function GetCurrentSetInteractionIndex()
@@ -400,7 +398,7 @@ local function canCraftItemHere(station, setIndex)
 	return false
 
 end
-
+LibLazyCrafting.canCraftSmithingItemHere = canCraftItemHere
 
 ---------------------------------
 -- SMITHING HELPER FUNCTIONS
@@ -418,11 +416,7 @@ local function GetMaxImprovementMats(bag, slot ,station)
 end
 
 
-function LLC_GetSmithingPatternInfo(patternIndex, station, set)
-end
-
-function LLC_GetSetIndexTable()
-	return SetIndexes
+local function LLC_GetSmithingPatternInfo(patternIndex, station, set)
 end
 
 -- Finds the material index based on the level
@@ -613,7 +607,7 @@ LibLazyCrafting.functionTable.CraftSmithingItemByLevel = LLC_CraftSmithingItemBy
 
 
 -- We do take the bag and slot index here, because we need to know what to upgrade
-function LLC_ImproveSmithingItem(self, BagIndex, SlotIndex, newQuality, autocraft, reference)
+local function LLC_ImproveSmithingItem(self, BagIndex, SlotIndex, newQuality, autocraft, reference)
 	dbug("FUNCTION:LLCImprove")
 	if reference == nil then reference = "" end
 	--abc = abc + 1 if abc>50 then d("improve")return end
@@ -1027,11 +1021,7 @@ SetIndexes =
 	{{136417 , 136437, [6] = 136424, [7] = 138730},9},  -- 44 nocturnal's favor
 	{{136067 , 136087, [6] = 136074, [7] = 138722},6},  -- 45 sload's semblance
 }
-if GetAPIVersion() == 100022 then
-	SetIndexes[43] = nil
-	SetIndexes[44] = nil
-	SetIndexes[45] = nil
-end
+
 for i = 1,#SetIndexes do
 	local _, a = GetItemLinkSetInfo(getItemLinkFromItemId(SetIndexes[i][1][1]),false)
 
@@ -1113,21 +1103,6 @@ local materialItemIDs =
 -- Improvement mats
 -- Use GetSmithingImprovementItemLink(number TradeskillType craftingSkillType, number improvementItemIndex, number LinkStyle linkStyle)
 
-local improvementItemLinks = {}
-
-for _, v in pairs({1,2,6}) do
-	for i = 1, 4 do
-		improvementItemLinks[#improvementItemLinks + 1] = GetSmithingImprovementItemLink(v, i, 0)
-	end
-end
-
-local improvementSkillTextures =
-{
-	[CRAFTING_TYPE_BLACKSMITHING] = "/esoui/art/icons/ability_smith_004.dds",
-	[CRAFTING_TYPE_CLOTHIER] = "/esoui/art/icons/ability_tradecraft_004.dds",
-	[CRAFTING_TYPE_WOODWORKING] = "/esoui/art/icons/ability_tradecraft_001.dds",
-}
-
 local improvementChances =
 {
 	[0] = {5, 7,10,20},
@@ -1148,6 +1123,7 @@ local function compileImprovementRequirements(request, station)
 end
 
 function compileRequirements(request, station)-- Ingot/style mat/trait mat/improvement mat
+	
 	local requirements = {}
 	if request["type"] == "smithing" then
 
@@ -1244,31 +1220,8 @@ end
 local function findItemId()
 end
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 -- This function takes the above table and returns a table of the item links.
-function createSetItemIdTable(setId)
+local function createSetItemIdTable(setId)
 	local start = itemSetIds[setId][1]
 	local start = 0
 	local table = {}
@@ -1287,7 +1240,7 @@ function createSetItemIdTable(setId)
 end
 -- Doubt these will ever again be needed but can't hurt to keep em
 
-function checkTable(table)
+local function checkTable(table)
 	local _, set = GetItemLinkSetInfo(table[1])
 	local test = true
 	for i = 1, #table do
@@ -1299,7 +1252,7 @@ function checkTable(table)
 	d(test)
 end
 
-function checkItemIds()
+local function checkItemIds()
 	for i = 1, #itemSetIds do
 		zo_callLater(function()checkTable(createSetItemIdTable(i)) end , 500*i)
 	end
