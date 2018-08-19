@@ -404,7 +404,7 @@ LibLazyCrafting.canCraftSmithingItemHere = canCraftItemHere
 -- SMITHING HELPER FUNCTIONS
 
 local function GetMaxImprovementMats(bag, slot ,station)
-	local numBooster = 1
+	local numBooster = 0
 	local chance =0
 	if not CanItemBeSmithingImproved(bag, slot, station) then return false end
 	while chance<100 do
