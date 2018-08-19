@@ -18,7 +18,7 @@
 local LibLazyCrafting = LibStub("LibLazyCrafting")
 
 local widgetType = 'smithing'
-local widgetVersion = 2.3
+local widgetVersion = 2.4
 if not LibLazyCrafting:RegisterWidget(widgetType, widgetVersion) then return  end
 
 local function dbug(...)
@@ -198,7 +198,7 @@ function enoughMaterials(craftRequestTable)
 	}
 	local missingSomething = false
 
-	if craftRequestTable["style"] and GetCurrentSmithingStyleItemCount(craftRequestTable["style"]) <= 0 
+	if craftRequestTable["style"] and GetCurrentSmithingStyleItemCount(craftRequestTable["style"]) <= 0
 		and craftRequestTable['station']~= CRAFTING_TYPE_JEWELRYCRAFTING and not craftRequestTable["useUniversalStyleItem"] then
 		missing.materials["style"] = true
 		missingSomething = true
@@ -1111,19 +1111,35 @@ local improvementChances =
 	[3] = {2,3,4,8},
 }
 
+local improvementChancesJewelry =
+{
+	[0] = {3,5,7,10},
+	[1] = {2,4,5,7},
+	[2] = {2,3,4,5},
+	[3] = {1,2,3,4},
+}
+
+local function getImprovementChancesTable(station)
+	if station == CRAFTING_TYPE_JEWELRYCRAFTING then
+		return improvementChancesJewelry
+	else
+		return improvementChances
+	end
+end
+
 local function compileImprovementRequirements(request, station)
 	local requirements = {}
 	local currentQuality = GetItemQuality(request.ItemBagID, request.ItemSlotID)
 	local improvementLevel = getImprovementLevel(station)
 
 	for i  = 1, request.quality - 1 do
-		requirements[GetItemLinkItemId( GetSmithingImprovementItemLink(station, i, 0) )] = improvementChances[improvementLevel][i]
+		requirements[GetItemLinkItemId( GetSmithingImprovementItemLink(station, i, 0) )] = getImprovementChancesTable(station)[improvementLevel][i]
 	end
 	return requirements
 end
 
 function compileRequirements(request, station)-- Ingot/style mat/trait mat/improvement mat
-	
+
 	local requirements = {}
 	if request["type"] == "smithing" then
 
@@ -1154,7 +1170,7 @@ function compileRequirements(request, station)-- Ingot/style mat/trait mat/impro
 		local improvementLevel = getImprovementLevel(station)
 
 		for i  = 1, request.quality - 1 do
-			requirements[GetItemLinkItemId( GetSmithingImprovementItemLink(station, i, 0) )] = improvementChances[improvementLevel][i]
+			requirements[GetItemLinkItemId( GetSmithingImprovementItemLink(station, i, 0) )] = getImprovementChancesTable(station)[improvementLevel][i]
 		end
 
 		return requirements
