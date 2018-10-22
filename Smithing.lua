@@ -18,7 +18,7 @@
 local LibLazyCrafting = LibStub("LibLazyCrafting")
 
 local widgetType = 'smithing'
-local widgetVersion = 2.7
+local widgetVersion = 2.8
 if not LibLazyCrafting:RegisterWidget(widgetType, widgetVersion) then return  end
 
 local LLC = LibLazyCrafting
@@ -46,8 +46,6 @@ local sortCraftQueue = LibLazyCrafting.sortCraftQueue
 
 local abc = 1
 local improvementChances = {}
-
-local CRAFTING_TYPE_JEWELRYCRAFTING = CRAFTING_TYPE_JEWELRYCRAFTING or 7
 
 
 -- This is filled out after crafting. It's so we can make sure that:

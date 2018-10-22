@@ -18,7 +18,7 @@ end
 
 -- Initialize libraries
 local libLoaded
-local LIB_NAME, VERSION = "LibLazyCrafting", 2.3
+local LIB_NAME, VERSION = "LibLazyCrafting", 2.4
 
 local LibLazyCrafting, oldminor = LibStub:NewLibrary(LIB_NAME, VERSION)
 if not LibLazyCrafting then return end
@@ -27,8 +27,6 @@ local LLC = LibLazyCrafting -- Short form version we can use if needed
 LLC.name, LLC.version = LIB_NAME, VERSION
 
 LLC.debugDisplayNames = {}
-
-local CRAFTING_TYPE_JEWELRY = CRAFTING_TYPE_JEWELRY
 
 LibLazyCrafting.craftInteractionTables = LibLazyCrafting.craftInteractionTables or 
 {
@@ -93,7 +91,7 @@ craftingQueue = craftingQueue or
 	{
 		["autocraft"] = false, -- if true, then timestamps will be applied when the addon calls LLC_craft()
 		[CRAFTING_TYPE_CLOTHIER] = {},
-		[CRAFTING_TYPE_JEWELRY] = {},
+		[CRAFTING_TYPE_JEWELRYCRAFTING] = {},
 		[CRAFTING_TYPE_WOODWORKING] =
 		{
 			{["type"] = "smithing",
