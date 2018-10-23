@@ -1,0 +1,14 @@
+## APIVersion: 100025
+## Title: LibLazyCrafting
+## AddOnVersion: 222
+## Author: Dolgubon
+## Contributors: ziggr
+## Description: A library to help craft items.
+
+LibLazyCrafting.lua
+
+Alchemy.lua
+Enchanthing.lua
+Provisioning.lua
+Smithing.lua
+functions.lua
