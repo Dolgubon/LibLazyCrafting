@@ -18,7 +18,7 @@
 local LibLazyCrafting = LibStub("LibLazyCrafting")
 
 local widgetType = 'smithing'
-local widgetVersion = 2.8
+local widgetVersion = 2.71
 if not LibLazyCrafting:RegisterWidget(widgetType, widgetVersion) then return  end
 
 local LLC = LibLazyCrafting
