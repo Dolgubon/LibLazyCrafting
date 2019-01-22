@@ -19,7 +19,7 @@ local LibLazyCrafting = LibStub("LibLazyCrafting")
 local sortCraftQueue = LibLazyCrafting.sortCraftQueue
 
 local widgetType = 'provisioning'
-local widgetVersion = 1.6
+local widgetVersion = 1.7
 if not LibLazyCrafting:RegisterWidget(widgetType, widgetVersion) then return false end
 
 local function dbug(...)
@@ -37,8 +37,35 @@ local function toRecipeLink(recipeId)
     return string.format("|H1:item:%s:3:1:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0|h|h", tostring(recipeId))
 end
 
+local function LLC_CraftProvisioningItemByRecipeIndex(self, recipeListIndex, recipeIndex, timesToMake, autocraft, reference)
+    dbug('FUNCTION:LLCCraftProvisioningByIndex')
+    if reference == nil then reference = "" end
+    if not self then d("Please call with colon notation") end
+    if autocraft==nil then autocraft = self.autocraft end
+    if not (recipeListIndex and recipeIndex) then return end
+
+    table.insert(craftingQueue[self.addonName][CRAFTING_TYPE_PROVISIONING],
+    {
+        ["recipeId"] = nil,
+        ["recipeListIndex"] = recipeListIndex,
+        ["recipeIndex"] = recipeIndex,
+        ["timestamp"] = GetTimeStamp(),
+        ["autocraft"] = autocraft,
+        ["Requester"] = self.addonName,
+        ["reference"] = reference,
+        ["station"] = CRAFTING_TYPE_PROVISIONING,
+        ["timesToMake"] = timesToMake or 1
+    }
+    )
+
+    --sortCraftQueue()
+    if GetCraftingInteractionType()==CRAFTING_TYPE_PROVISIONING then
+        LibLazyCrafting.craftInteract(event, CRAFTING_TYPE_PROVISIONING)
+    end
+end
+
 local function LLC_CraftProvisioningItemByRecipeId(self, recipeId, timesToMake, autocraft, reference)
-    dbug('FUNCTION:LLCCraftProvisioning')
+    dbug('FUNCTION:LLCCraftProvisioningById')
     if reference == nil then reference = "" end
     if not self then d("Please call with colon notation") end
     if autocraft==nil then autocraft = self.autocraft end
@@ -71,7 +98,6 @@ local function LLC_CraftProvisioningItemByRecipeId(self, recipeId, timesToMake, 
 end
 
 local function LLC_ProvisioningCraftInteraction(event, station)
-    
     dbug("FUNCTION:LLCProvisioningCraft")
     local earliest, addon , position = LibLazyCrafting.findEarliestRequest(CRAFTING_TYPE_PROVISIONING)
     if not earliest then LibLazyCrafting.SendCraftEvent( LLC_NO_FURTHER_CRAFT_POSSIBLE,  station) return end
@@ -96,15 +122,18 @@ local function LLC_ProvisioningCraftingComplete(event, station, lastCheck)
     LibLazyCrafting.stackableCraftingComplete(event, station, lastCheck, CRAFTING_TYPE_PROVISIONING, currentCraftAttempt)
 end
 
-local function LLC_ProvisioningIsItemCraftable(station, request)
+local function LLC_ProvisioningIsItemCraftable(self, station, request)
     if station ~= CRAFTING_TYPE_PROVISIONING then return false end
 
     local materialList  = {}
-    local recipeLink    = getItemLinkFromItemId(request.recipeId)
-    local ingrCt        = GetItemLinkRecipeNumIngredients(recipeLink)
+    if not request.recipeListIndex and recipe.recipeIndex then return nil end
+    local rli = request.recipeListIndex  -- for less typing
+    local ri = request.recipeIndex
+    local recipeInfo = { GetRecipeInfo(rli, ri) }
+    local ingrCt = recipeInfo[3]
     for ingrIndex = 1,ingrCt do
-        local _, _, ingrReqCt = GetItemLinkRecipeIngredientInfo(recipeLink, ingrIndex)
-        local ingrLink = GetItemLinkRecipeIngredientItemLink(recipeLink, ingrIndex, LINK_STYLE_DEFAULT)
+        local _, _, ingrReqCt = GetRecipeIngredientItemInfo(request.recipeListIndex, request.recipeIndex, ingrIndex)
+        local ingrLink = GetRecipeIngredientItemLink(rli, ri, ingrIndex, LINK_STYLE_DEFAULT)
         if       ingrReqCt
             and (0 < ingrReqCt)
             and  ingrLink
@@ -130,3 +159,4 @@ LibLazyCrafting.craftInteractionTables[CRAFTING_TYPE_PROVISIONING] =
 }
 
 LibLazyCrafting.functionTable.CraftProvisioningItemByRecipeId = LLC_CraftProvisioningItemByRecipeId
+LibLazyCrafting.functionTable.CraftProvisioningItemByRecipeIndex = LLC_CraftProvisioningItemByRecipeIndex

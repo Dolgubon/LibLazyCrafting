@@ -17,7 +17,7 @@ local LibLazyCrafting = LibStub("LibLazyCrafting")
 local sortCraftQueue = LibLazyCrafting.sortCraftQueue
 
 local widgetType = 'alchemy'
-local widgetVersion = 1.6
+local widgetVersion = 1.7
 if not LibLazyCrafting:RegisterWidget(widgetType, widgetVersion) then return false end
 
 local function dbug(...)
@@ -135,15 +135,17 @@ local function LLC_AlchemyCraftingComplete(event, station, lastCheck)
 
 end
 
-local function LLC_AlchemyIsItemCraftable(station, request)
+local function LLC_AlchemyIsItemCraftable(self, station, request)
     if station ~= CRAFTING_TYPE_ALCHEMY then return false end
 
     local materialList
       = { { itemLink = getItemLinkFromItemId(request.solventId ) , requiredCt = request.timesToMake },
           { itemLink = getItemLinkFromItemId(request.reagentId1) , requiredCt = request.timesToMake },
           { itemLink = getItemLinkFromItemId(request.reagentId2) , requiredCt = request.timesToMake },
-          { itemLink = getItemLinkFromItemId(request.reagentId3) , requiredCt = request.timesToMake }
         }
+        if request.reagentId3 then
+          table.insert(materialList, { itemLink = getItemLinkFromItemId(request.reagentId3) , requiredCt = request.timesToMake })
+        end
     return LibLazyCrafting.HaveMaterials(materialList)
 end
 
