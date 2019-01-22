@@ -216,6 +216,7 @@ LibLazyCrafting.craftInteractionTables[CRAFTING_TYPE_ENCHANTING] =
 
 LibLazyCrafting.functionTable.CraftEnchantingItemId = LLC_CraftEnchantingGlyphItemID
 LibLazyCrafting.functionTable.CraftEnchantingGlyph = LLC_CraftEnchantingGlyph
+LibLazyCrafting.functionTable.CraftEnchantingItem = LLC_CraftEnchantingGlyph
 
 --- testers:
 -- /script LLC_Global:CraftEnchantingItemId(45830, 45838, 45851)
