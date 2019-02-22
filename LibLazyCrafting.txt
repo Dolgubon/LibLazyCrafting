@@ -1,4 +1,4 @@
-## APIVersion: 100025
+## APIVersion: 100026
 ## Title: LibLazyCrafting
 ## AddOnVersion: 2.31
 ## Author: Dolgubon
