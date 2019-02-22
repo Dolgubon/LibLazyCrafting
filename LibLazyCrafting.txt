@@ -8,7 +8,6 @@
 LibLazyCrafting.lua
 
 Alchemy.lua
-Enchanthing.lua
+Enchanting.lua
 Provisioning.lua
 Smithing.lua
-functions.lua
