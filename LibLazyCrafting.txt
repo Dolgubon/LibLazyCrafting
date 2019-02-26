@@ -7,9 +7,10 @@
 
 ## APIVersion: 100026
 ## Title: LibLazyCrafting
-## Version: 2.32
+## Version: 2.33
 ## Author: Dolgubon
 ## Contributors: ziggr
+## DependsOn: LibStub
 ## Description: A library to help craft items.
 
 LibLazyCrafting.lua
