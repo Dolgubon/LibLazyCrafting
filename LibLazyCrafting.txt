@@ -12,6 +12,7 @@
 ## Contributors: ziggr
 ## DependsOn: LibStub
 ## Description: A library to help craft items.
+## SavedVariables: LibLazyCraftingSavedVars
 
 LibLazyCrafting.lua
 

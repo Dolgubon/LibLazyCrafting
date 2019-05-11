@@ -357,41 +357,39 @@ end
 -- Returns SetIndex, Set Full Name, Traits Required
 local function GetCurrentSetInteractionIndex()
 	local baseSetPatternName
-	local sampleId
+	local itemLink
 	local currentStation = GetCraftingInteractionType()
 	-- Get info based on what station it is.
 	if currentStation == CRAFTING_TYPE_BLACKSMITHING then
-		sampleId = GetItemLinkItemId(GetSmithingPatternResultLink(15,1,3,1,1,0))
+		itemLink = GetSmithingPatternResultLink(15,1,3,1,1,0)
 	elseif currentStation == CRAFTING_TYPE_CLOTHIER then
-		sampleId = GetItemLinkItemId(GetSmithingPatternResultLink(16,1,7,1,1,0))
+		itemLink = GetSmithingPatternResultLink(16,1,7,1,1,0)
 	elseif currentStation == CRAFTING_TYPE_WOODWORKING then
-		sampleId = GetItemLinkItemId(GetSmithingPatternResultLink(7,1,3,1,1,0))
+		itemLink = GetSmithingPatternResultLink(7,1,3,1,1,0)
 	elseif currentStation == CRAFTING_TYPE_JEWELRYCRAFTING then
-		sampleId = GetItemLinkItemId(GetSmithingPatternResultLink(4,1,3,nil,1,0))
+		itemLink = GetSmithingPatternResultLink(4,1,3,nil,1,0)
 	else
 		return nil , nil, nil, nil
 	end
-	-- If no set
-	if not sampleId then
-		return 1, SetIndexes[1][1],  SetIndexes[1][3]
+	local hasSet, setName, _,_,_, id = GetItemLinkSetInfo(itemLink)
+	local traitsNeeded = SetIndexes[id][3]
+	if hasSet then
+		return id, setName, traitsNeeded
+	else
+		return 0, "No Set",  0
 	end
-	-- find set index
-	for i =1, #SetIndexes do
-		if sampleId == SetIndexes[i][2][currentStation] then
-			return i, SetIndexes[i][1] , SetIndexes[i][3]
-		end
-	end
+	
 end
 LibLazyCrafting.functionTable.GetCurrentSetInteractionIndex  = GetCurrentSetInteractionIndex
 
 -- Can an item be crafted here, based on set and station indexes
 local function canCraftItemHere(station, setIndex)
 
-	if not setIndex then setIndex = 1 end
+	if not setIndex then setIndex = 0 end
 
 	if GetCraftingInteractionType()==station then
 
-		if GetCurrentSetInteractionIndex()==setIndex or setIndex==1 then
+		if GetCurrentSetInteractionIndex()==setIndex or setIndex==0 then
 
 			return true
 		end
@@ -976,7 +974,7 @@ LibLazyCrafting.craftInteractionTables[CRAFTING_TYPE_JEWELRYCRAFTING]["station"]
 
 -- For brevity sake, sets are simply listed as 3 item IDs with the number of traits needed.
 -- The name of the set is then added in on initialization using the API.
-SetIndexes =
+local setInfo =
 { --{{Axe    , Robe  ,  6  = Bow   ,  7  = Neckla},trait_ct},
 	{{43529  , 43549 , [6] = 43543 , [7] =  43561},0},  --  1 no set
 	{{46499  , 43805 , [6] = 46518 , [7] = 137683},2},  --  2 death's wind
@@ -1027,15 +1025,31 @@ SetIndexes =
 	{{143531 , 143551, [7] = 143538, [7] = 143567},4},	-- 47 Might of the Lost Legion
 	{{142791 , 142811, [7] = 142798, [7] = 142827},7,}	-- 48 Grave-Stake Collector
 }
+SetIndexes = {}
+
+for i = 1, #setInfo do
+	local _, name,_,_,_, index = GetItemLinkSetInfo(getItemLinkFromItemId(setInfo[i][1][1]),false)
+
+	SetIndexes[index] = setInfo[i]
+	SetIndexes[index][3] = index
+	if index==0 then
+		table.insert(SetIndexes[index],1,"No Set")
+	else
+		table.insert(SetIndexes[index],1,name)
+	end
+
+
+end
+
 
 --GetItemLinkSetInfo(string itemLink, boolean equipped)
 -- Returns: boolean hasSet, string setName, number numBonuses, number numEquipped, number maxEquipped, number setId
 
-for i = 1,#SetIndexes do
-	local _, a = GetItemLinkSetInfo(getItemLinkFromItemId(SetIndexes[i][1][1]),false)
+-- for i = 1,#SetIndexes do
+-- 	local _, a = GetItemLinkSetInfo(getItemLinkFromItemId(SetIndexes[i][1][1]),false)
 
-	table.insert(SetIndexes[i],1,a)
-end
+-- 	table.insert(SetIndexes[i],1,a)
+-- end
 
 
 function GetSetIndexes()
@@ -1245,7 +1259,7 @@ end
 local function findItemId()
 end
 
--- This function takes the above table and returns a table of the item links.
+-- This function takes the above table and returns a table of the item links for a given set
 local function createSetItemIdTable(setId)
 	local start = itemSetIds[setId][1]
 	local start = 0
@@ -1282,3 +1296,29 @@ local function checkItemIds()
 		zo_callLater(function()checkTable(createSetItemIdTable(i)) end , 500*i)
 	end
 end
+
+-------
+-- SCANNING FUNCTIONALITY
+-------
+
+local function scanAllItemIds()
+
+
+end
+
+local lookedForSetIds = {}
+
+local function populateLookedForIds()
+	for i = 1, #SetIndexes do
+		lookedForSetIds[ GetItemLinkSetInfo(getItemLinkFromItemId(SetIndexes[i]))] = true
+	end
+end
+local varsDefault = {}
+
+local function initializeSetInfo()
+	local vars = ZO_SavedVars:NewAccountWide("LibLazyCraftingSavedVars", 1,nil, varsDefault)
+end
+
+
+
+EVENT_MANAGER:RegisterForEvent(LLC.name.."SmithingScan",EVENT_PLAYER_ACTIVATED, initializeSetInfo)
