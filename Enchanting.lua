@@ -105,9 +105,8 @@ local currentCraftAttempt =
 }
 
 
-local function LLC_EnchantingCraftinteraction(event, station)
+local function LLC_EnchantingCraftinteraction(station, earliest, addon , position)
 	dbug("FUNCTION:LLCEnchantCraft")
-	local earliest, addon , position = LibLazyCrafting.findEarliestRequest(CRAFTING_TYPE_ENCHANTING)
 	if not earliest then  LibLazyCrafting.SendCraftEvent( LLC_NO_FURTHER_CRAFT_POSSIBLE,  station) end
 	if earliest and not IsPerformingCraftProcess() then
 		local locations = 

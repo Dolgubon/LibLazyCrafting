@@ -569,7 +569,7 @@ local function LLC_CraftSmithingItem(self, patternIndex, materialIndex, material
 
 	--sortCraftQueue()
 	if not IsPerformingCraftProcess() and GetCraftingInteractionType()~=0 then
-		LibLazyCrafting.craftInteractionTables[GetCraftingInteractionType()]["function"](GetCraftingInteractionType())
+		LibLazyCrafting.craftInteract(nil, GetCraftingInteractionType())
 	end
 
 	return requestTable
@@ -638,7 +638,7 @@ local function LLC_ImproveSmithingItem(self, BagIndex, SlotIndex, newQuality, au
 	table.insert(craftingQueue[self.addonName][station], craftingRequestTable)
 	--sortCraftQueue()
 	if not IsPerformingCraftProcess() and GetCraftingInteractionType()~=0 and not LibLazyCrafting.isCurrentlyCrafting[1] then
-		LibLazyCrafting.craftInteractionTables[GetCraftingInteractionType()]["function"](GetCraftingInteractionType())
+		LibLazyCrafting.craftInteract(nil, GetCraftingInteractionType())
 
 	end
 	return craftingRequestTable
@@ -679,7 +679,7 @@ local currentCraftAttempt =
 
 local hasNewItemBeenMade = false
 
-local function LLC_SmithingCraftInteraction( station)
+local function LLC_SmithingCraftInteraction( station, earliest, addon , position)
 
 	dbug("EVENT:CraftIntBegin")
 
@@ -733,7 +733,7 @@ local function LLC_SmithingCraftInteraction( station)
 
 				currentCraftAttempt = {}
 				--sortCraftQueue()
-				LLC_SmithingCraftInteraction(station)
+				LibLazyCrafting.craftInteract(nil, station)
 				return
 			end
 			if currentSkill~=maxSkill then
@@ -931,7 +931,7 @@ LibLazyCrafting.craftInteractionTables[CRAFTING_TYPE_BLACKSMITHING] =
 {
 	["station"] = CRAFTING_TYPE_BLACKSMITHING,
 	["check"] = function(self, station) return station == self.station end,
-	['function'] = LLC_SmithingCraftInteraction,
+	["function"] = LLC_SmithingCraftInteraction,
 	["complete"] = SmithingCraftCompleteFunction,
 	["endInteraction"] = function(self, station) --[[endInteraction()]] end,
 	["isItemCraftable"] = function(self, station, request)
@@ -1027,6 +1027,9 @@ SetIndexes =
 	{{143531 , 143551, [7] = 143538, [7] = 143567},4},	-- 47 Might of the Lost Legion
 	{{142791 , 142811, [7] = 142798, [7] = 142827},7,}	-- 48 Grave-Stake Collector
 }
+
+--GetItemLinkSetInfo(string itemLink, boolean equipped)
+-- Returns: boolean hasSet, string setName, number numBonuses, number numEquipped, number maxEquipped, number setId
 
 for i = 1,#SetIndexes do
 	local _, a = GetItemLinkSetInfo(getItemLinkFromItemId(SetIndexes[i][1][1]),false)

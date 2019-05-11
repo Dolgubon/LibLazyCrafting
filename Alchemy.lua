@@ -79,9 +79,8 @@ end
 
 
 
-local function LLC_AlchemyCraftInteraction(event, station)
+local function LLC_AlchemyCraftInteraction(station, earliest, addon , position)
 	dbug("FUNCTION:LLCAlchemyCraft")
-	local earliest, addon , position = LibLazyCrafting.findEarliestRequest(CRAFTING_TYPE_ALCHEMY)
 	if not earliest then LibLazyCrafting.SendCraftEvent( LLC_NO_FURTHER_CRAFT_POSSIBLE,  station) return end
 	if IsPerformingCraftProcess() then return end
 

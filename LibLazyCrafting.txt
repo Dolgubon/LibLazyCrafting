@@ -7,7 +7,7 @@
 
 ## APIVersion: 100026
 ## Title: LibLazyCrafting
-## Version: 2.33
+## Version: 2.34
 ## Author: Dolgubon
 ## Contributors: ziggr
 ## DependsOn: LibStub

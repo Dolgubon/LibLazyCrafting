@@ -18,7 +18,7 @@ end
 
 -- Initialize libraries
 local libLoaded
-local LIB_NAME, VERSION = "LibLazyCrafting", 2.33
+local LIB_NAME, VERSION = "LibLazyCrafting", 2.34
 
 local LibLazyCrafting, oldminor = LibStub:NewLibrary(LIB_NAME, VERSION)
 if not LibLazyCrafting then return end
@@ -197,6 +197,11 @@ function findItemLocationById(itemID)
 			return BAG_BACKPACK,i
 		end
 	end
+	for i=0, GetBagSize(BAG_SUBSCRIBER_BANK) do
+		if GetItemId(BAG_SUBSCRIBER_BANK,i)==itemID  then
+			return BAG_SUBSCRIBER_BANK, i
+		end
+	end
 	if GetItemId(BAG_VIRTUAL, itemID) ~=0 then
 
 		return BAG_VIRTUAL, itemID
@@ -210,15 +215,15 @@ LibLazyCrafting.functionTable.findItemLocationById = findItemLocationById
 
 -- Return current backpack inventory.
 function LibLazyCrafting.backpackInventory()
-	local r = {}
+	local inventory = {}
 	local bagId = BAG_BACKPACK
 	local maxSlotId = GetBagSize(bagId)
 	local total = 0 -- to help with debugging: did ANYTHING grow?
 	for slotIndex = 0, maxSlotId do
-		r[slotIndex] = GetSlotStackSize(bagId, slotIndex)
-		total = total + r[slotIndex]
+		inventory[slotIndex] = GetSlotStackSize(bagId, slotIndex)
+		total = total + inventory[slotIndex]
 	end
-	return r
+	return inventory
 end
 
 -- Return the first slot index of a stack of items that grew.
@@ -491,7 +496,21 @@ end
 
 LibLazyCrafting.functionTable.getMatRequirements =  LLC_GetMatRequirements
 
+
 function LibLazyCrafting.SendCraftEvent( event,  station, requester, returnTable )
+	-- First, set the item to have the new status
+	-- if event==LLC_CRAFT_SUCCESS and returnTable then
+	-- 	-- PLAYER_INVENTORY:AddInventoryItem(INVENTORY_BACKPACK, returnTable["slot"])
+	-- 	-- PLAYER_INVENTORY:RefreshAllInventorySlots()
+	-- 	--RefreshInventorySlot(inventoryType, slotIndex, bagId)
+	-- 	local v = SHARED_INVENTORY:GenerateSingleSlotData(returnTable['bag'], returnTable['slot'])
+	-- 	if v then
+	-- 		v.brandNew = true
+	-- 		v.age = 1
+	-- 		SHARED_INVENTORY:RefreshStatusSortOrder(v)
+	-- 	end
+	-- end
+
 	if event == LLC_NO_FURTHER_CRAFT_POSSIBLE then
 		for requester, callbackFunction in pairs(LibLazyCrafting.craftResultFunctions) do
 			if requester ~= "LLC_Global" then
@@ -609,10 +628,18 @@ LLC.LLCThrowError = LLCThrowError
 -- Called when a crafting station is opened. Should then craft anything needed in the queue
 local function CraftInteract(event, station)
 	for k,v in pairs(LibLazyCrafting.craftInteractionTables) do
-
-
 		if v:check( station) then
-			v["function"]( station)
+			local earliest, addon , position = LibLazyCrafting.findEarliestRequest(station)
+			if earliest then
+				if earliest.isFurniture then
+					if v.canCraftFurniture then
+						v["function"]( station, earliest, addon , position)
+					end
+				else
+					v["function"]( station, earliest, addon , position)
+					break
+				end
+			end
 		end
 	end
 end
@@ -648,7 +675,17 @@ local function CraftComplete(event, station)
 
 				v["complete"]( station)
 				LibLazyCrafting.isCurrentlyCrafting = {false, "", ""}
-				v["function"]( station)
+				local earliest, addon , position = LibLazyCrafting.findEarliestRequest(station)
+				if earliest then
+					if earliest.isFurniture then
+						if v.canCraftFurniture then
+							v["function"]( station, earliest, addon , position)
+						end
+					else
+						v["function"]( station, earliest, addon , position)
+						break
+					end
+				end
 			end
 		end
 	end

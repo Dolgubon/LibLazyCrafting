@@ -97,9 +97,8 @@ local function LLC_CraftProvisioningItemByRecipeId(self, recipeId, timesToMake, 
     end
 end
 
-local function LLC_ProvisioningCraftInteraction(event, station)
+local function LLC_ProvisioningCraftInteraction(station, earliest, addon , position)
     dbug("FUNCTION:LLCProvisioningCraft")
-    local earliest, addon , position = LibLazyCrafting.findEarliestRequest(CRAFTING_TYPE_PROVISIONING)
     if not earliest then LibLazyCrafting.SendCraftEvent( LLC_NO_FURTHER_CRAFT_POSSIBLE,  station) return end
     if IsPerformingCraftProcess()  then return end
 
