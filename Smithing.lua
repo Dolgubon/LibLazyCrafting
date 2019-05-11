@@ -30,6 +30,8 @@ local function dbug(...)
 	end
 end
 
+local INDEX_NO_SET = 0
+
 
 local craftingQueue = LibLazyCrafting.craftingQueue
 
@@ -376,7 +378,7 @@ local function GetCurrentSetInteractionIndex()
 	if hasSet then
 		return id, setName, traitsNeeded
 	else
-		return 0, "No Set",  0
+		return INDEX_NO_SET, "No Set",  0
 	end
 	
 end
@@ -385,11 +387,11 @@ LibLazyCrafting.functionTable.GetCurrentSetInteractionIndex  = GetCurrentSetInte
 -- Can an item be crafted here, based on set and station indexes
 local function canCraftItemHere(station, setIndex)
 
-	if not setIndex then setIndex = 0 end
+	if not setIndex then setIndex = INDEX_NO_SET end
 
 	if GetCraftingInteractionType()==station then
 
-		if GetCurrentSetInteractionIndex()==setIndex or setIndex==0 then
+		if GetCurrentSetInteractionIndex()==setIndex or setIndex==INDEX_NO_SET then
 
 			return true
 		end
@@ -542,7 +544,7 @@ local function LLC_CraftSmithingItem(self, patternIndex, materialIndex, material
 		station =stationOverride
 	end
 	--Handle the extra values. If they're nil, assign default values.
-	if not quality then setIndex = 0 end
+	if not setIndex then setIndex = INDEX_NO_SET end
 	if not quality then quality = 0 end
 
 	-- create smithing request table and add to the queue
@@ -698,7 +700,7 @@ local function LLC_SmithingCraftInteraction( station, earliest, addon , position
 			LINK_STYLE_DEFAULT,
 		}
 		local setPatternOffset = {14, 15,[6]=6,[7]=2}
-		if earliest.setIndex~=1 then
+		if earliest.setIndex~=INDEX_NO_SET then
 			parameters[1] = parameters[1] + setPatternOffset[station]
 		end
 			dbug("CALL:ZOCraftSmithing")
