@@ -97,7 +97,8 @@ end
 
 -- Returns an item link from the given itemId.
 local function getItemLinkFromItemId(itemId)
-	return string.format("|H1:item:%d:%d:50:0:0:0:0:0:0:0:0:0:0:0:0:%d:%d:0:0:%d:0|h|h", itemId, 0, ITEMSTYLE_NONE, 0, 10000) end
+	return string.format("|H1:item:%d:%d:50:0:0:0:0:0:0:0:0:0:0:0:0:%d:%d:0:0:%d:0|h|h", itemId, 0, ITEMSTYLE_NONE, 0, 10000) 
+end
 
 
 local requirementJumps = { -- At these material indexes, the material required changes, and the amount required jumps down
@@ -308,7 +309,7 @@ local function canCraftItem(craftRequestTable)
 	--CanSmithingStyleBeUsedOnPattern()
 	-- Check stylemats
 	local setPatternOffset = {}
-	if craftRequestTable["setIndex"] == 1 then
+	if craftRequestTable["setIndex"] == INDEX_NO_SET then
 		setPatternOffset = {0,0,[6]=0,[7]=0}
 	else
 		setPatternOffset = {14, 15,[6]=6,[7]=2}
@@ -515,7 +516,13 @@ end
 -- ITEM_TRAIT_TYPE_JEWELRY_HARMONY      = 29
 -- ITEM_TRAIT_TYPE_JEWELRY_BLOODTHIRSTY = 31
 
-local function LLC_CraftSmithingItem(self, patternIndex, materialIndex, materialQuantity, styleIndex, traitIndex, useUniversalStyleItem, stationOverride, setIndex, quality, autocraft, reference)
+-- Currently enchantment is non functional, but present as a palceholder
+-- Not sure what the enchantId you want is?
+--	Take the glyph for that enchantment, or an item with that enchantment, and run it through GetItemLinkFinalEnchantId( itemLink ))
+-- The number it returns is the enchant Id!
+
+-- /script local c = 0 for i = 1, 1000 do local a = GetEnchantSearchCategoryType( i ) if a~=0 then d("i: "..i.." search: ".. a) c = c+1 end end d(c)
+local function LLC_CraftSmithingItem(self, patternIndex, materialIndex, materialQuantity, styleIndex, traitIndex, useUniversalStyleItem, stationOverride, setIndex, quality, autocraft, reference, potencyId, essenceId, aspectId)
 	dbug("FUNCTION:LLCSmithing")
 
 	if reference == nil then reference = "" end
@@ -549,22 +556,32 @@ local function LLC_CraftSmithingItem(self, patternIndex, materialIndex, material
 
 	-- create smithing request table and add to the queue
 	if self.addonName=="LLC_Global" then d("Item added") end
-	local requestTable = {
-		["type"] = "smithing",
-		["pattern"] =patternIndex,
-		["style"] = styleIndex,
-		["trait"] = traitIndex,
-		["materialIndex"] = materialIndex,
-		["materialQuantity"] = materialQuantity,
-		["station"] = station,
-		["setIndex"] = setIndex,
-		["quality"] = quality,
-		["useUniversalStyleItem"] = useUniversalStyleItem,
-		["timestamp"] = GetSmithingQueueOrder(),
-		["autocraft"] = autocraft,
-		["Requester"] = self.addonName,
-		["reference"] = reference,
-	}
+	local requestTable 
+	if potencyId and essenceId and aspectId then
+		requestTable = LibLazyCrafting.functionTable.CraftEnchantingItemId(self,potencyId, essenceId, aspectId, autocraft, reference )
+		requestTable['dualEnchantingSmithing'] = true
+	elseif potencyId or essenceId or aspectId then
+		d("Only partial enchanting traits specified. Aborting craft")
+		return
+	else
+		requestTable = {}
+	end
+	
+	requestTable["type"] = "smithing"
+	requestTable["pattern"] =patternIndex
+	requestTable["style"] = styleIndex
+	requestTable["trait"] = traitIndex
+	requestTable["materialIndex"] = materialIndex
+	requestTable["materialQuantity"] = materialQuantity
+	requestTable["station"] = station
+	requestTable["setIndex"] = setIndex
+	requestTable["quality"] = quality
+	requestTable["useUniversalStyleItem"] = useUniversalStyleItem
+	requestTable["timestamp"] = GetSmithingQueueOrder()
+	requestTable["autocraft"] = autocraft
+	requestTable["Requester"] = self.addonName
+	requestTable["reference"] = reference
+
 	table.insert(craftingQueue[self.addonName][station],requestTable)
 
 	--sortCraftQueue()
@@ -588,28 +605,31 @@ end
 
 LibLazyCrafting.functionTable.isSmithingLevelValid = isValidLevel
 
-local function LLC_CraftSmithingItemByLevel(self, patternIndex, isCP , level, styleIndex, traitIndex, useUniversalStyleItem, stationOverride, setIndex, quality, autocraft, reference)
+local function LLC_CraftSmithingItemByLevel(self, patternIndex, isCP , level, styleIndex, traitIndex, 
+	useUniversalStyleItem, stationOverride, setIndex, quality, autocraft, reference, potencyId, essenceId, aspectId)
 
 	if isValidLevel( isCP ,level) then
 		local materialIndex = findMatIndex(level, isCP)
 
 		local materialQuantity = GetMatRequirements(patternIndex, materialIndex, stationOverride)
 
-		return LLC_CraftSmithingItem(self, patternIndex, materialIndex, materialQuantity, styleIndex, traitIndex, useUniversalStyleItem, stationOverride, setIndex, quality, autocraft, reference)
+		return LLC_CraftSmithingItem(self, patternIndex, materialIndex, materialQuantity, styleIndex, traitIndex, useUniversalStyleItem, stationOverride, setIndex, quality, autocraft, reference, potencyId, essenceId, aspectId)
 	else
 	end
 end
 
+
+
 LibLazyCrafting.functionTable.CraftSmithingItem = LLC_CraftSmithingItem
 LibLazyCrafting.functionTable.CraftSmithingItemByLevel = LLC_CraftSmithingItemByLevel
 -- /script local a = {1, 16, 36} for i = 1, 3 do LLC_Global:CraftSmithingItemByLevel(5, false, a[i],3 ,ITEM_TRAIT_TYPE_ARMOR_TRAINING ,false, CRAFTING_TYPE_CLOTHIER, 0, ITEM_QUALITY_ARCANE,true) end
--- /script LLC_Global:CraftSmithingItemByLevel(3, true, 150,3 ,1 ,false, CRAFTING_TYPE_CLOTHIER, 0, 3,true)
+-- /script LLC_Global:CraftSmithingItemByLevel(3, true, 150,3 ,1 ,false, CRAFTING_TYPE_CLOTHIER, 0, 2,true, nil, 45812, 45833, 45851)
 -- /script for i= 2, 25 do LLC_Global:CraftSmithingItemByLevel(3, false, i*2,3 ,1 ,false, CRAFTING_TYPE_CLOTHIER, 0, 3,true) end
 -- /script LLC_Global:CraftSmithingItemByLevel(3, true, 140,3 ,1 ,false, CRAFTING_TYPE_CLOTHIER, 0, 5,true)
 
 
 -- We do take the bag and slot index here, because we need to know what to upgrade
-local function LLC_ImproveSmithingItem(self, BagIndex, SlotIndex, newQuality, autocraft, reference)
+local function InternalImproveSmithingItem(self, BagIndex, SlotIndex, newQuality, autocraft, reference, existingRequestTable)
 	dbug("FUNCTION:LLCImprove")
 	if reference == nil then reference = "" end
 	--abc = abc + 1 if abc>50 then d("improve")return end
@@ -622,19 +642,27 @@ local function LLC_ImproveSmithingItem(self, BagIndex, SlotIndex, newQuality, au
 	if station == -1 then d("Cannot be improved") return end
 	if autocraft==nil then autocraft = self.autocraft end
 	local station = GetRearchLineInfoFromRetraitItem(BagIndex, SlotIndex)
-	local craftingRequestTable = {
-	["type"] = "improvement",
-	["Requester"] = self.addonName, -- ADDON NAME
-	["autocraft"] = autocraft,
-	["ItemLink"] = GetItemLink(BagIndex, SlotIndex),
-	["ItemBagID"] = BagIndex,
-	["ItemSlotID"] = SlotIndex,
-	["ItemUniqueID"] = GetItemUniqueId(BagIndex, SlotIndex),
-	["ItemCreater"] = GetItemCreatorName(BagIndex, SlotIndex),
-	["quality"] = newQuality,
-	["reference"] = reference,
-	["station"] = station,
-	["timestamp"] = GetSmithingQueueOrder(),}
+	local craftingRequestTable
+	if existingRequestTable then
+		craftingRequestTable = existingRequestTable
+	else
+		craftingRequestTable = {}
+	end
+
+	craftingRequestTable["type"] = "improvement"
+	craftingRequestTable["Requester"] = self.addonName -- ADDON NAME
+	craftingRequestTable["autocraft"] = autocraft
+	craftingRequestTable["ItemLink"] = GetItemLink(BagIndex, SlotIndex)
+	craftingRequestTable["ItemBagID"] = BagIndex
+	craftingRequestTable["ItemSlotID"] = SlotIndex
+	craftingRequestTable["itemUniqueId"] = GetItemUniqueId(BagIndex, SlotIndex)
+	craftingRequestTable['itemStringUniqueId'] = Id64ToString(craftingRequestTable['equipUniqueId'])
+	craftingRequestTable["ItemCreater"] = GetItemCreatorName(BagIndex, SlotIndex)
+	craftingRequestTable["quality"] = newQuality
+	craftingRequestTable["reference"] = reference
+	craftingRequestTable["station"] = station
+	craftingRequestTable["timestamp"] = GetSmithingQueueOrder()
+
 	table.insert(craftingQueue[self.addonName][station], craftingRequestTable)
 	--sortCraftQueue()
 	if not IsPerformingCraftProcess() and GetCraftingInteractionType()~=0 and not LibLazyCrafting.isCurrentlyCrafting[1] then
@@ -643,6 +671,20 @@ local function LLC_ImproveSmithingItem(self, BagIndex, SlotIndex, newQuality, au
 	end
 	return craftingRequestTable
 end
+
+local function LLC_ImproveSmithingItem(self, BagIndex, SlotIndex, newQuality, autocraft, reference)
+	InternalImproveSmithingItem(self, BagIndex, SlotIndex, newQuality, autocraft, reference)
+end
+
+local function LLC_AddExistingGlyphToGear(self, existingRequestTable, glyphBag, glyphSlot)
+	existingRequestTable['dualEnchantingSmithing'] = true
+	existingRequestTable['glyphUniqueId'] = GetItemUniqueId(glyphBag, glyphSlot)
+	existingRequestTable['glyphStringUniqueId'] = Id64ToString(existingRequestTable['glyphUniqueId'])
+	existingRequestTable.glyphCreated = true
+	return
+end
+
+LibLazyCrafting.functionTable.LLC_AddExistingGlyph = LLC_AddExistingGlyph
 
 LibLazyCrafting.functionTable.ImproveSmithingItem = LLC_ImproveSmithingItem
 -- Examples
@@ -834,13 +876,33 @@ local function smithingCompleteNewItemHandler(station)
 			--d("Improving #".. tostring(currentCraftAttempt.reference))
 			removedRequest.bag = BAG_BACKPACK
 			removedRequest.slot = currentCraftAttempt.slot
+
 			LibLazyCrafting.SendCraftEvent(LLC_INITIAL_CRAFT_SUCCESS, station, currentCraftAttempt.Requester, removedRequest)
+
+			if removedRequest.dualEnchantingSmithing then
+				InternalImproveSmithingItem({["addonName"]=currentCraftAttempt.Requester}, BAG_BACKPACK, currentCraftAttempt.slot, currentCraftAttempt.quality, 
+					currentCraftAttempt.autocraft, currentCraftAttempt.reference, removedRequest)
+				removedRequest["craftNow"] = true
+				return
+			end
+
 			local requestTable = LLC_ImproveSmithingItem({["addonName"]=currentCraftAttempt.Requester}, BAG_BACKPACK, currentCraftAttempt.slot, currentCraftAttempt.quality, currentCraftAttempt.autocraft, currentCraftAttempt.reference)
-			requestTable["craftNow"] = true
+			removedRequest["craftNow"] = true
 		else
 			removedRequest.bag = BAG_BACKPACK
 			removedRequest.slot = currentCraftAttempt.slot
-
+			if removedRequest.dualEnchantingSmithing then
+				removedRequest['equipUniqueId'] = GetItemUniqueId(removedRequest.equipBag,removedRequest.equipSlot)
+				removedRequest['equipStringUniqueId'] = Id64ToString(removedRequest['equipUniqueId'])
+				removedRequest.equipCreated = true
+				currentCraftAttempt = {}
+				if removedRequest.glyphCreated then
+					LibLazyCrafting.applyGlyphToItem(removedRequest)
+				else
+					LibLazyCrafting.SendCraftEvent( LLC_INITIAL_CRAFT_SUCCESS,  station,currentCraftAttempt.Requester, returnTable )
+					return
+				end
+			end
 			LibLazyCrafting.SendCraftEvent(LLC_CRAFT_SUCCESS, station, currentCraftAttempt.Requester, removedRequest )
 		end
 	else
@@ -885,7 +947,21 @@ local function SmithingCraftCompleteFunction(station)
 				returnTable =  table.remove(craftingQueue[addonName][station],position)
 
 				returnTable.bag = BAG_BACKPACK
-
+				if returnTable.dualEnchantingSmithing then
+					returnTable.equipBag = BAG_BACKPACK
+					returnTable.equipSlot = currentCraftAttempt.slot
+					returnTable.equipCreated = true
+					removedRequest['equipUniqueId'] = GetItemUniqueId(removedRequest.equipBag,removedRequest.equipSlot)
+					removedRequest['equipStringUniqueId'] = Id64ToString(removedRequest['equipUniqueId'])
+					currentCraftAttempt = {}
+					if returnTable.glyphCreated then
+						LibLazyCrafting.applyGlyphToItem(returnTable)
+					else
+						LibLazyCrafting:SetItemStatusNew(returnTable.equipSlot)
+						LibLazyCrafting.SendCraftEvent( LLC_INITIAL_CRAFT_SUCCESS,  station,currentCraftAttempt.Requester, returnTable )
+						return
+					end
+				end
 				LibLazyCrafting.SendCraftEvent( LLC_CRAFT_SUCCESS,  station,currentCraftAttempt.Requester, returnTable )
 			else
 				d("Bad request position")
@@ -1024,9 +1100,15 @@ local setInfo =
 	{{136417 , 136437, [6] = 136424, [7] = 138730},9},  -- 44 nocturnal's favor
 	{{136067 , 136087, [6] = 136074, [7] = 138722},6},  -- 45 sload's semblance
 	{{143161 , 143181, [6] = 143168, [7] = 143197},2},	-- 46 Naga Shaman
-	{{143531 , 143551, [7] = 143538, [7] = 143567},4},	-- 47 Might of the Lost Legion
-	{{142791 , 142811, [7] = 142798, [7] = 142827},7,}	-- 48 Grave-Stake Collector
+	{{143531 , 143551, [6] = 143538, [7] = 143567},4},	-- 47 Might of the Lost Legion
+	{{142791 , 142811, [6] = 142798, [7] = 142827},7,},	-- 48 Grave-Stake Collector
+	{{147948 , 147968, [6] = 147955, [7] =147984 },8,},	-- 49 Coldharbour's Favourite
+	{{148318 , 148338, [6] = 148325, [7] =148354 },5,},	-- 48 Senche Raht's Grit
+	{{148688 , 148708, [6] = 148695, [7] =148724 },3,},	-- 48 Vasterie's Tutelage
+
 }
+
+
 SetIndexes = {}
 
 for i = 1, #setInfo do

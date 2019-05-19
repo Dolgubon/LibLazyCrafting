@@ -62,9 +62,7 @@ local function LLC_CraftEnchantingGlyphItemID(self, potencyItemID, essenceItemID
 	if autocraft==nil then autocraft = self.autocraft end
 	if not potencyItemID or not essenceItemID or not aspectItemID then  return end
 	if not areIdsValid(potencyItemID, essenceItemID, aspectItemID) then d("invalid essence Ids") return end
-
-	table.insert(craftingQueue[self.addonName][CRAFTING_TYPE_ENCHANTING],
-	{
+	local requestTable = {
 		["potencyItemID"] = potencyItemID,
 		["essenceItemID"] = essenceItemID,
 		["aspectItemID"] = aspectItemID,
@@ -74,18 +72,56 @@ local function LLC_CraftEnchantingGlyphItemID(self, potencyItemID, essenceItemID
 		["reference"] = reference,
 		["station"] = CRAFTING_TYPE_ENCHANTING,
 	}
-	)
+	table.insert(craftingQueue[self.addonName][CRAFTING_TYPE_ENCHANTING],requestTable)
 
 	--sortCraftQueue()
 	if GetCraftingInteractionType()==CRAFTING_TYPE_ENCHANTING then 
 		LibLazyCrafting.craftInteract(event, CRAFTING_TYPE_ENCHANTING) 
 	end
+	return requestTable
 end
 
 local function LLC_CraftEnchantingGlyph(self, potencyBagId, potencySlot, essenceBagId, essenceSlot, aspectBagId, aspectSlot, autocraft, reference)
-	LLC_CraftEnchantingGlyphItemID(self, GetItemId(potencyBagId, potencySlot),GetItemId(essenceBagId, essenceSlot),GetItemId(aspectBagId,aspectSlot),autocraft, reference)
+	return LLC_CraftEnchantingGlyphItemID(self, GetItemId(potencyBagId, potencySlot),GetItemId(essenceBagId, essenceSlot),GetItemId(aspectBagId,aspectSlot),autocraft, reference)
 end
 
+local function LLC_AddGlyphToExistingGear(self, existingRequestTable, gearBag, gearSlot)
+	local requestTable  = existingRequestTable
+	if potencyId and essenceId and aspectId then
+		existingRequestTable['dualEnchantingSmithing'] = true
+		existingRequestTable['equipUniqueId'] = GetItemUniqueId(gearBag, gearSlot)
+		existingRequestTable['equipStringUniqueId'] = Id64ToString(existingRequestTable['equipUniqueId'])
+		existingRequestTable.equipCreated = true
+	elseif potencyId or essenceId or aspectId then
+		d("Only partial enchanting traits specified. Aborting craft")
+	end
+
+end
+
+local validLevels = 
+{
+	1,
+	5,
+	10,
+	15,
+	20,
+	25,
+	30,
+	35,
+	40,
+	60,
+	80,
+	100,
+	120,
+	150,
+	200,
+	210,
+}
+
+-- Currently not properly implemented
+local function LLC_CraftEnchantingGlyphAttributes(self, isCP, level, enchantId, quality, autocraft, reference)
+	-- LLC_CraftEnchantingGlyphItemID(self, GetItemId(potencyBagId, potencySlot),GetItemId(essenceBagId, essenceSlot),GetItemId(aspectBagId,aspectSlot),autocraft, reference)
+end
 ------------------------------------------------------------------------
 -- ENCHANTING STATION INTERACTION FUNCTIONS
 
@@ -129,6 +165,11 @@ local function LLC_EnchantingCraftinteraction(station, earliest, addon , positio
 			currentCraftAttempt.position = position
 			currentCraftAttempt.timestamp = GetTimeStamp()
 			currentCraftAttempt.addon = addon
+			if currentCraftAttempt.link=="" then
+				-- User doesn't know all the runes. Boooo more work
+				currentCraftAttempt.allRunesKnown= false
+				currentCraftAttempt.locations = locations
+			end
 
 			ENCHANTING.potencySound = SOUNDS["NONE"]
 			ENCHANTING.potencyLength = 0
@@ -141,16 +182,80 @@ local function LLC_EnchantingCraftinteraction(station, earliest, addon , positio
 	end
 end
 
+local function searchUniqueId(uniqueItemId)
+	for i=0, GetBagSize(BAG_BANK) do
+		if GetItemUniqueId(BAG_BANK,i)==itemID  then
+			return BAG_BANK, i
+		end
+	end
+	for i=0, GetBagSize(BAG_BACKPACK) do
+		if GetItemUniqueId(BAG_BACKPACK,i)==itemID then
+			return BAG_BACKPACK,i
+		end
+	end
+	for i=0, GetBagSize(BAG_SUBSCRIBER_BANK) do
+		if GetItemUniqueId(BAG_SUBSCRIBER_BANK,i)==itemID  then
+			return BAG_SUBSCRIBER_BANK, i
+		end
+	end
+	return nil, itemID
+end
+
+
+
+local function applyGlyphToItem(requestTable)
+	-- local glyphUniqueId = GetItemUniqueId(requestTable.glyphBag, requestTable.glyphSlot)
+	-- local equipUniqueId = GetItemUniqueId(requestTable.equipBag, requestTable.equipSlot)
+	-- if not glyphUniqueId == requestTable.glyphUniqueId and not equipUniqueId == requestTable.equipUniqueId then
+	-- 	d("Enchanting failed. Gear and glyph were moved")
+	-- end
+	local equipBag , equipSlot = searchUniqueId(requestTable.equipUniqueId)
+	local glyphBag, glyphSlot = searchUniqueId(requestTable.glyphUniqueId)
+	if not equipBag or not glyphBag then
+		if not equipBag then
+			d("LibLazyCrafting: Could not find crafted gear")
+		end
+		if not glyphBag then
+			d("LibLazyCrafting: Could not find crafted glyph")
+		end
+		d("LibLazyCrafting: Aborting enchanting")
+		LibLazyCrafting.SendCraftEvent(LLC_ENCHANTMENT_FAILED, 0, requestTable.Requester, requestTable )
+		
+		return
+	end
+	EnchantItem(equipBag, equipSlot, glyphBag , glyphSlot)
+	-- Set the new gear as new
+	LibLazyCrafting:SetItemStatusNew(requestTable.equipSlot)
+	LibLazyCrafting.SendCraftEvent(LLC_CRAFT_SUCCESS, 0, requestTable.Requester, requestTable )
+end
+
 
 local function LLC_EnchantingCraftingComplete(event, station, lastCheck)
+	if not currentCraftAttempt.allRunesKnown==false then -- User didn't know all the glyphs, so we get the item link *now* since they know all of them
+		currentCraftAttempt.link = GetEnchantingResultingItemLink(unpack(currentCraftAttempt.locations))
+	end
 	dbug("EVENT:CraftComplete")
 	if not currentCraftAttempt.addon then return end
+
 	if GetItemLinkName(GetItemLink(BAG_BACKPACK, currentCraftAttempt.slot,0)) == GetItemLinkName(currentCraftAttempt.link)
 		and GetItemLinkQuality(GetItemLink(BAG_BACKPACK, currentCraftAttempt.slot,0)) == GetItemLinkQuality(currentCraftAttempt.link)
 	then
 		-- We found it!
 		dbug("ACTION:RemoveQueueItem")
-		table.remove(craftingQueue[currentCraftAttempt.addon][CRAFTING_TYPE_ENCHANTING] , currentCraftAttempt.position )
+		local removedTable = table.remove(craftingQueue[currentCraftAttempt.addon][CRAFTING_TYPE_ENCHANTING] , currentCraftAttempt.position )
+		if removedTable.dualEnchantingSmithing then
+			removedTable.glyphBag = BAG_BACKPACK
+			removedTable.glyphSlot = currentCraftAttempt.slot
+			requestTable['glyphUniqueId'] = GetItemUniqueId(removedTable.glyphBag, removedTable.glyphSlot)
+			requestTable['glyphStringUniqueId'] = Id64ToString(requestTable['glyphUniqueId'])
+			removedTable.glyphCreated = true
+			currentCraftAttempt = {}
+			if removedTable.equipCreated then
+				applyGlyphToItem(removedTable)
+			else
+				return
+			end
+		end
 		--sortCraftQueue()
 		local resultTable = 
 		{
@@ -166,11 +271,9 @@ local function LLC_EnchantingCraftingComplete(event, station, lastCheck)
 		currentCraftAttempt = {}
 
 	elseif lastCheck then
-
 		-- give up on finding it.
 		currentCraftAttempt = {}
 	else
-
 		-- further search
 		-- search again later
 		if GetCraftingInteractionType()==0 then zo_callLater(function() LLC_EnchantingCraftingComplete(event, station, true) end,100) end
@@ -178,6 +281,8 @@ local function LLC_EnchantingCraftingComplete(event, station, lastCheck)
 
 
 end
+
+LibLazyCrafting.applyGlyphToItem = applyGlyphToItem
 
 local function LLC_EnchantingEndInteraction(event ,station)
 

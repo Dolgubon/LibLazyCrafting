@@ -18,7 +18,7 @@ end
 
 -- Initialize libraries
 local libLoaded
-local LIB_NAME, VERSION = "LibLazyCrafting", 2.34
+local LIB_NAME, VERSION = "LibLazyCrafting", 2.4
 
 local LibLazyCrafting, oldminor = LibStub:NewLibrary(LIB_NAME, VERSION)
 if not LibLazyCrafting then return end
@@ -583,6 +583,7 @@ function LibLazyCrafting:Init()
 	LLC_INSUFFICIENT_SKILL  = "not enough skill" -- extra result: what skills are missing; both if not enough traits, not enough styles, or trait unknown
 	LLC_NO_FURTHER_CRAFT_POSSIBLE = "no further craft items possible" -- Thrown when there is no more items that can be made at the station
 	LLC_INITIAL_CRAFT_SUCCESS = "initial stage of crafting complete" -- Thrown when the white item of a higher quality item is created
+	LLC_ENCHANTMENT_FAILED = "enchantment failed"
 
 	LLC_Global = LibLazyCrafting:AddRequestingAddon("LLC_Global",true, function(event, station, result)
 		d(GetItemLink(result.bag,result.slot).." crafted at slot "..tostring(result.slot).." with reference "..result.reference) end)
@@ -591,13 +592,19 @@ function LibLazyCrafting:Init()
 end
 
 -- Allows addons to see if the library is currently crafting anything, a quick overview of what it is making, and what addon is asking for it
-	function LibLazyCrafting:IsPerformingCraftProcess()
-		if not LibLazyCrafting.isCurrentlyCrafting then
-			return nil
-		end
-		return unpack(LibLazyCrafting.isCurrentlyCrafting)
+function LibLazyCrafting:IsPerformingCraftProcess()
+	if not LibLazyCrafting.isCurrentlyCrafting then
+		return nil
 	end
-	
+	return unpack(LibLazyCrafting.isCurrentlyCrafting)
+end
+
+function LibLazyCrafting:SetItemStatusNew(itemSlot)
+	local v = PLAYER_INVENTORY.inventories[1].slots[1] [itemSlot]
+	v.brandNew = true
+	v.age = 1
+	v.statusSortOrder = 1
+end
 
 -- The first parameter is basically an overloaded parameter
 -- If it is a table: Grabs the addonName from the table, if addonName doesn't exist, exit
@@ -706,6 +713,7 @@ local function OnAddonLoaded()
 		EVENT_MANAGER:UnregisterForEvent(LIB_NAME, EVENT_ADD_ON_LOADED)
 		EVENT_MANAGER:RegisterForEvent(LIB_NAME, EVENT_CRAFTING_STATION_INTERACT,CraftInteract)
 		EVENT_MANAGER:RegisterForEvent(LIB_NAME, EVENT_CRAFT_COMPLETED, CraftComplete)
+		EVENT_MANAGER:RegisterForEvent(LIB_NAME, EVENT_END_CRAFTING_STATION_INTERACT, endInteraction)
 
 	end
 end
