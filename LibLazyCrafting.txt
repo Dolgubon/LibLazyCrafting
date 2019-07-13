@@ -5,12 +5,13 @@
 ; States and/or other countries. All rights reserved.
 ; You can read the full terms at https://account.elderscrollsonline.com/add-on-terms
 
-## APIVersion: 100026 100027
+## APIVersion: 100027
 ## Title: LibLazyCrafting
-## Version: 2.4
+## Version: 2.71
 ## Author: Dolgubon
 ## Contributors: ziggr
 ## DependsOn: LibStub
+## OptionalDependsOn: pChat
 ## Description: A library to help craft items.
 ## SavedVariables: LibLazyCraftingSavedVars
 ## IsLibrary: true

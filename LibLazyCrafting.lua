@@ -18,7 +18,7 @@ end
 
 -- Initialize libraries
 local libLoaded
-local LIB_NAME, VERSION = "LibLazyCrafting", 2.4
+local LIB_NAME, VERSION = "LibLazyCrafting", 2.7
 
 local LibLazyCrafting, oldminor = LibStub:NewLibrary(LIB_NAME, VERSION)
 if not LibLazyCrafting then return end
@@ -522,12 +522,14 @@ function LibLazyCrafting.SendCraftEvent( event,  station, requester, returnTable
 			end
 		end
 	else
+		-- if requester == nil then return end
 		local errorFound, err =  pcall(function()LibLazyCrafting.craftResultFunctions[requester](event, station,
 			returnTable )end)
 		if not errorFound then
 			d("Callback to LLC resulted in an error. Please contact the author of "..requester)
 			d(err)
 		end
+
 	end
 end
 
@@ -600,10 +602,13 @@ function LibLazyCrafting:IsPerformingCraftProcess()
 end
 
 function LibLazyCrafting:SetItemStatusNew(itemSlot)
+	-- d(itemSlot)
 	local v = PLAYER_INVENTORY.inventories[1].slots[1] [itemSlot]
-	v.brandNew = true
-	v.age = 1
-	v.statusSortOrder = 1
+	if v then
+		v.brandNew = true
+		v.age = 1
+		v.statusSortOrder = 1
+	end
 end
 
 -- The first parameter is basically an overloaded parameter

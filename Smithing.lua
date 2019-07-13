@@ -18,7 +18,7 @@
 local LibLazyCrafting = LibStub("LibLazyCrafting")
 
 local widgetType = 'smithing'
-local widgetVersion = 2.71
+local widgetVersion = 2.72
 if not LibLazyCrafting:RegisterWidget(widgetType, widgetVersion) then return  end
 
 local LLC = LibLazyCrafting
@@ -31,7 +31,7 @@ local function dbug(...)
 end
 
 local INDEX_NO_SET = 0
-
+LibLazyCrafting.INDEX_NO_SET = INDEX_NO_SET
 
 local craftingQueue = LibLazyCrafting.craftingQueue
 
@@ -593,6 +593,7 @@ local function LLC_CraftSmithingItem(self, patternIndex, materialIndex, material
 end
 
 local function isValidLevel(isCP, lvl)
+	if lvl == 2 then return false end
 	if isCP then
 		if lvl %10 ~= 0 then  return  false end
 		if lvl > 160 or lvl <10 then  return false  end
@@ -656,7 +657,7 @@ local function InternalImproveSmithingItem(self, BagIndex, SlotIndex, newQuality
 	craftingRequestTable["ItemBagID"] = BagIndex
 	craftingRequestTable["ItemSlotID"] = SlotIndex
 	craftingRequestTable["itemUniqueId"] = GetItemUniqueId(BagIndex, SlotIndex)
-	craftingRequestTable['itemStringUniqueId'] = Id64ToString(craftingRequestTable['equipUniqueId'])
+	craftingRequestTable['itemStringUniqueId'] = Id64ToString(craftingRequestTable['itemUniqueId'])
 	craftingRequestTable["ItemCreater"] = GetItemCreatorName(BagIndex, SlotIndex)
 	craftingRequestTable["quality"] = newQuality
 	craftingRequestTable["reference"] = reference
@@ -684,7 +685,7 @@ local function LLC_AddExistingGlyphToGear(self, existingRequestTable, glyphBag, 
 	return
 end
 
-LibLazyCrafting.functionTable.LLC_AddExistingGlyph = LLC_AddExistingGlyph
+LibLazyCrafting.functionTable.AddExistingGlyphToGear = LLC_AddExistingGlyph
 
 LibLazyCrafting.functionTable.ImproveSmithingItem = LLC_ImproveSmithingItem
 -- Examples
@@ -892,6 +893,9 @@ local function smithingCompleteNewItemHandler(station)
 			removedRequest.bag = BAG_BACKPACK
 			removedRequest.slot = currentCraftAttempt.slot
 			if removedRequest.dualEnchantingSmithing then
+				removedRequest.equipBag = BAG_BACKPACK
+				removedRequest.equipSlot = currentCraftAttempt.slot
+
 				removedRequest['equipUniqueId'] = GetItemUniqueId(removedRequest.equipBag,removedRequest.equipSlot)
 				removedRequest['equipStringUniqueId'] = Id64ToString(removedRequest['equipUniqueId'])
 				removedRequest.equipCreated = true
@@ -899,11 +903,11 @@ local function smithingCompleteNewItemHandler(station)
 				if removedRequest.glyphCreated then
 					LibLazyCrafting.applyGlyphToItem(removedRequest)
 				else
-					LibLazyCrafting.SendCraftEvent( LLC_INITIAL_CRAFT_SUCCESS,  station,currentCraftAttempt.Requester, returnTable )
+					LibLazyCrafting.SendCraftEvent( LLC_INITIAL_CRAFT_SUCCESS,  station,removedRequest.Requester, removedRequest )
 					return
 				end
 			end
-			LibLazyCrafting.SendCraftEvent(LLC_CRAFT_SUCCESS, station, currentCraftAttempt.Requester, removedRequest )
+			LibLazyCrafting.SendCraftEvent(LLC_CRAFT_SUCCESS, station, removedRequest.Requester, removedRequest )
 		end
 	else
 		d("Bad craft remove")
@@ -951,18 +955,18 @@ local function SmithingCraftCompleteFunction(station)
 					returnTable.equipBag = BAG_BACKPACK
 					returnTable.equipSlot = currentCraftAttempt.slot
 					returnTable.equipCreated = true
-					removedRequest['equipUniqueId'] = GetItemUniqueId(removedRequest.equipBag,removedRequest.equipSlot)
-					removedRequest['equipStringUniqueId'] = Id64ToString(removedRequest['equipUniqueId'])
+					returnTable['equipUniqueId'] = GetItemUniqueId(returnTable.equipBag,returnTable.equipSlot)
+					returnTable['equipStringUniqueId'] = Id64ToString(returnTable['equipUniqueId'])
 					currentCraftAttempt = {}
 					if returnTable.glyphCreated then
 						LibLazyCrafting.applyGlyphToItem(returnTable)
 					else
 						LibLazyCrafting:SetItemStatusNew(returnTable.equipSlot)
-						LibLazyCrafting.SendCraftEvent( LLC_INITIAL_CRAFT_SUCCESS,  station,currentCraftAttempt.Requester, returnTable )
+						LibLazyCrafting.SendCraftEvent( LLC_INITIAL_CRAFT_SUCCESS,  station,returnTable.Requester, returnTable )
 						return
 					end
 				end
-				LibLazyCrafting.SendCraftEvent( LLC_CRAFT_SUCCESS,  station,currentCraftAttempt.Requester, returnTable )
+				LibLazyCrafting.SendCraftEvent( LLC_CRAFT_SUCCESS,  station,returnTable.Requester, returnTable )
 			else
 				d("Bad request position")
 			end
@@ -1105,9 +1109,7 @@ local setInfo =
 	{{147948 , 147968, [6] = 147955, [7] =147984 },8,},	-- 49 Coldharbour's Favourite
 	{{148318 , 148338, [6] = 148325, [7] =148354 },5,},	-- 48 Senche Raht's Grit
 	{{148688 , 148708, [6] = 148695, [7] =148724 },3,},	-- 48 Vasterie's Tutelage
-
 }
-
 
 SetIndexes = {}
 
@@ -1116,7 +1118,7 @@ for i = 1, #setInfo do
 
 	SetIndexes[index] = setInfo[i]
 	SetIndexes[index][3] = index
-	if index==0 then
+	if index==INDEX_NO_SET then
 		table.insert(SetIndexes[index],1,"No Set")
 	else
 		table.insert(SetIndexes[index],1,name)
@@ -1141,6 +1143,7 @@ function GetSetIndexes()
 	return SetIndexes
 end
 LibLazyCrafting.functionTable.GetSetIndexes = GetSetIndexes
+LibLazyCrafting.GetSetIndexes = GetSetIndexes
 
 -- IDs for stuff like Sanded Ruby Ash, Iron Ingots, etc.
 local materialItemIDs =
@@ -1245,9 +1248,14 @@ local function compileImprovementRequirements(request, station)
 	return requirements
 end
 
-function compileRequirements(request, station)-- Ingot/style mat/trait mat/improvement mat
-
-	local requirements = {}
+function compileRequirements(request, station,requirements)-- Ingot/style mat/trait mat/improvement mat
+	if not requirements then
+		if request.dualEnchantingSmithing then
+			requirements = LibLazyCrafting.craftInteractionTables[CRAFTING_TYPE_ENCHANTING]:materialRequirements( request,{})
+		else
+			requirements = {}
+		end
+	end
 	if request["type"] == "smithing" then
 
 		local matId = materialItemIDs[station][findMatTierByIndex(request.materialIndex)]
@@ -1293,6 +1301,7 @@ local itemSetIds ={ -- This table contains data on all the itemIds for crafted g
 -- The first number in each table is the starting itemId. Thereafter, each even indexed number (indexes in lua start at 1)
 -- denotes that the next x itemIds are part of the set. Each odd indexed number denotes the gap between an itemId of a set,
 -- and the next one.
+
 {43529, 6, 2, 23, 2, 2, 677, 0, 777, 260, 2, 17, 561, 0, 10168, 34, },
 {43803, 3, 2347, 127, 71, 154, 2, 18, 2, 4, 8098, 3, 1471, 34, },
 {43815, 1, 2, 0, 3097, 127, 71, 157, 2, 25, 8876, 34, },
@@ -1372,7 +1381,6 @@ local function checkTable(table)
 			test = false
 		end
 	end
-	d(test)
 end
 
 local function checkItemIds()
@@ -1403,6 +1411,30 @@ local function initializeSetInfo()
 	local vars = ZO_SavedVars:NewAccountWide("LibLazyCraftingSavedVars", 1,nil, varsDefault)
 end
 
-
-
 EVENT_MANAGER:RegisterForEvent(LLC.name.."SmithingScan",EVENT_PLAYER_ACTIVATED, initializeSetInfo)
+--[[
+-- Setup the table that'll hold everything
+/script crafIds = {} for k, v in pairs(LibStub:GetLibrary("LibLazyCrafting").GetSetIndexes()) do crafIds[v[4] ] = {} end crafIds[0]=nil local ornT={[9]=true,[19]=true,[20]=true,[10]=true,[24]=true,[27]=true,} isEx=function(a) local t=GetItemLinkTraitInfo(a)  return not ornT[t] end
+-- setup the spacing functions so we don't crash the game
+/script spacerFunction = function(s, e, f) for i = s, e do f(i) end end doSpace = function(s, e, f, int) if s<e then spacerFunction(s, s+int, f) zo_callLater(function()doSpace(s+int+1, e, f, int) end ,25)else d("done") end end
+-- Scrape all the itemIds
+/script doSpace(1,200000,function(i)local a="|H1:item:"..i..":0:50:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0|h|h" local o,p=GetItemLinkItemType(a)if o<3 and o>0 and(p==300 or p==0 or p==250)and GetItemLinkFlavorText(a)=="" and isEx(a) then local _,_,_,_,_,c=GetItemLinkSetInfo(a)if crafIds[c]  then table.insert(crafIds[c],i) end end end,500)
+/script DolgubonSetCrafter.savedvars.craftedSetIds = crafIds
+/zgoo DolgubonSetCrafter.savedvars.craftedSetIds 
+-- Combine all the item ids
+
+|H1:item:47495:0:50:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0|h|h
+
+/script local a = 0 for k, v in pairs(craftedSetIds) do for i = 1, #v do a = a + #tostring(v[i]) end end d(a)
+--filter the no set id items
+
+/script julianosTiny = {} for i = 1, #craftedSetIds[207] do
+
+/script for i = 1, GetNumSmithingPatterns() do local _,_, numMats = GetSmithingPatternMaterialItemInfo(i, 1) for j=0, 40 do local a= GetSmithingPatternResultLink(i, 2, numMats, 1, j, 0) if a~="" then d(a) end end end
+/script local b = 0 for i = 1, GetNumSmithingPatterns() do local _,_, numMats = GetSmithingPatternMaterialItemInfo(i, 1) for j=0, 40 do local a= GetSmithingPatternResultLink(i, 2, numMats, 1, j, 0) if a~="" and j~=10 and j~=11 and j~=20 and j~=21 then table.insert(DolgubonSetCrafter.savedvars.craftedSetIds[0], GetItemLinkItemId(a)) end end end d(b)
+local function getItemLinkFromItemId(itemId)
+	return string.format("|H1:item:%d:0:50:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0|h|h", i,)
+end
+|H1:item:117210:363:50:26845:370:50:0:0:0:0:0:0:0:0:1:24:0:1:0:341:0|h|h
+|H1:item:150812:0:50:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0|h|h
+]]

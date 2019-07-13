@@ -15,7 +15,7 @@ local LibLazyCrafting = LibStub("LibLazyCrafting")
 local sortCraftQueue = LibLazyCrafting.sortCraftQueue
 
 local widgetType = 'enchanting'
-local widgetVersion = 1.4
+local widgetVersion = 1.61
 if not LibLazyCrafting:RegisterWidget(widgetType, widgetVersion) then return false end
 
 local function dbug(...)
@@ -55,23 +55,32 @@ end
 
 -- Since bag indexes can change, this ignores those. Instead, it takes in the name, or the index (table of indexes is found in table above, and is specific to this library)
 -- Bag indexes will be determined at time of crafting	
-local function LLC_CraftEnchantingGlyphItemID(self, potencyItemID, essenceItemID, aspectItemID, autocraft, reference)
+local function LLC_CraftEnchantingGlyphItemID(self, potencyItemID, essenceItemID, aspectItemID, autocraft, reference, gearRequestTable)
 	dbug('FUNCTION:LLCEnchantCraft')
+
 	if reference == nil then reference = "" end
 	if not self then d("Please call with colon notation") end
 	if autocraft==nil then autocraft = self.autocraft end
 	if not potencyItemID or not essenceItemID or not aspectItemID then  return end
 	if not areIdsValid(potencyItemID, essenceItemID, aspectItemID) then d("invalid essence Ids") return end
-	local requestTable = {
-		["potencyItemID"] = potencyItemID,
-		["essenceItemID"] = essenceItemID,
-		["aspectItemID"] = aspectItemID,
-		["timestamp"] = GetTimeStamp(),
-		["autocraft"] = autocraft,
-		["Requester"] = self.addonName,
-		["reference"] = reference,
-		["station"] = CRAFTING_TYPE_ENCHANTING,
-	}
+	local requestTable = gearRequestTable or {}
+	if gearRequestTable then
+		requestTable['dualEnchantingSmithing'] = true
+	end
+	
+	requestTable["potencyItemID"] = potencyItemID
+	requestTable["essenceItemID"] = essenceItemID
+	requestTable["aspectItemID"] = aspectItemID
+	requestTable["timestamp"] = requestTable["timestamp"] or GetTimeStamp()
+	requestTable["autocraft"] = autocraft
+	requestTable["Requester"] = self.addonName
+	requestTable["reference"] = requestTable["reference"] or reference
+	if requestTable["station"] then
+		requestTable["enchantingStation"] = requestTable["station"]
+	else
+		requestTable["station"] = CRAFTING_TYPE_ENCHANTING
+	end
+
 	table.insert(craftingQueue[self.addonName][CRAFTING_TYPE_ENCHANTING],requestTable)
 
 	--sortCraftQueue()
@@ -81,8 +90,8 @@ local function LLC_CraftEnchantingGlyphItemID(self, potencyItemID, essenceItemID
 	return requestTable
 end
 
-local function LLC_CraftEnchantingGlyph(self, potencyBagId, potencySlot, essenceBagId, essenceSlot, aspectBagId, aspectSlot, autocraft, reference)
-	return LLC_CraftEnchantingGlyphItemID(self, GetItemId(potencyBagId, potencySlot),GetItemId(essenceBagId, essenceSlot),GetItemId(aspectBagId,aspectSlot),autocraft, reference)
+local function LLC_CraftEnchantingGlyph(self, potencyBagId, potencySlot, essenceBagId, essenceSlot, aspectBagId, aspectSlot, autocraft, reference, gearRequestTable)
+	return LLC_CraftEnchantingGlyphItemID(self, GetItemId(potencyBagId, potencySlot),GetItemId(essenceBagId, essenceSlot),GetItemId(aspectBagId,aspectSlot),autocraft, reference, gearRequestTable)
 end
 
 local function LLC_AddGlyphToExistingGear(self, existingRequestTable, gearBag, gearSlot)
@@ -95,8 +104,9 @@ local function LLC_AddGlyphToExistingGear(self, existingRequestTable, gearBag, g
 	elseif potencyId or essenceId or aspectId then
 		d("Only partial enchanting traits specified. Aborting craft")
 	end
-
 end
+
+LibLazyCrafting.functionTable.AddGlyphToExistingGear = LLC_AddGlyphToExistingGear
 
 local validLevels = 
 {
@@ -118,10 +128,149 @@ local validLevels =
 	210,
 }
 
+local glyphInfo = {-- negative first, then positive
+	-- (-) enchantId, (+) enchantId, (-) glyph itemId, (+) glyph itemId, (-) glyph name, (+) glyph name
+	{29, 17, 43573,26580,"Absorb Health","Health", ITEMTYPE_GLYPH_WEAPON,ITEMTYPE_GLYPH_ARMOR, 45831 },
+	{83, 19, 45868,26582,"Absorb Magicka","Magicka", ITEMTYPE_GLYPH_WEAPON, ITEMTYPE_GLYPH_ARMOR, 45832},
+	{82, 25, 45867,26588,"Absorb Stamina","Stamina", ITEMTYPE_GLYPH_WEAPON, ITEMTYPE_GLYPH_ARMOR, 45833},
+	{84, 18, 45869,26581,"Decrease Health","Health Recovery", ITEMTYPE_GLYPH_WEAPON, ITEMTYPE_GLYPH_JEWELRY, 45834},
+	{86, 20, 45870,26583,"Reduce Spell Cost","Magicka Recovery",ITEMTYPE_GLYPH_JEWELRY , ITEMTYPE_GLYPH_JEWELRY, 45835},
+	{87, 26, 45871,26589,"Reduce Feat Cost","Stamina Recovery", ITEMTYPE_GLYPH_JEWELRY,ITEMTYPE_GLYPH_JEWELRY , 45836},
+	{23, 24, 26586,26587,"Poison Resist","Poison",ITEMTYPE_GLYPH_JEWELRY , ITEMTYPE_GLYPH_WEAPON, 45837},
+	{11, 10, 26849,26848,"Flame Resist","Flame",ITEMTYPE_GLYPH_JEWELRY ,ITEMTYPE_GLYPH_WEAPON , 45838},
+	{14, 15, 5364,5365,"Frost Resist","Frost",ITEMTYPE_GLYPH_JEWELRY , ITEMTYPE_GLYPH_WEAPON, 45839},
+	{31, 6, 43570,26844,"Shock Resist","Shock", ITEMTYPE_GLYPH_JEWELRY, ITEMTYPE_GLYPH_WEAPON, 45840},
+	{9, 3, 26847,26841,"Disease Resist","Foulness",ITEMTYPE_GLYPH_JEWELRY , ITEMTYPE_GLYPH_WEAPON, 45841},
+	{7, 16, 26845,5366,"Crushing","Hardening",ITEMTYPE_GLYPH_WEAPON ,ITEMTYPE_GLYPH_WEAPON , 45842},
+	{28, 4, 26591,54484,"Weakening","Weapon Damage",ITEMTYPE_GLYPH_WEAPON , ITEMTYPE_GLYPH_WEAPON, 45843},
+	{91, 90, 45875,45874,"Potion Speed","Potion Boost",ITEMTYPE_GLYPH_JEWELRY ,ITEMTYPE_GLYPH_JEWELRY , 45846},
+	{94, 92, 45885,45883,"Decrease Physical Harm","Increase Physical Harm", ITEMTYPE_GLYPH_JEWELRY,ITEMTYPE_GLYPH_JEWELRY , 45847},
+	{95, 93, 45886,45884,"Decrease Spell Harm","Increase Magical Harm",ITEMTYPE_GLYPH_JEWELRY ,ITEMTYPE_GLYPH_JEWELRY , 45848},
+	{89, 88, 45873,45872,"Shielding","Bashing",ITEMTYPE_GLYPH_JEWELRY ,ITEMTYPE_GLYPH_JEWELRY , 45849},
+	{147, 146, 68344,68343,"Prismatic Onslaught","Prismatic Defense", ITEMTYPE_GLYPH_WEAPON, ITEMTYPE_GLYPH_ARMOR, 68342},
+}
+
+local enchantLevelInfo = {
+	{-1, 45817,20,5,lvl=1,cp=nil},
+	{1,  45855,20,5,lvl=1,cp=nil},
+	{-1, 45818,20,10,lvl=5,cp=nil},
+	{1,  45856,20,10,lvl=5,cp=nil},
+	{1,  45857,20,15,lvl=10,cp=nil},
+	{-1, 45819,20,15,lvl=10,cp=nil},
+	{-1, 45820,20,20,lvl=15,cp=nil},
+	{1,  45806,20,20,lvl=15,cp=nil},
+	{-1, 45821,20,25,lvl=20,cp=nil},
+	{1,  45807,20,25,lvl=20,cp=nil},
+	{-1, 45822,20,30,lvl=25,cp=nil},
+	{1,  45808,20,30,lvl=25,cp=nil},
+	{-1, 45823,20,35,lvl=30,cp=nil},
+	{1,  45809,20,35,lvl=30,cp=nil},
+	{-1, 45824,20,40,lvl=35,cp=nil,},
+	{1,  45810,20,40,lvl=35,cp=nil},
+	{-1, 45825,20,45,lvl=40,cp=nil},
+	{1,  45811,20,45,lvl=40,cp=nil},
+	{1,  45812,125,50,lvl=nil,cp=10},
+	{-1, 45826,125,50,lvl=nil,cp=10},
+	{-1, 45827,127,50,lvl=nil,cp=30},
+	{1,  45813,127,50,lvl=nil,cp=30},
+	{1,  45814,129,50,lvl=nil,cp=50},
+	{-1, 45828,129,50,lvl=nil,cp=50},
+	{-1, 45829,131,50,lvl=nil,cp=70},
+	{1,  45815,131,50,lvl=nil,cp=70},
+	{1,  45816,272,50,lvl=nil,cp=100},
+	{-1, 45830,272,50,lvl=nil,cp=100},
+	{-1, 64508,308,50,lvl=nil,cp=150},
+	{1,  64509,308,50,lvl=nil,cp=150},
+	{1,  68341,366,50,lvl=nil,cp=160},
+	{-1, 68340,366,50,lvl=nil,cp=160},
+}
+
+local qualityItemIdInfo = 
+{
+	45850,
+	45851,
+	45852,
+	45853,
+	45854,
+}
+
+local function getQualityInfo(isCP, level, quality)
+	if not isCP then
+		return 20,  math.floor(level/5) * 5 + 5 + quality
+	end
+	local cpQualityInfo = {
+		[10] = {125, 135, 145, 155, 165},
+		[30] = {127, 137, 147, 157, 167},
+		[50] = {129, 139, 149, 169, 169},
+		[70] = {131, 141, 151, 161, 171},
+		[100] = {272, 273, 274, 275, 276 },
+		[150] = {308, 309, 310, 311, 312},
+		[160] = {366, 367, 368, 369, 370},
+	}
+	return cpQualityInfo[level][quality], 50
+end
+
+local function closestGlyphLevel(isCP, level)
+	if not isCP then
+		if level < 5 then return 1 end
+		return level - level % 5
+	else
+		local enchantLevels = {160, 150, 100, 70, 50, 30, 10}
+		for i = 1, #enchantLevels do
+			if level >=enchantLevels[i] then 
+				return enchantLevels[i] 
+			end
+		end
+	end
+end
+LibLazyCrafting.closestGlyphLevel = closestGlyphLevel
+LibLazyCrafting.getGlyphInfo = function () return glyphInfo end
+
+--[[
+/script g = SHARED_INVENTORY.bagCache[BAG_VIRTUAL] p =GetEnchantingResultingItemLink
+/script for k,v in pairs(g)do s=v.slotIndex a=GetItemLink(5,s)if GetItemLinkEnchantingRuneClassification(a)==2 and GetItemCraftingInfo(5,s)==3 
+	then b=p(5,45830,5,s,5,45850)c=p(5,45830,5,s,5,45850)d(GetItemLinkItemId(a).." "..b) end end
+	]]
+--SHARED_INVENTORY.bagCache[BAG_VIRTUAL]
+
+local function getEnchantingResultItemId(enchantId)
+	for i = 1, #glyphInfo do
+		if glyphInfo[i][1] == enchantId then
+			return glyphInfo[i][3], -1, glyphInfo[i][9]
+		elseif glyphInfo[i][2] == enchantId then
+			return glyphInfo[i][4], 1, glyphInfo[i][9]
+		end
+	end
+end
+
+
 -- Currently not properly implemented
-local function LLC_CraftEnchantingGlyphAttributes(self, isCP, level, enchantId, quality, autocraft, reference)
+local function LLC_CraftEnchantingGlyphAttributes(self, isCP, level, enchantId, quality, autocraft, reference, gearRequestTable)
+	local _, parity, essenceId = getEnchantingResultItemId(enchantId)
+	local potencyId
+	for i = 1, #enchantLevelInfo do
+		if (not isCP and enchantLevelInfo[i].lvl == level) or (isCP and enchantLevelInfo[i].cp == level ) then
+			if enchantLevelInfo[i][1] == parity then
+				potencyId = enchantLevelInfo[i][2]
+			end
+		end
+	end
+	local aspectId = qualityItemIdInfo[quality]
+	local a = LLC_CraftEnchantingGlyphItemID(self, potencyId, essenceId, aspectId, autocraft, reference, gearRequestTable)
+	return a
 	-- LLC_CraftEnchantingGlyphItemID(self, GetItemId(potencyBagId, potencySlot),GetItemId(essenceBagId, essenceSlot),GetItemId(aspectBagId,aspectSlot),autocraft, reference)
 end
+
+LibLazyCrafting.functionTable.CraftEnchantingGlyphByAttributes = LLC_CraftEnchantingGlyphAttributes
+
+function LLC_GetEnchantingResultItemLinkByAttributes(isCP, level, enchantId, quality, autocraft, reference)
+	local itemId = getEnchantingResultItemId(enchantId)
+	local quality1, quality2 = getQualityInfo(isCP, level, quality)
+	return string.format("|H1:item:%d:%d:%d:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0|h|h", itemId, quality1, quality2) 
+
+
+end
+
 ------------------------------------------------------------------------
 -- ENCHANTING STATION INTERACTION FUNCTIONS
 
@@ -182,23 +331,23 @@ local function LLC_EnchantingCraftinteraction(station, earliest, addon , positio
 	end
 end
 
-local function searchUniqueId(uniqueItemId)
+function searchUniqueId(uniqueItemId)
 	for i=0, GetBagSize(BAG_BANK) do
-		if GetItemUniqueId(BAG_BANK,i)==itemID  then
+		if GetItemUniqueId(BAG_BANK,i)==uniqueItemId  then
 			return BAG_BANK, i
 		end
 	end
 	for i=0, GetBagSize(BAG_BACKPACK) do
-		if GetItemUniqueId(BAG_BACKPACK,i)==itemID then
+		if GetItemUniqueId(BAG_BACKPACK,i)==uniqueItemId then
 			return BAG_BACKPACK,i
 		end
 	end
 	for i=0, GetBagSize(BAG_SUBSCRIBER_BANK) do
-		if GetItemUniqueId(BAG_SUBSCRIBER_BANK,i)==itemID  then
+		if GetItemUniqueId(BAG_SUBSCRIBER_BANK,i)==uniqueItemId  then
 			return BAG_SUBSCRIBER_BANK, i
 		end
 	end
-	return nil, itemID
+	return nil, uniqueItemId
 end
 
 
@@ -220,18 +369,19 @@ local function applyGlyphToItem(requestTable)
 		end
 		d("LibLazyCrafting: Aborting enchanting")
 		LibLazyCrafting.SendCraftEvent(LLC_ENCHANTMENT_FAILED, 0, requestTable.Requester, requestTable )
-		
 		return
 	end
+
 	EnchantItem(equipBag, equipSlot, glyphBag , glyphSlot)
 	-- Set the new gear as new
-	LibLazyCrafting:SetItemStatusNew(requestTable.equipSlot)
+	_,equipSlot = searchUniqueId(requestTable.equipUniqueId)
+	zo_callLater( function() LibLazyCrafting:SetItemStatusNew(equipSlot) end, 500 )
 	LibLazyCrafting.SendCraftEvent(LLC_CRAFT_SUCCESS, 0, requestTable.Requester, requestTable )
 end
 
 
 local function LLC_EnchantingCraftingComplete(event, station, lastCheck)
-	if not currentCraftAttempt.allRunesKnown==false then -- User didn't know all the glyphs, so we get the item link *now* since they know all of them
+	if currentCraftAttempt.allRunesKnown==false then -- User didn't know all the glyphs, so we get the item link *now* since they know all of them
 		currentCraftAttempt.link = GetEnchantingResultingItemLink(unpack(currentCraftAttempt.locations))
 	end
 	dbug("EVENT:CraftComplete")
@@ -246,12 +396,13 @@ local function LLC_EnchantingCraftingComplete(event, station, lastCheck)
 		if removedTable.dualEnchantingSmithing then
 			removedTable.glyphBag = BAG_BACKPACK
 			removedTable.glyphSlot = currentCraftAttempt.slot
-			requestTable['glyphUniqueId'] = GetItemUniqueId(removedTable.glyphBag, removedTable.glyphSlot)
-			requestTable['glyphStringUniqueId'] = Id64ToString(requestTable['glyphUniqueId'])
+			removedTable['glyphUniqueId'] = GetItemUniqueId(removedTable.glyphBag, removedTable.glyphSlot)
+			removedTable['glyphStringUniqueId'] = Id64ToString(removedTable['glyphUniqueId'])
 			removedTable.glyphCreated = true
 			currentCraftAttempt = {}
 			if removedTable.equipCreated then
 				applyGlyphToItem(removedTable)
+				return
 			else
 				return
 			end
@@ -264,10 +415,10 @@ local function LLC_EnchantingCraftingComplete(event, station, lastCheck)
 			['link'] = currentCraftAttempt.link,
 			['uniqueId'] = GetItemUniqueId(BAG_BACKPACK, currentCraftAttempt.slot),
 			["quantity"] = 1,
-			["reference"] = currentCraftAttempt.reference,
+			["reference"] = removedTable.reference,
 		}
 		
-		LibLazyCrafting.SendCraftEvent( LLC_CRAFT_SUCCESS ,  station, currentCraftAttempt.addon , resultTable )
+		LibLazyCrafting.SendCraftEvent( LLC_CRAFT_SUCCESS ,  station, removedTable.Requester , resultTable )
 		currentCraftAttempt = {}
 
 	elseif lastCheck then
@@ -303,6 +454,21 @@ local function haveEnoughMats(...)
 	return true
 end
 
+local function compileGlyphRequirements(self, requestTable, requirements)
+	if not requirements then
+		if requestTable.dualEnchantingSmithing then
+			requirements = LibLazyCrafting.craftInteractionTables[requestTable.smithingStation]:materialRequirements( requestTable, {})
+		else
+			requirements = {}
+		end
+	end
+	requirements[requestTable["potencyItemID"]] = 1
+	requirements[requestTable["essenceItemID"]] = 1
+	requirements[requestTable["aspectItemID"]] = 1
+	return requirements
+end
+
+
 
 LibLazyCrafting.craftInteractionTables[CRAFTING_TYPE_ENCHANTING] =
 {
@@ -316,6 +482,7 @@ LibLazyCrafting.craftInteractionTables[CRAFTING_TYPE_ENCHANTING] =
 			return true else return false 
 		end 
 	end,
+	["materialRequirements"] = compileGlyphRequirements,
 }
 
 LibLazyCrafting.functionTable.CraftEnchantingItemId = LLC_CraftEnchantingGlyphItemID
@@ -324,4 +491,7 @@ LibLazyCrafting.functionTable.CraftEnchantingItem = LLC_CraftEnchantingGlyph
 
 --- testers:
 -- /script LLC_Global:CraftEnchantingItemId(45830, 45838, 45851)
+
+
+
 
