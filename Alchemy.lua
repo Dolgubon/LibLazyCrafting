@@ -17,7 +17,7 @@ local LibLazyCrafting = LibStub("LibLazyCrafting")
 local sortCraftQueue = LibLazyCrafting.sortCraftQueue
 
 local widgetType = 'alchemy'
-local widgetVersion = 1.7
+local widgetVersion = 1.8
 if not LibLazyCrafting:RegisterWidget(widgetType, widgetVersion) then return false end
 
 local function dbug(...)
@@ -97,6 +97,8 @@ local function LLC_AlchemyCraftInteraction(station, earliest, addon , position)
 		reagent1BagId, reagent1SlotIndex,
 		reagent2BagId, reagent2SlotIndex,
 		reagent3BagId, reagent3SlotIndex,
+		1,
+		--earliest.timesToMake,
 	}
 	if not (solventSlotIndex and reagent1SlotIndex and reagent2SlotIndex and (not earliest["reagentId3"] or reagent3SlotIndex)) then return end
 

@@ -18,7 +18,7 @@
 local LibLazyCrafting = LibStub("LibLazyCrafting")
 
 local widgetType = 'smithing'
-local widgetVersion = 2.72
+local widgetVersion = 2.8
 if not LibLazyCrafting:RegisterWidget(widgetType, widgetVersion) then return  end
 
 local LLC = LibLazyCrafting
@@ -740,7 +740,9 @@ local function LLC_SmithingCraftInteraction( station, earliest, addon , position
 			earliest.style,
 			earliest.trait,
 			earliest.useUniversalStyleItem,
+			1,
 			LINK_STYLE_DEFAULT,
+
 		}
 		local setPatternOffset = {14, 15,[6]=6,[7]=2}
 		if earliest.setIndex~=INDEX_NO_SET then

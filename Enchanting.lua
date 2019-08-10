@@ -15,7 +15,7 @@ local LibLazyCrafting = LibStub("LibLazyCrafting")
 local sortCraftQueue = LibLazyCrafting.sortCraftQueue
 
 local widgetType = 'enchanting'
-local widgetVersion = 1.61
+local widgetVersion = 1.7
 if not LibLazyCrafting:RegisterWidget(widgetType, widgetVersion) then return false end
 
 local function dbug(...)
@@ -57,7 +57,6 @@ end
 -- Bag indexes will be determined at time of crafting	
 local function LLC_CraftEnchantingGlyphItemID(self, potencyItemID, essenceItemID, aspectItemID, autocraft, reference, gearRequestTable)
 	dbug('FUNCTION:LLCEnchantCraft')
-
 	if reference == nil then reference = "" end
 	if not self then d("Please call with colon notation") end
 	if autocraft==nil then autocraft = self.autocraft end
@@ -213,6 +212,7 @@ end
 local function closestGlyphLevel(isCP, level)
 	if not isCP then
 		if level < 5 then return 1 end
+		if level > 40 then return 40 end
 		return level - level % 5
 	else
 		local enchantLevels = {160, 150, 100, 70, 50, 30, 10}
@@ -300,9 +300,11 @@ local function LLC_EnchantingCraftinteraction(station, earliest, addon , positio
 		select(2,findItemLocationById(earliest["potencyItemID"])),
 		select(1,findItemLocationById(earliest["essenceItemID"])),
 		select(2,findItemLocationById(earliest["essenceItemID"])),
-		findItemLocationById(earliest["aspectItemID"]),
+		select(1,findItemLocationById(earliest["aspectItemID"])),
+		select(2,findItemLocationById(earliest["aspectItemID"])),
+		1
 		}
-		if locations[1] and locations[5] and locations[3] then
+		if locations[1]  and locations[3] and locations[5] then
 			dbug("CALL:ZOEnchantCraft")
 			LibLazyCrafting.isCurrentlyCrafting = {true, "enchanting", earliest["Requester"]}
 			CraftEnchantingItem(unpack(locations))
@@ -454,6 +456,10 @@ local function haveEnoughMats(...)
 	return true
 end
 
+local function hasSkillToCraft(...)
+	return true
+end
+
 local function compileGlyphRequirements(self, requestTable, requirements)
 	if not requirements then
 		if requestTable.dualEnchantingSmithing then
@@ -478,7 +484,8 @@ LibLazyCrafting.craftInteractionTables[CRAFTING_TYPE_ENCHANTING] =
 	["complete"] = LLC_EnchantingCraftingComplete,
 	["endInteraction"] = function(self, station) --[[endInteraction()]] end,
 	["isItemCraftable"] = function(self, station, request) 
-		if station == CRAFTING_TYPE_ENCHANTING and haveEnoughMats(request.potencyItemID, request.essenceItemID, request.aspectItemID) then 
+		if station == CRAFTING_TYPE_ENCHANTING and haveEnoughMats(request.potencyItemID, request.essenceItemID, request.aspectItemID) 
+			and hasSkillToCraft(request.potencyItemID, request.essenceItemID, request.aspectItemID) then 
 			return true else return false 
 		end 
 	end,
