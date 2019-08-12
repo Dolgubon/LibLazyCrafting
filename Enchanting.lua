@@ -288,7 +288,7 @@ local currentCraftAttempt =
 	["position"] = 0,
 
 }
-
+local lastSlotUsed = nil
 
 local function LLC_EnchantingCraftinteraction(station, earliest, addon , position)
 	dbug("FUNCTION:LLCEnchantCraft")
@@ -308,7 +308,6 @@ local function LLC_EnchantingCraftinteraction(station, earliest, addon , positio
 			dbug("CALL:ZOEnchantCraft")
 			LibLazyCrafting.isCurrentlyCrafting = {true, "enchanting", earliest["Requester"]}
 			CraftEnchantingItem(unpack(locations))
-			
 			currentCraftAttempt= copy(earliest)
 			currentCraftAttempt.callback = LibLazyCrafting.craftResultFunctions[addon]
 			currentCraftAttempt.slot = FindFirstEmptySlotInBag(BAG_BACKPACK)
@@ -353,7 +352,6 @@ function searchUniqueId(uniqueItemId)
 end
 
 
-
 local function applyGlyphToItem(requestTable)
 	-- local glyphUniqueId = GetItemUniqueId(requestTable.glyphBag, requestTable.glyphSlot)
 	-- local equipUniqueId = GetItemUniqueId(requestTable.equipBag, requestTable.equipSlot)
@@ -373,22 +371,33 @@ local function applyGlyphToItem(requestTable)
 		LibLazyCrafting.SendCraftEvent(LLC_ENCHANTMENT_FAILED, 0, requestTable.Requester, requestTable )
 		return
 	end
-
+	lastSlotUsed = glyphSlot
 	EnchantItem(equipBag, equipSlot, glyphBag , glyphSlot)
 	-- Set the new gear as new
 	_,equipSlot = searchUniqueId(requestTable.equipUniqueId)
 	zo_callLater( function() LibLazyCrafting:SetItemStatusNew(equipSlot) end, 500 )
+	-- local resultTable = 
+	-- {
+	-- 	["bag"] = BAG_BACKPACK,
+	-- 	["slot"] = currentCraftAttempt.slot,
+	-- 	['link'] = currentCraftAttempt.link,
+	-- 	['uniqueId'] = GetItemUniqueId(BAG_BACKPACK, currentCraftAttempt.slot),
+	-- 	["quantity"] = 1,
+	-- 	["reference"] = removedTable.reference,
+	-- }
+
 	LibLazyCrafting.SendCraftEvent(LLC_CRAFT_SUCCESS, 0, requestTable.Requester, requestTable )
+	currentCraftAttempt = {}
 end
 
 
 local function LLC_EnchantingCraftingComplete(event, station, lastCheck)
-	if currentCraftAttempt.allRunesKnown==false then -- User didn't know all the glyphs, so we get the item link *now* since they know all of them
+	if currentCraftAttempt.allRunesKnown==false then -- User didn't know all the glyphs, so we get the item link *now* since they know all of them.
+	-- Hopefully they have more than one
 		currentCraftAttempt.link = GetEnchantingResultingItemLink(unpack(currentCraftAttempt.locations))
 	end
 	dbug("EVENT:CraftComplete")
 	if not currentCraftAttempt.addon then return end
-
 	if GetItemLinkName(GetItemLink(BAG_BACKPACK, currentCraftAttempt.slot,0)) == GetItemLinkName(currentCraftAttempt.link)
 		and GetItemLinkQuality(GetItemLink(BAG_BACKPACK, currentCraftAttempt.slot,0)) == GetItemLinkQuality(currentCraftAttempt.link)
 	then
@@ -419,13 +428,19 @@ local function LLC_EnchantingCraftingComplete(event, station, lastCheck)
 			["quantity"] = 1,
 			["reference"] = removedTable.reference,
 		}
-		
 		LibLazyCrafting.SendCraftEvent( LLC_CRAFT_SUCCESS ,  station, removedTable.Requester , resultTable )
 		currentCraftAttempt = {}
 
 	elseif lastCheck then
 		-- give up on finding it.
 		currentCraftAttempt = {}
+	elseif lastSlotUsed then
+		if GetItemLinkName(GetItemLink(BAG_BACKPACK, lastSlotUsed,0)) == GetItemLinkName(currentCraftAttempt.link)
+			and GetItemLinkQuality(GetItemLink(BAG_BACKPACK, lastSlotUsed,0)) == GetItemLinkQuality(currentCraftAttempt.link) then
+				currentCraftAttempt.slot = lastSlotUsed
+				lastSlotUsed = nil
+				return LLC_EnchantingCraftingComplete(event, station, lastCheck)
+		end
 	else
 		-- further search
 		-- search again later

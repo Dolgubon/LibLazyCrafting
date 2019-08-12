@@ -18,7 +18,7 @@ end
 
 -- Initialize libraries
 local libLoaded
-local LIB_NAME, VERSION = "LibLazyCrafting", 2.7
+local LIB_NAME, VERSION = "LibLazyCrafting", 2.8
 
 local LibLazyCrafting, oldminor = LibStub:NewLibrary(LIB_NAME, VERSION)
 if not LibLazyCrafting then return end
@@ -192,16 +192,17 @@ function findItemLocationById(itemID)
 			return BAG_BANK, i
 		end
 	end
-	for i=0, GetBagSize(BAG_BACKPACK) do
-		if GetItemId(BAG_BACKPACK,i)==itemID then
-			return BAG_BACKPACK,i
-		end
-	end
 	for i=0, GetBagSize(BAG_SUBSCRIBER_BANK) do
 		if GetItemId(BAG_SUBSCRIBER_BANK,i)==itemID  then
 			return BAG_SUBSCRIBER_BANK, i
 		end
 	end
+	for i=0, GetBagSize(BAG_BACKPACK) do
+		if GetItemId(BAG_BACKPACK,i)==itemID then
+			return BAG_BACKPACK,i
+		end
+	end
+	
 	if GetItemId(BAG_VIRTUAL, itemID) ~=0 then
 
 		return BAG_VIRTUAL, itemID
