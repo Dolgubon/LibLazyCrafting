@@ -201,22 +201,25 @@ function enoughMaterials(craftRequestTable)
 		["materials"] = {},
 	}
 	local missingSomething = false
-
-	if craftRequestTable["style"] and GetCurrentSmithingStyleItemCount(craftRequestTable["style"]) <= 0
+	local quantity = 1
+	if craftRequestTable.overrideNonMulticraft then
+		quantity = craftRequestTable.quantity
+	end
+	if craftRequestTable["style"] and GetCurrentSmithingStyleItemCount(craftRequestTable["style"]) < 1*quantity
 		and craftRequestTable['station']~= CRAFTING_TYPE_JEWELRYCRAFTING and not craftRequestTable["useUniversalStyleItem"] then
 		missing.materials["style"] = true
 		missingSomething = true
 	end
 
 	-- Check trait mats
-	if not(GetCurrentSmithingTraitItemCount(craftRequestTable["trait"])> 0 or craftRequestTable["trait"]==1) then
+	if not(GetCurrentSmithingTraitItemCount(craftRequestTable["trait"])>=1*quantity or craftRequestTable["trait"]==1) then
 		if craftRequestTable["trait"]==0 then d("Invalid trait") end
 		missing.materials["trait"] = true
 		missingSomething = true
 	end
 
 	-- Check wood/ingot/cloth mats
-	if not(GetCurrentSmithingMaterialItemCount(craftRequestTable["pattern"],craftRequestTable["materialIndex"])>=craftRequestTable["materialQuantity"]) then
+	if not(GetCurrentSmithingMaterialItemCount(craftRequestTable["pattern"],craftRequestTable["materialIndex"])>=craftRequestTable["materialQuantity"]*quantity) then
 		missing.materials["mats"]  = true
 		missingSomething = true
 	end
@@ -522,7 +525,7 @@ end
 -- The number it returns is the enchant Id!
 
 -- /script local c = 0 for i = 1, 1000 do local a = GetEnchantSearchCategoryType( i ) if a~=0 then d("i: "..i.." search: ".. a) c = c+1 end end d(c)
-local function LLC_CraftSmithingItem(self, patternIndex, materialIndex, materialQuantity, styleIndex, traitIndex, useUniversalStyleItem, stationOverride, setIndex, quality, autocraft, reference, potencyId, essenceId, aspectId)
+local function LLC_CraftSmithingItem(self, patternIndex, materialIndex, materialQuantity, styleIndex, traitIndex, useUniversalStyleItem, stationOverride, setIndex, quality, autocraft, reference, potencyId, essenceId, aspectId, quantity, overrideNonMulticraft)
 	dbug("FUNCTION:LLCSmithing")
 
 	if reference == nil then reference = "" end
@@ -581,6 +584,8 @@ local function LLC_CraftSmithingItem(self, patternIndex, materialIndex, material
 	requestTable["autocraft"] = autocraft
 	requestTable["Requester"] = self.addonName
 	requestTable["reference"] = reference
+	requestTable["overrideNonMulticraft"] = overrideNonMulticraft
+	requestTable["quantity"] = quantity
 
 	table.insert(craftingQueue[self.addonName][station],requestTable)
 
@@ -607,14 +612,14 @@ end
 LibLazyCrafting.functionTable.isSmithingLevelValid = isValidLevel
 
 local function LLC_CraftSmithingItemByLevel(self, patternIndex, isCP , level, styleIndex, traitIndex, 
-	useUniversalStyleItem, stationOverride, setIndex, quality, autocraft, reference, potencyId, essenceId, aspectId)
+	useUniversalStyleItem, stationOverride, setIndex, quality, autocraft, reference, potencyId, essenceId, aspectId, quantity, overrideNonMulticraft)
 
 	if isValidLevel( isCP ,level) then
 		local materialIndex = findMatIndex(level, isCP)
 
 		local materialQuantity = GetMatRequirements(patternIndex, materialIndex, stationOverride)
 
-		return LLC_CraftSmithingItem(self, patternIndex, materialIndex, materialQuantity, styleIndex, traitIndex, useUniversalStyleItem, stationOverride, setIndex, quality, autocraft, reference, potencyId, essenceId, aspectId)
+		return LLC_CraftSmithingItem(self, patternIndex, materialIndex, materialQuantity, styleIndex, traitIndex, useUniversalStyleItem, stationOverride, setIndex, quality, autocraft, reference, potencyId, essenceId, aspectId, quantity, overrideNonMulticraft)
 	else
 	end
 end
@@ -741,9 +746,10 @@ local function LLC_SmithingCraftInteraction( station, earliest, addon , position
 			earliest.trait,
 			earliest.useUniversalStyleItem,
 			1,
-			LINK_STYLE_DEFAULT,
-
 		}
+		if earliest.overrideNonMulticraft then
+			parameters[7] = earliest.quantity
+		end
 		local setPatternOffset = {14, 15,[6]=6,[7]=2}
 		if earliest.setIndex~=INDEX_NO_SET then
 			parameters[1] = parameters[1] + setPatternOffset[station]
@@ -753,6 +759,7 @@ local function LLC_SmithingCraftInteraction( station, earliest, addon , position
 			LibLazyCrafting.isCurrentlyCrafting = {true, "smithing", earliest["Requester"]}
 
 			hasNewItemBeenMade = false
+
 			CraftSmithingItem(unpack(parameters))
 
 			currentCraftAttempt = copy(earliest)
@@ -760,8 +767,7 @@ local function LLC_SmithingCraftInteraction( station, earliest, addon , position
 			currentCraftAttempt.callback = LibLazyCrafting.craftResultFunctions[addon]
 			currentCraftAttempt.slot = FindFirstEmptySlotInBag(BAG_BACKPACK)
 
-
-			table.remove(parameters,6 )
+			parameters[6] = LINK_STYLE_DEFAULT
 
 			currentCraftAttempt.link = GetSmithingPatternResultLink(unpack(parameters))
 			--d("Making reference #"..tostring(currentCraftAttempt.reference).." link: "..currentCraftAttempt.link)
@@ -1109,8 +1115,11 @@ local setInfo =
 	{{143531 , 143551, [6] = 143538, [7] = 143567},4},	-- 47 Might of the Lost Legion
 	{{142791 , 142811, [6] = 142798, [7] = 142827},7,},	-- 48 Grave-Stake Collector
 	{{147948 , 147968, [6] = 147955, [7] =147984 },8,},	-- 49 Coldharbour's Favourite
-	{{148318 , 148338, [6] = 148325, [7] =148354 },5,},	-- 48 Senche Raht's Grit
-	{{148688 , 148708, [6] = 148695, [7] =148724 },3,},	-- 48 Vasterie's Tutelage
+	{{148318 , 148338, [6] = 148325, [7] =148354 },5,},	-- 50 Senche Raht's Grit
+	{{148688 , 148708, [6] = 148695, [7] =148724 },3,},	-- 51 Vasterie's Tutelage
+	{{155778 , 155798, [6] = 155785, [7] =155813 },8,},	-- 52 Ancient Dragonguard
+	{{155404 , 155424, [6] = 155411, [7] =155439 },5,},	-- 53 Daring Corsair
+	{{156152 , 156172, [6] = 156159, [7] =156188 },3,},	-- 54 New Moon Acolyte
 }
 
 SetIndexes = {}
