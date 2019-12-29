@@ -18,7 +18,7 @@
 local LibLazyCrafting = LibStub("LibLazyCrafting")
 
 local widgetType = 'smithing'
-local widgetVersion = 2.91
+local widgetVersion = 2.92
 if not LibLazyCrafting:RegisterWidget(widgetType, widgetVersion) then return  end
 
 local LLC = LibLazyCrafting
@@ -1453,6 +1453,9 @@ local blackWeaponPatterns =
 	WEAPONTYPE_DAGGER,
 }
 
+local function itemLinkArmourCheck(armourWeight, armourType)
+	return function(link) return GetItemLinkEquipType(link)==armourType and GetItemLinkArmorType(link)==armourWeight end
+end
 
 local function mapItemType(station, pattern)
 	local isWeapon
@@ -1469,11 +1472,11 @@ local function mapItemType(station, pattern)
 		if pattern > 8 then
 			armourWeight = ARMORTYPE_MEDIUM
 			armourType = armourPatterns[pattern - 8]
-			return function(link) return GetItemLinkEquipType(link)==armourType and GetItemLinkArmorType(link)==armourWeight end
+			return itemLinkArmourCheck(armourWeight, armourType)
 		else
 			armourWeight = ARMORTYPE_LIGHT
 			armourType = armourPatterns[math.max(pattern - 1, 1)]
-			return function(link)d(GetItemLinkEquipType(link))d(armourType) return GetItemLinkEquipType(link)==armourType and GetItemLinkArmorType(link)==armourWeight end
+			return itemLinkArmourCheck(armourWeight, armourType)
 		end
 	elseif station == CRAFTING_TYPE_JEWELRYCRAFTING then
 		isWeapon = false
@@ -1484,7 +1487,7 @@ local function mapItemType(station, pattern)
 			isWeapon = false
 			armourWeight = ARMORTYPE_HEAVY
 			armourType = armourPatterns[pattern - 7]
-			return function(link) return GetItemLinkEquipType(link)==armourType and GetItemLinkArmorType(link)==armourWeight end
+			return itemLinkArmourCheck(armourWeight, armourType)
 		else
 			isWeapon = true
 			weaponType = blackWeaponPatterns[pattern]

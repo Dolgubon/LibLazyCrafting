@@ -6,8 +6,8 @@
 ; You can read the full terms at https://account.elderscrollsonline.com/add-on-terms
 
 ## APIVersion: 100029
-## Title: LibLazyCrafting v2.98
-## Version: 2.98
+## Title: LibLazyCrafting v2.991
+## Version: 2.991
 ## Author: Dolgubon
 ## Contributors: ziggr
 ## DependsOn: LibStub
