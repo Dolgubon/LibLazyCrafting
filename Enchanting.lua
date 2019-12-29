@@ -128,7 +128,7 @@ local validLevels =
 }
 
 local glyphInfo = {-- negative first, then positive
-	-- (-) enchantId, (+) enchantId, (-) glyph itemId, (+) glyph itemId, (-) glyph name, (+) glyph name
+	-- (-) enchantId, (+) enchantId, (-) glyph itemId, (+) glyph itemId, (-) glyph name, (+) glyph name, rune ItemID
 	{29, 17, 43573,26580,"Absorb Health","Health", ITEMTYPE_GLYPH_WEAPON,ITEMTYPE_GLYPH_ARMOR, 45831 },
 	{83, 19, 45868,26582,"Absorb Magicka","Magicka", ITEMTYPE_GLYPH_WEAPON, ITEMTYPE_GLYPH_ARMOR, 45832},
 	{82, 25, 45867,26588,"Absorb Stamina","Stamina", ITEMTYPE_GLYPH_WEAPON, ITEMTYPE_GLYPH_ARMOR, 45833},
@@ -150,6 +150,7 @@ local glyphInfo = {-- negative first, then positive
 }
 
 local enchantLevelInfo = {
+	-- Parity, potencyItemId, quality, pre50 lvl indicator, level, cp
 	{-1, 45817,20,5,lvl=1,cp=nil},
 	{1,  45855,20,5,lvl=1,cp=nil},
 	{-1, 45818,20,10,lvl=5,cp=nil},
@@ -224,7 +225,8 @@ local function closestGlyphLevel(isCP, level)
 	end
 end
 LibLazyCrafting.closestGlyphLevel = closestGlyphLevel
-LibLazyCrafting.getGlyphInfo = function () return glyphInfo end
+LibLazyCrafting.getGlyphInfo = function () return glyphInfo, enchantLevelInfo,qualityItemIdInfo  end
+
 
 --[[
 /script g = SHARED_INVENTORY.bagCache[BAG_VIRTUAL] p =GetEnchantingResultingItemLink
@@ -415,6 +417,7 @@ local function LLC_EnchantingCraftingComplete(event, station, lastCheck)
 				applyGlyphToItem(removedTable)
 				return
 			else
+				LibLazyCrafting.SendCraftEvent( LLC_INITIAL_CRAFT_SUCCESS,  station,removedTable.Requester, removedTable )
 				return
 			end
 		end

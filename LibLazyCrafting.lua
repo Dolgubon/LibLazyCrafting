@@ -18,7 +18,7 @@ end
 
 -- Initialize libraries
 local libLoaded
-local LIB_NAME, VERSION = "LibLazyCrafting", 2.95
+local LIB_NAME, VERSION = "LibLazyCrafting", 2.98
 
 local LibLazyCrafting, oldminor = LibStub:NewLibrary(LIB_NAME, VERSION)
 if not LibLazyCrafting then return end
@@ -537,7 +537,7 @@ end
 
 
 function LibLazyCrafting:Init()
-
+	LibLazyCrafting.addonInteractionTables = {}
 	-- Call this to register the addon with the library.
 	-- Really this is mostly arbitrary, I just want to force an addon to give me their name ;p. But it's an easy way, and only needs to be done once.
 	-- Returns a table with all the functions, as well as the addon's personal queue.
@@ -547,8 +547,8 @@ function LibLazyCrafting:Init()
 	function LibLazyCrafting:AddRequestingAddon(addonName, autocraft, functionCallback, optionalDebugAuthor)
 		-- Add the 'open functions' here.
 		local LLCAddonInteractionTable = {}
-		if LLCAddonInteractionTable[addonName] then
-			d("LibLazyCrafting:AddRequestingAddon has been called twice, or the chosen addon name has already been used")
+		if LibLazyCrafting.addonInteractionTables[addonName] then
+			d("LibLazyCrafting:AddRequestingAddon has been called twice, or the chosen addon name has already been used. Use GetRequestingAddon instead")
 		end
 		craftingQueue[addonName] = { {}, {}, {}, {}, {}, {}, {}} -- Initialize the addon's personal queue. The tables are empty, station specific queues.
 
@@ -575,7 +575,13 @@ function LibLazyCrafting:Init()
 		-- "I hope LibStub returns what I asked for!"
 		LLCAddonInteractionTable["version"] = VERSION
 
+		LibLazyCrafting.addonInteractionTables[addonName] =  LLCAddonInteractionTable
+
 		return LLCAddonInteractionTable
+	end
+
+	function  LibLazyCrafting:GetRequestingAddon(addonName)
+		return LibLazyCrafting.addonInteractionTables[addonName]
 	end
 
 	
