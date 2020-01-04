@@ -18,7 +18,7 @@ end
 
 -- Initialize libraries
 local libLoaded
-local LIB_NAME, VERSION = "LibLazyCrafting", 2.991
+local LIB_NAME, VERSION = "LibLazyCrafting", 2.992
 
 local LibLazyCrafting, oldminor = LibStub:NewLibrary(LIB_NAME, VERSION)
 if not LibLazyCrafting then return end
@@ -593,6 +593,7 @@ function LibLazyCrafting:Init()
 	LLC_NO_FURTHER_CRAFT_POSSIBLE = "no further craft items possible" -- Thrown when there is no more items that can be made at the station
 	LLC_INITIAL_CRAFT_SUCCESS = "initial stage of crafting complete" -- Thrown when the white item of a higher quality item is created
 	LLC_ENCHANTMENT_FAILED = "enchantment failed"
+	LLC_CRAFT_PARTIAL_IMPROVEMENT = "item has been improved one stage, but is not yet at final quality"
 
 	LLC_Global = LibLazyCrafting:AddRequestingAddon("LLC_Global",true, function(event, station, result)
 		d(GetItemLink(result.bag,result.slot).." crafted at slot "..tostring(result.slot).." with reference "..result.reference) end)
@@ -653,14 +654,16 @@ local function CraftInteract(event, station)
 				if earliest.isFurniture then
 					if v.canCraftFurniture then
 						v["function"]( station, earliest, addon , position)
+						return
 					end
 				else
 					v["function"]( station, earliest, addon , position)
-					break
+					return
 				end
 			end
 		end
 	end
+	LibLazyCrafting.SendCraftEvent( LLC_NO_FURTHER_CRAFT_POSSIBLE ,  station,addon , nil )
 end
 
 LibLazyCrafting.craftInteract = CraftInteract

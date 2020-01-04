@@ -18,7 +18,7 @@
 local LibLazyCrafting = LibStub("LibLazyCrafting")
 
 local widgetType = 'smithing'
-local widgetVersion = 2.92
+local widgetVersion = 2.93
 if not LibLazyCrafting:RegisterWidget(widgetType, widgetVersion) then return  end
 
 local LLC = LibLazyCrafting
@@ -774,9 +774,10 @@ local function LLC_SmithingCraftInteraction( station, earliest, addon , position
 		elseif earliest.type =="improvement" then
 			local parameters = {}
 			local currentSkill, maxSkill = getImprovementLevel(station)
-			if earliest.quality==GetItemLinkQuality(GetItemLink(earliest.ItemBagID, earliest.ItemSlotID))then
+			local currentItemQuality = GetItemLinkQuality(GetItemLink(earliest.ItemBagID, earliest.ItemSlotID))
+			if earliest.quality == currentItemQuality then
 				dbug("ACTION:RemoveImprovementRequest")
-				d("Bad improvement Request; this shouldn't appear, but it might.")
+				d("Item is already at final quality, but LLC did not improve the item. It may have been improved by the user or another addon")
 				local returnTable = table.remove(craftingQueue[addon][station],position )
 				returnTable.bag = BAG_BACKPACK
 				LibLazyCrafting.SendCraftEvent( LLC_CRAFT_SUCCESS ,  station,addon , returnTable )
@@ -791,14 +792,14 @@ local function LLC_SmithingCraftInteraction( station, earliest, addon , position
 				-- cancel if quality is already blue and skill is not max
 				-- This is to save on improvement mats.
 
-				if earliest.quality>2 and GetItemLinkQuality(GetItemLink(earliest.ItemBagID, earliest.ItemSlotID)) >ITEM_QUALITY_MAGIC then
+				if earliest.quality>2 and currentItemQuality >ITEM_QUALITY_MAGIC then
 					d("Improvement skill is not at maximum. Improvement prevented to save mats.")
 					return
 				end
 			end
 			local numBooster = GetMaxImprovementMats( earliest.ItemBagID,earliest.ItemSlotID,station)
 			if not numBooster then return end
-			local _,_, stackSize = GetSmithingImprovementItemInfo(station, GetItemLinkQuality(GetItemLink(earliest.ItemBagID, earliest.ItemSlotID)))
+			local _,_, stackSize = GetSmithingImprovementItemInfo(station, currentItemQuality)
 			if stackSize< numBooster then
 				d("Not enough improvement mats")
 				return end
@@ -808,6 +809,7 @@ local function LLC_SmithingCraftInteraction( station, earliest, addon , position
 			currentCraftAttempt = copy(earliest)
 			currentCraftAttempt.position = position
 			currentCraftAttempt.callback = LibLazyCrafting.craftResultFunctions[addon]
+			currentCraftAttempt.previousQuality = currentItemQuality
 
 			currentCraftAttempt.link = GetSmithingImprovedItemLink(earliest.ItemBagID, earliest.ItemSlotID, station)
 		end
@@ -978,8 +980,10 @@ local function SmithingCraftCompleteFunction(station)
 				end
 				LibLazyCrafting.SendCraftEvent( LLC_CRAFT_SUCCESS,  station,returnTable.Requester, returnTable )
 			else
-				d("Bad request position")
+				d("Bad request. No addon attached to crafting request")
 			end
+		elseif GetItemLinkQuality(GetItemLink(currentCraftAttempt.ItemBagID,currentCraftAttempt.ItemSlotID)) > currentCraftAttempt.previousQuality then
+			LibLazyCrafting.SendCraftEvent( LLC_CRAFT_PARTIAL_IMPROVEMENT,  station,currentCraftAttempt.Requester, currentCraftAttempt )
 		end
 		currentCraftAttempt = {}
 		--sortCraftQueue()
@@ -1208,7 +1212,8 @@ local function getImprovementChancesTable(station)
 	end
 end
 
-local function compileImprovementRequirements(request, station, requirements)
+local function compileImprovementRequirements(request, requirements)
+	local station = request.station
 	requirements = requirements or {}
 	if request.equipCreated then
 		return requirements
@@ -1216,16 +1221,20 @@ local function compileImprovementRequirements(request, station, requirements)
 	local currentQuality = GetItemQuality(request.ItemBagID, request.ItemSlotID)
 	local improvementLevel = getImprovementLevel(station)
 
-	for i  = 1, request.quality - 1 do
+	for i  = currentQuality, request.quality - 1 do
 		requirements[GetItemLinkItemId( GetSmithingImprovementItemLink(station, i, 0) )] = getImprovementChancesTable(station)[improvementLevel][i]
 	end
 	return requirements
 end
 
-function compileRequirements(request, station,requirements)-- Ingot/style mat/trait mat/improvement mat
+function compileRequirements(request, requirements)-- Ingot/style mat/trait mat/improvement mat
+	local station = request.station
 	if not requirements then
 		if request.dualEnchantingSmithing then
 			requirements = LibLazyCrafting.craftInteractionTables[CRAFTING_TYPE_ENCHANTING]:materialRequirements( request,{})
+			if request.equipCreated then
+				return requirements
+			end
 		else
 			requirements = {}
 		end
@@ -1243,7 +1252,7 @@ function compileRequirements(request, station,requirements)-- Ingot/style mat/tr
 		requirements[matId] = request.materialQuantity
 		if station ~= 7 then
 			if request.useUniversalStyleItem then
-				requirements[ 71668] = 1 -- mimic stone ID
+				requirements[ 71668] = 1 -- mimic stone Item ID
 			else
 				requirements[ GetItemLinkItemId( GetItemStyleMaterialLink(request.style , 0))] = 1
 			end
@@ -1264,7 +1273,7 @@ function compileRequirements(request, station,requirements)-- Ingot/style mat/tr
 
 		return requirements
 	elseif request["type"] == "improvement" then
-		return compileImprovementRequirements(request, station, requirements)
+		return compileImprovementRequirements(request, requirements)
 	else
 		return requirements
 	end
@@ -1667,7 +1676,7 @@ LibLazyCrafting.craftInteractionTables[CRAFTING_TYPE_BLACKSMITHING] =
 			return false
 		end
 	end,
-	["materialRequirements"] = function(self, request) return compileRequirements(request, self.station) end,
+	["materialRequirements"] = function(self, request) return compileRequirements(request) end,
 	["getItemLinkFromRequest"] = getItemLinkFromRequest,
 }
 -- Should be the same for other stations though. Except for the check
