@@ -15,13 +15,19 @@ local function dbug(...)
 	--DolgubonDebugRunningDebugString(...)
 end
 
-
 -- Initialize libraries
 local libLoaded
-local LIB_NAME, VERSION = "LibLazyCrafting", 2.992
-
-local LibLazyCrafting, oldminor = LibStub:NewLibrary(LIB_NAME, VERSION)
+local LIB_NAME, VERSION = "LibLazyCrafting", 2.993
+local LibLazyCrafting, oldminor
+if LibStub then
+	LibLazyCrafting, oldminor = LibStub:NewLibrary(LIB_NAME, VERSION)
+else
+	LibLazyCrafting, oldminor = {} , 2.992
+end
 if not LibLazyCrafting then return end
+
+_G["LibLazyCrafting"] = LibLazyCrafting
+
 local LLC = LibLazyCrafting -- Short form version we can use if needed
 
 LLC.name, LLC.version = LIB_NAME, VERSION

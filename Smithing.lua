@@ -15,7 +15,7 @@
 --GetLastCraftingResultItemLink(number resultIndex, number LinkStyle linkStyle)
 --/script d(GetLastCraftingResultItemInfo(1))
 
-local LibLazyCrafting = LibStub("LibLazyCrafting")
+local LibLazyCrafting = _G["LibLazyCrafting"]
 
 local widgetType = 'smithing'
 local widgetVersion = 2.93
@@ -1466,6 +1466,13 @@ local function itemLinkArmourCheck(armourWeight, armourType)
 	return function(link) return GetItemLinkEquipType(link)==armourType and GetItemLinkArmorType(link)==armourWeight end
 end
 
+function IsItemLinkRobe(link)
+	local itemId = GetItemLinkItemId(link)
+	local baseLink = getItemLinkFromItemId(itemId)
+	local textureFileName = GetItemLinkIcon(baseLink)
+	return textureFileName == "/esoui/art/icons/gear_breton_light_robe_d.dds"
+end
+
 local function mapItemType(station, pattern)
 	local isWeapon
 	local equipType
@@ -1485,7 +1492,20 @@ local function mapItemType(station, pattern)
 		else
 			armourWeight = ARMORTYPE_LIGHT
 			armourType = armourPatterns[math.max(pattern - 1, 1)]
-			return itemLinkArmourCheck(armourWeight, armourType)
+			local check = itemLinkArmourCheck(armourWeight, armourType)
+			if pattern <3 then
+				return function(link) 
+					if check(link) then 
+						local textureFileName = GetItemLinkIcon(link)
+						if pattern == 1 then
+							return textureFileName == "/esoui/art/icons/gear_breton_light_robe_d.dds"
+						else
+							return textureFileName ~= "/esoui/art/icons/gear_breton_light_robe_d.dds"
+						end
+					end
+				end
+			end
+			return check
 		end
 	elseif station == CRAFTING_TYPE_JEWELRYCRAFTING then
 		isWeapon = false

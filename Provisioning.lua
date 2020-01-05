@@ -15,7 +15,7 @@
 
 --Don't fail silently?
 
-local LibLazyCrafting = LibStub("LibLazyCrafting")
+local LibLazyCrafting = _G["LibLazyCrafting"]
 local sortCraftQueue = LibLazyCrafting.sortCraftQueue
 
 local widgetType = 'provisioning'

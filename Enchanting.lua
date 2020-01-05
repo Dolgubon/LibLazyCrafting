@@ -11,7 +11,7 @@
 -- 
 -----------------------------------------------------------------------------------
 
-local LibLazyCrafting = LibStub("LibLazyCrafting")
+local LibLazyCrafting = _G["LibLazyCrafting"]
 local sortCraftQueue = LibLazyCrafting.sortCraftQueue
 
 local widgetType = 'enchanting'
@@ -60,7 +60,7 @@ local function LLC_CraftEnchantingGlyphItemID(self, potencyItemID, essenceItemID
 	if reference == nil then reference = "" end
 	if not self then d("Please call with colon notation") end
 	if autocraft==nil then autocraft = self.autocraft end
-	if not potencyItemID or not essenceItemID or not aspectItemID then  return end
+	if not potencyItemID or not essenceItemID or not aspectItemID then d("Missing item Ids") return end
 	if not areIdsValid(potencyItemID, essenceItemID, aspectItemID) then d("invalid essence Ids") return end
 	local requestTable = gearRequestTable or {}
 	if gearRequestTable then
