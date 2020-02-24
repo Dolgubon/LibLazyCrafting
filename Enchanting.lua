@@ -265,12 +265,27 @@ end
 
 LibLazyCrafting.functionTable.CraftEnchantingGlyphByAttributes = LLC_CraftEnchantingGlyphAttributes
 
+local function LLC_EnchantAttributesToGlyphIds(isCP, level, enchantId, quality)
+	local _, parity, essenceId = getEnchantingResultItemId(enchantId)
+	local potencyId
+	for i = 1, #enchantLevelInfo do
+		if (not isCP and enchantLevelInfo[i].lvl == level) or (isCP and enchantLevelInfo[i].cp == level ) then
+			if enchantLevelInfo[i][1] == parity then
+				potencyId = enchantLevelInfo[i][2]
+			end
+		end
+	end
+	local aspectId = qualityItemIdInfo[quality]
+	return potencyId, essenceId, aspectId
+end
+
+LibLazyCrafting.functionTable.EnchantAttributesToGlyphIds = LLC_EnchantAttributesToGlyphIds
+LibLazyCrafting.EnchantAttributesToGlyphIds = LLC_EnchantAttributesToGlyphIds
+
 function LLC_GetEnchantingResultItemLinkByAttributes(isCP, level, enchantId, quality, autocraft, reference)
 	local itemId = getEnchantingResultItemId(enchantId)
 	local quality1, quality2 = getQualityInfo(isCP, level, quality)
 	return string.format("|H1:item:%d:%d:%d:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0|h|h", itemId, quality1, quality2) 
-
-
 end
 
 ------------------------------------------------------------------------

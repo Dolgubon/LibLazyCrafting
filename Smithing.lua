@@ -1084,6 +1084,9 @@ local setInfo =
 	{{155778 , 155798, [6] = 155785, [7] =155813 },8,},	-- 52 Ancient Dragonguard
 	{{155404 , 155424, [6] = 155411, [7] =155439 },5,},	-- 53 Daring Corsair
 	{{156152 , 156172, [6] = 156159, [7] =156187 },3,},	-- 54 New Moon Acolyte -- Note, set ring and neck are swapped. neck ID is 156188
+	{{158546 , 158496, [6] = 158553, [7] =158358 },3,}, -- 55 Critical Riposte
+	{{158920 , 158870, [6] = 158927, [7] =158732 },3,}, -- 56 Unchained Aggressor
+	{{159294 , 159244, [6] = 159301, [7] =159106 },3,}, -- 57 Dauntless Combatant
 }
 
 SetIndexes = {}
@@ -1584,7 +1587,7 @@ local function computeLinkParticulars(requestTable, link)
 	end
 	local matIndex = requestTable["materialIndex"]
 	local materialQuantity =  requestTable["materialQuantity"] 
-	local cpQuality, level = levelStuff()
+	local cpQuality, level = levelStuff(level, isCP, quality)
 	cpQuality = 364
 	lvl = 50
 	link = string.format("|H1:item:%d:%d:%d:%d:%d:%d:0:0:0:0:0:0:0:0:0:%d:0:0:0:10000:0|h|h", itemId, cpQuality, lvl, enchantId, enchantCPQuality, enchantLvl,requestTable.style) 
@@ -1667,6 +1670,7 @@ local function getItemLinkFromParticulars(setId, trait, pattern, station,level, 
 	return finalLink
 end
 LibLazyCrafting.functionTable.getItemLinkFromParticulars = getItemLinkFromParticulars
+LibLazyCrafting.getItemLinkFromParticulars = getItemLinkFromParticulars
 -- LibLazyCrafting.functionTable.getItemLinkFromRequest = getItemLinkFromRequest
 
 LibLazyCrafting.craftInteractionTables[CRAFTING_TYPE_BLACKSMITHING] =
