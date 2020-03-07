@@ -428,17 +428,13 @@ local function LLC_CancelItem(self, station, position)
 		if station == nil then
 			craftingQueue[self.addonName] = {{},{},{},{},{},{},{}}
 		else
-			for j = 1, #craftingQueue[self.addonName][station] do
-				table.remove(craftingQueue[self.addonName][station], j)
-
-			end
+			craftingQueue[self.addonName][station] = {}
 		end
 	else
 		table.remove(craftingQueue[self.addonName][station], position)
-
 	end
-
 end
+
 local function LLC_CancelItemByReference(self, reference)
 	for i = 1, #craftingQueue[self.addonName] do
 		for j = 1, #craftingQueue[self.addonName][i] do
