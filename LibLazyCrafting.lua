@@ -706,7 +706,6 @@ local function CraftComplete(event, station)
 					else
 						v["function"]( station, earliest, addon , position)
 						return
-						break
 					end
 				end
 			end
