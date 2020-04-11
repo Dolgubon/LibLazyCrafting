@@ -543,7 +543,7 @@ function LibLazyCrafting:Init()
 	-- nilable:boolean autocraft will cause the library to automatically craft anything in the queue when at a crafting station.
 	-- If optionalDebugAuthor is set, then when the @name == GetDisplayName(), the library will throw errors when some invalid arguments are entered for functions
 	-- Example: If an invalid level is entered for a piece of equipment, will throw and error "LLC: Invalid level"
-	function LibLazyCrafting:AddRequestingAddon(addonName, autocraft, functionCallback, optionalDebugAuthor)
+	function LibLazyCrafting:AddRequestingAddon(addonName, autocraft, functionCallback, optionalDebugAuthor, styleTable)
 		-- Add the 'open functions' here.
 		local LLCAddonInteractionTable = {}
 		if LibLazyCrafting.addonInteractionTables[addonName] then
@@ -556,6 +556,7 @@ function LibLazyCrafting:Init()
 		-- The crafting queue is added. Consider hiding this.
 
 		LLCAddonInteractionTable["personalQueue"]  = craftingQueue[addonName]
+		LLCAddonInteractionTable["styleTable"] = styleTable
 
 		LLC.debugDisplayNames[addonName] = optionalDebugAuthor
 

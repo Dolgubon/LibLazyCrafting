@@ -9,9 +9,8 @@
 ## Title: LibLazyCrafting v2.995
 ## Version: 2.995
 ## Author: Dolgubon
-## DependsOn: LibStub
 ## Contributors: ziggr
-## OptionalDependsOn: pChat
+## OptionalDependsOn: pChat LibStub
 ## Description: A library to help craft items.
 ## SavedVariables: LibLazyCraftingSavedVars
 ## IsLibrary: true

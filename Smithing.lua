@@ -194,6 +194,71 @@ for i = 1, 41 do
 end
 
 
+
+local function maxStyle (craftRequestTable) -- Searches to find the style that the user has the most style stones for. Only searches basic styles. User must know style
+ 	local piece = craftRequestTable.pattern
+ 	local styleTable
+ 	if type(LibLazyCrafting.addonInteractionTables[craftRequestTable.Requester]["styleTable"])=="table" then
+ 		styleTable = LibLazyCrafting.addonInteractionTables[craftRequestTable.Requester]["styleTable"]
+ 	elseif type(LibLazyCrafting.addonInteractionTables[craftRequestTable.Requester]["styleTable"]) == "function" then
+ 		styleTable = LibLazyCrafting.addonInteractionTables[craftRequestTable.Requester]["styleTable"]()
+ 	end
+    local bagId = BAG_BACKPACK
+    SHARED_INVENTORY:RefreshInventory(bagId)
+    local bagCache = SHARED_INVENTORY:GetOrCreateBagCache(bagId)
+ 
+    local max = -1
+    local numKnown = 0
+    local numAllowed = 0
+    local maxStack = -1
+    local useStolen = AreAnyItemsStolen(BAG_BACKPACK) and false
+    for i, v in pairs(styleTable) do
+        if v then
+            numAllowed = numAllowed + 1
+	        
+	        if IsSmithingStyleKnown(i, piece) then
+	            numKnown = numKnown + 1
+	 
+	            for key, itemInfo in pairs(bagCache) do
+	                local slotId = itemInfo.slotIndex
+	                if itemInfo.stolen == true then
+	                    local itemType, specialType = GetItemType(bagId, slotId)
+	                    if itemType == ITEMTYPE_STYLE_MATERIAL then
+	                        local icon, stack, sellPrice, meetsUsageRequirement, locked, equipType, itemStyleId, quality = GetItemInfo(bagId, slotId)
+	                        if itemStyleId == i then
+	                            if stack > maxStack then
+	                                maxStack = stack
+	                                max = itemStyleId
+	                                useStolen = true
+	                            end
+	                        end
+	                    end
+	                end
+	            end
+	 
+	            if useStolen == false then
+	                if GetCurrentSmithingStyleItemCount(i)>GetCurrentSmithingStyleItemCount(max) then
+	                    if GetCurrentSmithingStyleItemCount(i)>0 and v then
+	                        max = i
+	                    end
+	                end
+	            end
+	        end
+        end
+    end
+    if max == -1 then
+        if numKnown <3 then
+            return -2
+        end
+        if numAllowed < 3 then
+            return -3
+        end
+    end
+    return max
+end
+
+
+
 function enoughMaterials(craftRequestTable)
 
 	local missing =
@@ -205,10 +270,17 @@ function enoughMaterials(craftRequestTable)
 	if craftRequestTable.overrideNonMulticraft then
 		quantity = craftRequestTable.quantity
 	end
-	if craftRequestTable["style"] and GetCurrentSmithingStyleItemCount(craftRequestTable["style"]) < 1*quantity
+	if craftRequestTable["style"] 
 		and craftRequestTable['station']~= CRAFTING_TYPE_JEWELRYCRAFTING and not craftRequestTable["useUniversalStyleItem"] then
-		missing.materials["style"] = true
-		missingSomething = true
+		if craftRequestTable["style"]==LLC_FREE_STYLE_CHOICE then
+			if maxStyle(craftRequestTable) <0 then
+				missing.materials["style"] = true
+				missingSomething = true
+			end
+		elseif GetCurrentSmithingStyleItemCount(craftRequestTable["style"]) < 1*quantity then
+			missing.materials["style"] = true
+			missingSomething = true
+		end
 	end
 
 	-- Check trait mats
@@ -334,7 +406,7 @@ local function canCraftItem(craftRequestTable)
 			-- Check if the specific trait is known
 			if IsSmithingTraitKnownForResult(craftRequestTable["pattern"], craftRequestTable["materialIndex"], craftRequestTable["materialQuantity"],craftRequestTable["style"], craftRequestTable["trait"]) then
 				-- Check if the style is known for that piece
-				if (craftRequestTable["station"] == CRAFTING_TYPE_JEWELRYCRAFTING) or IsSmithingStyleKnown(craftRequestTable["style"], craftRequestTable["pattern"]) then
+				if (craftRequestTable["station"] == CRAFTING_TYPE_JEWELRYCRAFTING) or craftRequestTable["style"]==LLC_FREE_STYLE_CHOICE or IsSmithingStyleKnown(craftRequestTable["style"], craftRequestTable["pattern"]) then
 					return true
 				else
 
@@ -518,6 +590,7 @@ end
 -- The number it returns is the enchant Id!
 
 -- /script local c = 0 for i = 1, 1000 do local a = GetEnchantSearchCategoryType( i ) if a~=0 then d("i: "..i.." search: ".. a) c = c+1 end end d(c)
+LLC_FREE_STYLE_CHOICE = "free style choice"
 local function LLC_CraftSmithingItem(self, patternIndex, materialIndex, materialQuantity, styleIndex, traitIndex, useUniversalStyleItem, stationOverride, setIndex, quality, autocraft, reference, potencyId, essenceId, aspectId, quantity, overrideNonMulticraft)
 	dbug("FUNCTION:LLCSmithing")
 
@@ -527,6 +600,10 @@ local function LLC_CraftSmithingItem(self, patternIndex, materialIndex, material
 	local station
 	if type(self) == "number" then
 		d("LLC: Please call using colon notation: e.g LLC:CraftSmithingItem(). If you are seeing this and you are not a developer please contact the author of the addon")
+	end
+	if styleIndex == LLC_FREE_STYLE_CHOICE then
+		error("You must specify a style table to use this option when you add your addon to the library")
+
 	end
 
 	local validStations =
@@ -579,7 +656,7 @@ local function LLC_CraftSmithingItem(self, patternIndex, materialIndex, material
 	requestTable["reference"] = reference
 	requestTable["overrideNonMulticraft"] = overrideNonMulticraft
 	requestTable["quantity"] = quantity
-	if setIndex == 470 and station == CRAFTING_TYPE_JEWELRYCRAFTING then
+	if setIndex == 470 and station == CRAFTING_TYPE_JEWELRYCRAFTING then -- New Moon Acolyte pattern indexes are swapped for jewelry!
 		if requestTable.pattern == 1 then
 			requestTable.pattern = 2
 		else
@@ -735,42 +812,45 @@ local function LLC_SmithingCraftInteraction( station, earliest, addon , position
 
 	local earliest, addon , position = LibLazyCrafting.findEarliestRequest(station)
 
-	if earliest  and not IsPerformingCraftProcess() then
+	if earliest and not IsPerformingCraftProcess() then
 		if earliest.type =="smithing" then
 
 			local parameters = {
-			earliest.pattern,
-			earliest.materialIndex,
-			earliest.materialQuantity,
-			earliest.style,
-			earliest.trait,
-			earliest.useUniversalStyleItem,
-			1,
-		}
-		if earliest.overrideNonMulticraft then
-			parameters[7] = earliest.quantity
-		end
-		local setPatternOffset = {14, 15,[6]=6,[7]=2}
-		if earliest.setIndex~=INDEX_NO_SET then
-			parameters[1] = parameters[1] + setPatternOffset[station]
-		end
-			dbug("CALL:ZOCraftSmithing")
+				earliest.pattern,
+				earliest.materialIndex,
+				earliest.materialQuantity,
+				earliest.style,
+				earliest.trait,
+				earliest.useUniversalStyleItem,
+				1,
+			}
+			if earliest.style == LLC_FREE_STYLE_CHOICE then
+				parameters[4] = maxStyle(earliest)
+			end
+			if earliest.overrideNonMulticraft then
+				parameters[7] = earliest.quantity
+			end
+			local setPatternOffset = {14, 15,[6]=6,[7]=2}
+			if earliest.setIndex~=INDEX_NO_SET then
+				parameters[1] = parameters[1] + setPatternOffset[station]
+			end
+				dbug("CALL:ZOCraftSmithing")
 
-			LibLazyCrafting.isCurrentlyCrafting = {true, "smithing", earliest["Requester"]}
+				LibLazyCrafting.isCurrentlyCrafting = {true, "smithing", earliest["Requester"]}
 
-			hasNewItemBeenMade = false
-			
-			CraftSmithingItem(unpack(parameters))
+				hasNewItemBeenMade = false
+				
+				CraftSmithingItem(unpack(parameters))
 
-			currentCraftAttempt = copy(earliest)
-			currentCraftAttempt.position = position
-			currentCraftAttempt.callback = LibLazyCrafting.craftResultFunctions[addon]
-			currentCraftAttempt.slot = FindFirstEmptySlotInBag(BAG_BACKPACK)
+				currentCraftAttempt = copy(earliest)
+				currentCraftAttempt.position = position
+				currentCraftAttempt.callback = LibLazyCrafting.craftResultFunctions[addon]
+				currentCraftAttempt.slot = FindFirstEmptySlotInBag(BAG_BACKPACK)
 
-			parameters[6] = LINK_STYLE_DEFAULT
+				parameters[6] = LINK_STYLE_DEFAULT
 
-			currentCraftAttempt.link = GetSmithingPatternResultLink(unpack(parameters))
-			--d("Making reference #"..tostring(currentCraftAttempt.reference).." link: "..currentCraftAttempt.link)
+				currentCraftAttempt.link = GetSmithingPatternResultLink(unpack(parameters))
+				--d("Making reference #"..tostring(currentCraftAttempt.reference).." link: "..currentCraftAttempt.link)
 		elseif earliest.type =="improvement" then
 			local parameters = {}
 			local currentSkill, maxSkill = getImprovementLevel(station)
