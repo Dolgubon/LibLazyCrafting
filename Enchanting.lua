@@ -319,7 +319,7 @@ local function LLC_EnchantingCraftinteraction(station, earliest, addon , positio
 		select(2,findItemLocationById(earliest["essenceItemID"])),
 		select(1,findItemLocationById(earliest["aspectItemID"])),
 		select(2,findItemLocationById(earliest["aspectItemID"])),
-		1
+		earliest["quantity"]
 		}
 		if locations[1]  and locations[3] and locations[5] then
 			dbug("CALL:ZOEnchantCraft")
