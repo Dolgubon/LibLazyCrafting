@@ -55,7 +55,7 @@ end
 
 -- Since bag indexes can change, this ignores those. Instead, it takes in the name, or the index (table of indexes is found in table above, and is specific to this library)
 -- Bag indexes will be determined at time of crafting	
-local function LLC_CraftEnchantingGlyphItemID(self, potencyItemID, essenceItemID, aspectItemID, autocraft, reference, gearRequestTable)
+local function LLC_CraftEnchantingGlyphItemID(self, potencyItemID, essenceItemID, aspectItemID, autocraft, reference, gearRequestTable, quantity, overrideNonMulticraft)
 	dbug('FUNCTION:LLCEnchantCraft')
 	if reference == nil then reference = "" end
 	if not self then d("Please call with colon notation") end
@@ -74,6 +74,8 @@ local function LLC_CraftEnchantingGlyphItemID(self, potencyItemID, essenceItemID
 	requestTable["autocraft"] = autocraft
 	requestTable["Requester"] = self.addonName
 	requestTable["reference"] = requestTable["reference"] or reference
+	requestTable["overrideNonMulticraft"] = overrideNonMulticraft
+	requestTable["quantity"] = quantity
 	if requestTable["station"] then
 		requestTable["enchantingStation"] = requestTable["station"]
 	else
@@ -307,7 +309,7 @@ local currentCraftAttempt =
 }
 local lastSlotUsed = nil
 
-local function LLC_EnchantingCraftinteraction(station, earliest, addon , position)
+local function LLC_EnchantingCraftinteraction(station, earliest, addon, position)
 	dbug("FUNCTION:LLCEnchantCraft")
 	if not earliest then  LibLazyCrafting.SendCraftEvent( LLC_NO_FURTHER_CRAFT_POSSIBLE,  station) end
 	if earliest and not IsPerformingCraftProcess() then
@@ -443,8 +445,9 @@ local function LLC_EnchantingCraftingComplete(event, station, lastCheck)
 			["slot"] = currentCraftAttempt.slot,
 			['link'] = currentCraftAttempt.link,
 			['uniqueId'] = GetItemUniqueId(BAG_BACKPACK, currentCraftAttempt.slot),
-			["quantity"] = 1,
+			["quantity"] = removedTable.quantity,
 			["reference"] = removedTable.reference,
+			["overrideNonMulticraft"] = removedTable.overrideNonMulticraft
 		}
 		LibLazyCrafting.SendCraftEvent( LLC_CRAFT_SUCCESS ,  station, removedTable.Requester , resultTable )
 		currentCraftAttempt = {}
