@@ -55,7 +55,7 @@ end
 
 -- Since bag indexes can change, this ignores those. Instead, it takes in the name, or the index (table of indexes is found in table above, and is specific to this library)
 -- Bag indexes will be determined at time of crafting	
-local function LLC_CraftEnchantingGlyphItemID(self, potencyItemID, essenceItemID, aspectItemID, autocraft, reference, gearRequestTable)
+local function LLC_CraftEnchantingGlyphItemID(self, potencyItemID, essenceItemID, aspectItemID, autocraft, reference, gearRequestTable, quantity, overrideNonMulticraft)
 	dbug('FUNCTION:LLCEnchantCraft')
 	if reference == nil then reference = "" end
 	if not self then d("Please call with colon notation") end
@@ -63,8 +63,13 @@ local function LLC_CraftEnchantingGlyphItemID(self, potencyItemID, essenceItemID
 	if not potencyItemID or not essenceItemID or not aspectItemID then d("Missing item Ids") return end
 	if not areIdsValid(potencyItemID, essenceItemID, aspectItemID) then d("invalid essence Ids") return end
 	local requestTable = gearRequestTable or {}
+	local iterations, calculatedQuantity = overrideNonMulticraft and 1 or quantity, overrideNonMulticraft and quantity or 1
 	if gearRequestTable then
 		requestTable['dualEnchantingSmithing'] = true
+		if iterations > 1 or calculatedQuantity > 1 then
+			d("Invalid attempt to craft multiple glyphs for one item.")
+			return
+		end
 	end
 	
 	requestTable["potencyItemID"] = potencyItemID
@@ -74,13 +79,17 @@ local function LLC_CraftEnchantingGlyphItemID(self, potencyItemID, essenceItemID
 	requestTable["autocraft"] = autocraft
 	requestTable["Requester"] = self.addonName
 	requestTable["reference"] = requestTable["reference"] or reference
+	requestTable["overrideNonMulticraft"] = overrideNonMulticraft
+	requestTable["quantity"] = calculatedQuantity
 	if requestTable["station"] then
 		requestTable["enchantingStation"] = requestTable["station"]
 	else
 		requestTable["station"] = CRAFTING_TYPE_ENCHANTING
 	end
 
-	table.insert(craftingQueue[self.addonName][CRAFTING_TYPE_ENCHANTING],requestTable)
+	for i = 1, iterations do
+		table.insert(craftingQueue[self.addonName][CRAFTING_TYPE_ENCHANTING],requestTable)
+	end
 
 	--sortCraftQueue()
 	if GetCraftingInteractionType()==CRAFTING_TYPE_ENCHANTING then 
@@ -307,7 +316,7 @@ local currentCraftAttempt =
 }
 local lastSlotUsed = nil
 
-local function LLC_EnchantingCraftinteraction(station, earliest, addon , position)
+local function LLC_EnchantingCraftinteraction(station, earliest, addon, position)
 	dbug("FUNCTION:LLCEnchantCraft")
 	if not earliest then  LibLazyCrafting.SendCraftEvent( LLC_NO_FURTHER_CRAFT_POSSIBLE,  station) end
 	if earliest and not IsPerformingCraftProcess() then
@@ -319,7 +328,7 @@ local function LLC_EnchantingCraftinteraction(station, earliest, addon , positio
 		select(2,findItemLocationById(earliest["essenceItemID"])),
 		select(1,findItemLocationById(earliest["aspectItemID"])),
 		select(2,findItemLocationById(earliest["aspectItemID"])),
-		1
+		earliest["quantity"]
 		}
 		if locations[1]  and locations[3] and locations[5] then
 			dbug("CALL:ZOEnchantCraft")
@@ -443,8 +452,9 @@ local function LLC_EnchantingCraftingComplete(event, station, lastCheck)
 			["slot"] = currentCraftAttempt.slot,
 			['link'] = currentCraftAttempt.link,
 			['uniqueId'] = GetItemUniqueId(BAG_BACKPACK, currentCraftAttempt.slot),
-			["quantity"] = 1,
+			["quantity"] = removedTable.quantity,
 			["reference"] = removedTable.reference,
+			["overrideNonMulticraft"] = removedTable.overrideNonMulticraft
 		}
 		LibLazyCrafting.SendCraftEvent( LLC_CRAFT_SUCCESS ,  station, removedTable.Requester , resultTable )
 		currentCraftAttempt = {}
