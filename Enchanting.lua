@@ -63,8 +63,13 @@ local function LLC_CraftEnchantingGlyphItemID(self, potencyItemID, essenceItemID
 	if not potencyItemID or not essenceItemID or not aspectItemID then d("Missing item Ids") return end
 	if not areIdsValid(potencyItemID, essenceItemID, aspectItemID) then d("invalid essence Ids") return end
 	local requestTable = gearRequestTable or {}
+	local iterations, calculatedQuantity = overrideNonMulticraft and 1 or quantity, overrideNonMulticraft and quantity or 1
 	if gearRequestTable then
 		requestTable['dualEnchantingSmithing'] = true
+		if iterations > 1 or calculatedQuantity > 1 then
+			d("Invalid attempt to craft multiple glyphs for one item.")
+			return
+		end
 	end
 	
 	requestTable["potencyItemID"] = potencyItemID
@@ -75,14 +80,16 @@ local function LLC_CraftEnchantingGlyphItemID(self, potencyItemID, essenceItemID
 	requestTable["Requester"] = self.addonName
 	requestTable["reference"] = requestTable["reference"] or reference
 	requestTable["overrideNonMulticraft"] = overrideNonMulticraft
-	requestTable["quantity"] = quantity
+	requestTable["quantity"] = calculatedQuantity
 	if requestTable["station"] then
 		requestTable["enchantingStation"] = requestTable["station"]
 	else
 		requestTable["station"] = CRAFTING_TYPE_ENCHANTING
 	end
 
-	table.insert(craftingQueue[self.addonName][CRAFTING_TYPE_ENCHANTING],requestTable)
+	for i = 1, iterations do
+		table.insert(craftingQueue[self.addonName][CRAFTING_TYPE_ENCHANTING],requestTable)
+	end
 
 	--sortCraftQueue()
 	if GetCraftingInteractionType()==CRAFTING_TYPE_ENCHANTING then 
