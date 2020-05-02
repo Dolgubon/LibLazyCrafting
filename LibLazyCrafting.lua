@@ -66,6 +66,12 @@ function LibLazyCrafting:RegisterWidget(widgetType, widgetVersion)
 	end
 end
 
+local queuePosition = 0
+function LibLazyCrafting.GetNextQueueOrder()
+	queuePosition = queuePosition + 1
+	return queuePosition
+end
+
 -- -- Re initialize crafts if this run of the library overwrote a previous one.
 -- if oldVersion then
 -- 	for k, reInitialize in pairs(LLC.widgets.initializers) do
@@ -308,6 +314,40 @@ function LibLazyCrafting.stackableCraftingComplete(event, station, lastCheck, cr
 	end
 end
 
+LibLazyCrafting.newItemsSeen = 
+{
+
+}
+
+function LibLazyCrafting:setWatchingForNewItems(state)
+	self.watchForNewItems = state
+	LibLazyCrafting.newItemsSeen = {}
+end
+
+function LibLazyCrafting.findNextSlotIndex(itemCheck, startSlot)
+	if startSlot == nil then
+		startSlot = -1
+	end
+	for k, item in pairs(LibLazyCrafting.newItemsSeen) do
+		if item.slotId>=startSlot and itemCheck(item.bagId, item.slotId) then
+			table.remove(LibLazyCrafting.newItemsSeen , k)
+			return item.bagId, item.slotId
+		end
+	end
+	return nil , nil
+end
+
+local function newItemWatcher(event, bagId, slotId, isNew, _, inventoryUpdateReason, countChange)
+	dbug("New item "..GetItemLink(bagId, slotId).." at bagId "..bagId.." and slotId "..slotId)
+	if LibLazyCrafting.watchForNewItems and isNew then
+		table.insert(LibLazyCrafting.newItemsSeen, {bagId=bagId, slotId=slotId,countChange=countChange})
+	end
+end
+
+
+EVENT_MANAGER:RegisterForEvent(LibLazyCrafting.name.."NewItemWatcher", EVENT_INVENTORY_SINGLE_SLOT_UPDATE, newItemWatcher)
+EVENT_MANAGER:AddFilterForEvent(LibLazyCrafting.name.."NewItemWatcher", EVENT_INVENTORY_SINGLE_SLOT_UPDATE, REGISTER_FILTER_IS_NEW_ITEM, true)
+
 local function getItemLinkFromItemId(itemId) local name = GetItemLinkName(ZO_LinkHandler_CreateLink("Test Trash", nil, ITEM_LINK_TYPE,itemId, 1, 26, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 5, 0, 0, 0, 10000, 0))
     return ZO_LinkHandler_CreateLink(zo_strformat("<<t:1>>",name), nil, ITEM_LINK_TYPE,itemId, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0)
 end
@@ -492,6 +532,9 @@ local function LLC_GetMatRequirements(self, requestTable)
 	if requestTable.station then
 		return LibLazyCrafting.craftInteractionTables[requestTable.station]:materialRequirements( requestTable)
 	end
+	if requestTable.dualEnchantingSmithing then
+		return LibLazyCrafting.craftInteractionTables[CRAFTING_TYPE_ENCHANTING]:materialRequirements( requestTable)
+	end
 end
 
 LibLazyCrafting.functionTable.getMatRequirements =  LLC_GetMatRequirements
@@ -510,7 +553,6 @@ function LibLazyCrafting.SendCraftEvent( event,  station, requester, returnTable
 	-- 		SHARED_INVENTORY:RefreshStatusSortOrder(v)
 	-- 	end
 	-- end
-
 	if event == LLC_NO_FURTHER_CRAFT_POSSIBLE then
 		for requester, callbackFunction in pairs(LibLazyCrafting.craftResultFunctions) do
 			if requester ~= "LLC_Global" then
@@ -611,7 +653,9 @@ end
 
 function LibLazyCrafting:SetItemStatusNew(itemSlot)
 	-- d(itemSlot)
-	local v = PLAYER_INVENTORY.inventories[1].slots[1] [itemSlot]
+	-- PLAYER_INVENTORY:RefreshInventorySlot(1, itemSlot, BAG_BACKPACK)
+	local v = PLAYER_INVENTORY:GetBackpackItem(itemSlot)
+	
 	if v then
 		v.brandNew = true
 		v.age = 1
@@ -675,6 +719,7 @@ local function endInteraction(event, station)
 		end
 	end
 	LLC_StopCraftAllItems()
+	LibLazyCrafting:setWatchingForNewItems(false)
 end
 
 -- Called when a crafting request is done.
