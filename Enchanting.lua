@@ -15,7 +15,7 @@ local LibLazyCrafting = _G["LibLazyCrafting"]
 local sortCraftQueue = LibLazyCrafting.sortCraftQueue
 
 local widgetType = 'enchanting'
-local widgetVersion = 1.7
+local widgetVersion = 1.8
 if not LibLazyCrafting:RegisterWidget(widgetType, widgetVersion) then return false end
 
 local function dbug(...)

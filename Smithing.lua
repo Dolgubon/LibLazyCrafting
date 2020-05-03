@@ -18,7 +18,7 @@
 local LibLazyCrafting = _G["LibLazyCrafting"]
 
 local widgetType = 'smithing'
-local widgetVersion = 2.93
+local widgetVersion = 2.94
 if not LibLazyCrafting:RegisterWidget(widgetType, widgetVersion) then return  end
 
 local LLC = LibLazyCrafting
@@ -1120,7 +1120,7 @@ local compileRequirements
 -- For brevity sake, sets are simply listed as 3 item IDs with the number of traits needed.
 -- The name of the set is then added in on initialization using the API.
 local setInfo =
-{ --{{Axe    , Robe  ,  6  = Bow   ,  7  = Neckla},trait_ct},
+{ --{{Axe    , Robe  ,  6  = Bow   ,  7  = Necklace},trait_ct},
 	{{43529  , 43549 , [6] = 43543 , [7] =  43561},0},  --  1 no set
 	{{46499  , 43805 , [6] = 46518 , [7] = 137683},2},  --  2 death's wind
 	{{47265  , 47279 , [6] = 47287 , [7] = 137685},2},  --  3 night's silence
@@ -1178,6 +1178,9 @@ local setInfo =
 	{{158546 , 158496, [6] = 158553, [7] =158358 },3,}, -- 55 Critical Riposte
 	{{158920 , 158870, [6] = 158927, [7] =158732 },3,}, -- 56 Unchained Aggressor
 	{{159294 , 159244, [6] = 159301, [7] =159106 },3,}, -- 57 Dauntless Combatant
+	{{161451 , 161401, [6] = 161458, [7] =161263 },3,}, -- 58 Stuhn's Favor
+	{{161825 , 161775, [6] = 161832, [7] =161637 },3,}, -- 491 Dragon's Appetite
+	{{163287 , 163237, [6] = 163294, [7] =163099 },3,}, -- 506 Spell Parasite
 }
 
 SetIndexes = {}
@@ -1821,7 +1824,7 @@ local function initializeSetInfo()
 		LibLazyCraftingSavedVars = {}
 	end
 	local vars = LibLazyCraftingSavedVars
-	if not vars.SetIds or not vars.lastScrapedAPIVersion or vars.lastScrapedAPIVersion<GetAPIVersion() then
+	if not vars.SetIds or not vars.lastScrapedAPIVersion vars.lastScrapedAPIVersion<GetAPIVersion() then
 		internalScrapeSetItemItemIds()
 	end
 end
