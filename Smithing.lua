@@ -1824,7 +1824,7 @@ local function initializeSetInfo()
 		LibLazyCraftingSavedVars = {}
 	end
 	local vars = LibLazyCraftingSavedVars
-	if not vars.SetIds or not vars.lastScrapedAPIVersion vars.lastScrapedAPIVersion<GetAPIVersion() then
+	if not vars.SetIds or not vars.lastScrapedAPIVersion or vars.lastScrapedAPIVersion<GetAPIVersion() then
 		internalScrapeSetItemItemIds()
 	end
 end
