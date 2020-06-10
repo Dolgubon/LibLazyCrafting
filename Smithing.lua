@@ -18,7 +18,7 @@
 local LibLazyCrafting = _G["LibLazyCrafting"]
 
 local widgetType = 'smithing'
-local widgetVersion = 2.94
+local widgetVersion = 2.96
 if not LibLazyCrafting:RegisterWidget(widgetType, widgetVersion) then return  end
 
 local LLC = LibLazyCrafting
@@ -260,7 +260,7 @@ function enoughMaterials(craftRequestTable)
 	}
 	local missingSomething = false
 	local smithingQuantity = 1
-	smithingQuantity = craftRequestTable.smithingQuantity
+	smithingQuantity = craftRequestTable.smithingQuantity or 1
 	if craftRequestTable["style"] 
 		and craftRequestTable['station']~= CRAFTING_TYPE_JEWELRYCRAFTING and not craftRequestTable["useUniversalStyleItem"] then
 		if craftRequestTable["style"]==LLC_FREE_STYLE_CHOICE then
@@ -397,7 +397,7 @@ local function canCraftItem(craftRequestTable)
 			-- Check if the specific trait is known
 			if IsSmithingTraitKnownForResult(craftRequestTable["pattern"], craftRequestTable["materialIndex"], craftRequestTable["materialQuantity"],craftRequestTable["style"], craftRequestTable["trait"]) then
 				-- Check if the style is known for that piece
-				if (craftRequestTable["station"] == CRAFTING_TYPE_JEWELRYCRAFTING) or craftRequestTable["style"]==LLC_FREE_STYLE_CHOICE or IsSmithingStyleKnown(craftRequestTable["style"], craftRequestTable["pattern"]) then
+				if craftRequestTable["station"] == CRAFTING_TYPE_JEWELRYCRAFTING or craftRequestTable["style"]==LLC_FREE_STYLE_CHOICE or IsSmithingStyleKnown(craftRequestTable["style"], craftRequestTable["pattern"]) then
 					return true
 				else
 
@@ -647,7 +647,7 @@ local function LLC_CraftSmithingItem(self, patternIndex, materialIndex, material
 	requestTable["autocraft"] = autocraft
 	requestTable["Requester"] = self.addonName
 	requestTable["reference"] = reference
-	requestTable["smithingQuantity"] = smithingQuantity
+	requestTable["smithingQuantity"] = smithingQuantity or 1
 	requestTable["initialQuantity"] = quantity
 	if setIndex == 470 and station == CRAFTING_TYPE_JEWELRYCRAFTING then -- New Moon Acolyte pattern indexes are swapped for jewelry!
 		if requestTable.pattern == 1 then
@@ -747,6 +747,7 @@ local function InternalImproveSmithingItem(self, BagIndex, SlotIndex, newQuality
 		craftingRequestTable.essenceItemID = existingRequestTable.essenceItemID
 		craftingRequestTable.aspectItemID = existingRequestTable.aspectItemID
 		craftingRequestTable.quantity = existingRequestTable.quantity
+		craftingRequestTable['craftNow'] = existingRequestTable['craftNow']
 	end
 
 	table.insert(craftingQueue[self.addonName][station], craftingRequestTable)
@@ -829,30 +830,32 @@ local function LLC_SmithingCraftInteraction( station, earliest, addon , position
 			if earliest.style == LLC_FREE_STYLE_CHOICE then
 				parameters[4] = maxStyle(earliest)
 			end
-
-			parameters[7] = math.min(earliest.smithingQuantity or 1,  GetMaxIterationsPossibleForSmithingItem(unpack(parameters)))
-
 			local setPatternOffset = {14, 15,[6]=6,[7]=2}
 			if earliest.setIndex~=INDEX_NO_SET then
 				parameters[1] = parameters[1] + setPatternOffset[station]
 			end
-				dbug("CALL:ZOCraftSmithing")
+			parameters[7] = math.min(earliest.smithingQuantity or 1,  GetMaxIterationsPossibleForSmithingItem(unpack(parameters)))
+			if parameters[7] == 0 then
+				return
+			end
+			dbug("CALL:ZOCraftSmithing")
 
-				LibLazyCrafting.isCurrentlyCrafting = {true, "smithing", earliest["Requester"]}
-				LibLazyCrafting:setWatchingForNewItems (true)
+			LibLazyCrafting.isCurrentlyCrafting = {true, "smithing", earliest["Requester"]}
+			LibLazyCrafting:setWatchingForNewItems (true)
 
-				hasNewItemBeenMade = false
-				CraftSmithingItem(unpack(parameters))
+			hasNewItemBeenMade = false
+			CraftSmithingItem(unpack(parameters))
+			-- d(unpack(parameters))
 
-				currentCraftAttempt = copy(earliest)
-				currentCraftAttempt.position = position
-				currentCraftAttempt.callback = LibLazyCrafting.craftResultFunctions[addon]
-				currentCraftAttempt.slot = FindFirstEmptySlotInBag(BAG_BACKPACK)
+			currentCraftAttempt = copy(earliest)
+			currentCraftAttempt.position = position
+			currentCraftAttempt.callback = LibLazyCrafting.craftResultFunctions[addon]
+			currentCraftAttempt.slot = FindFirstEmptySlotInBag(BAG_BACKPACK)
 
-				parameters[6] = LINK_STYLE_DEFAULT
+			parameters[6] = LINK_STYLE_DEFAULT
 
-				currentCraftAttempt.link = GetSmithingPatternResultLink(unpack(parameters))
-				--d("Making reference #"..tostring(currentCraftAttempt.reference).." link: "..currentCraftAttempt.link)
+			currentCraftAttempt.link = GetSmithingPatternResultLink(unpack(parameters))
+			--d("Making reference #"..tostring(currentCraftAttempt.reference).." link: "..currentCraftAttempt.link)
 		elseif earliest.type =="improvement" then
 			local parameters = {}
 			local currentSkill, maxSkill = getImprovementLevel(station)
@@ -982,9 +985,9 @@ local function smithingCompleteNewItemHandler(station, bag, slot)
 					uniqueId=GetItemUniqueId(BAG_BACKPACK, slot),
 					uniqueIdString = Id64ToString(GetItemUniqueId(BAG_BACKPACK, slot)),
 				})
+				removedRequest["craftNow"] = true
 				InternalImproveSmithingItem({["addonName"]=currentCraftAttempt.Requester}, BAG_BACKPACK, slot, currentCraftAttempt.quality, 
 					currentCraftAttempt.autocraft, currentCraftAttempt.reference, removedRequest)
-				removedRequest["craftNow"] = true
 				LibLazyCrafting.SendCraftEvent(LLC_INITIAL_CRAFT_SUCCESS, station, currentCraftAttempt.Requester, removedRequest)
 				return
 			end
@@ -1448,7 +1451,7 @@ local function internalScrapeSetItemItemIds()
 	local estimatedTime = math.floor((20000*apiVersionDifference+200000)/300*25/1000)+3
 	d("LibLazyCrafting: Beginning scrape of set items. Estimated time: "..estimatedTime.."s")
 	local craftedItemIds = {} 
-	for k, setTable in pairs(LibStub:GetLibrary("LibLazyCrafting").GetSetIndexes()) do 
+	for k, setTable in pairs(LibLazyCrafting.GetSetIndexes()) do 
 		craftedItemIds[setTable[4] ] = {} 
 	end 
 	craftedItemIds[0]=nil 
@@ -1799,7 +1802,6 @@ LibLazyCrafting.craftInteractionTables[CRAFTING_TYPE_BLACKSMITHING] =
 			end
 			return true
 		end
-
 		if canCraftItemHere(station, request["setIndex"]) and canCraftItem(request) and enoughMaterials(request) then
 			return true
 		else

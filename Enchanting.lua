@@ -15,7 +15,7 @@ local LibLazyCrafting = _G["LibLazyCrafting"]
 local sortCraftQueue = LibLazyCrafting.sortCraftQueue
 
 local widgetType = 'enchanting'
-local widgetVersion = 1.8
+local widgetVersion = 1.9
 if not LibLazyCrafting:RegisterWidget(widgetType, widgetVersion) then return false end
 
 local function dbug(...)
@@ -153,24 +153,24 @@ local glyphInfo = {-- negative first, then positive
 
 local enchantLevelInfo = {
 	-- Parity, potencyItemId, quality, pre50 lvl indicator, level, cp
-	{-1, 45817,20,5,lvl=1,cp=nil},
-	{1,  45855,20,5,lvl=1,cp=nil},
-	{-1, 45818,20,10,lvl=5,cp=nil},
-	{1,  45856,20,10,lvl=5,cp=nil},
-	{1,  45857,20,15,lvl=10,cp=nil},
-	{-1, 45819,20,15,lvl=10,cp=nil},
-	{-1, 45820,20,20,lvl=15,cp=nil},
-	{1,  45806,20,20,lvl=15,cp=nil},
-	{-1, 45821,20,25,lvl=20,cp=nil},
-	{1,  45807,20,25,lvl=20,cp=nil},
-	{-1, 45822,20,30,lvl=25,cp=nil},
-	{1,  45808,20,30,lvl=25,cp=nil},
-	{-1, 45823,20,35,lvl=30,cp=nil},
-	{1,  45809,20,35,lvl=30,cp=nil},
-	{-1, 45824,20,40,lvl=35,cp=nil,},
-	{1,  45810,20,40,lvl=35,cp=nil},
-	{-1, 45825,20,45,lvl=40,cp=nil},
-	{1,  45811,20,45,lvl=40,cp=nil},
+	{-1, 45817,20,5,  lvl=1,cp=nil},
+	{1,  45855,20,5,  lvl=1,cp=nil},
+	{-1, 45818,20,10, lvl=5,cp=nil},
+	{1,  45856,20,10, lvl=5,cp=nil},
+	{1,  45857,20,15, lvl=10,cp=nil},
+	{-1, 45819,20,15, lvl=10,cp=nil},
+	{-1, 45820,20,20, lvl=15,cp=nil},
+	{1,  45806,20,20, lvl=15,cp=nil},
+	{-1, 45821,20,25, lvl=20,cp=nil},
+	{1,  45807,20,25, lvl=20,cp=nil},
+	{-1, 45822,20,30, lvl=25,cp=nil},
+	{1,  45808,20,30, lvl=25,cp=nil},
+	{-1, 45823,20,35, lvl=30,cp=nil},
+	{1,  45809,20,35, lvl=30,cp=nil},
+	{-1, 45824,20,40, lvl=35,cp=nil,},
+	{1,  45810,20,40, lvl=35,cp=nil},
+	{-1, 45825,20,45, lvl=40,cp=nil},
+	{1,  45811,20,45, lvl=40,cp=nil},
 	{1,  45812,125,50,lvl=nil,cp=10},
 	{-1, 45826,125,50,lvl=nil,cp=10},
 	{-1, 45827,127,50,lvl=nil,cp=30},
@@ -185,6 +185,25 @@ local enchantLevelInfo = {
 	{1,  64509,308,50,lvl=nil,cp=150},
 	{1,  68341,366,50,lvl=nil,cp=160},
 	{-1, 68340,366,50,lvl=nil,cp=160},
+}
+
+local levelLeaps = { -- internal, so we can take shortcut. Key is level + 50 if it's CP
+	{Key=1,lvl=1,cp=nil},
+	{Key=5,lvl=5,cp=nil},
+	{Key=10,lvl=10,cp=nil},
+	{Key=15,lvl=15,cp=nil},
+	{Key=20,lvl=20,cp=nil},
+	{Key=25,lvl=25,cp=nil},
+	{Key=30,lvl=30,cp=nil},
+	{Key=35,lvl=35,cp=nil,},
+	{Key=40,lvl=40,cp=nil},
+	{Key=60,lvl=nil,cp=10},
+	{Key=80,lvl=nil,cp=30},
+	{Key=100,lvl=nil,cp=50},
+	{Key=120,lvl=nil,cp=70},
+	{Key=150,lvl=nil,cp=100},
+	{Key=200,lvl=nil,cp=150},
+	{Key=210,lvl=nil,cp=160},
 }
 
 local qualityItemIdInfo = 
@@ -248,17 +267,45 @@ local function getEnchantingResultItemId(enchantId)
 end
 
 
+local function findNextPotencyByLevel(isCP, level, parity)
+	-- first find the level wanted
+	local calculatedKey = level
+	if isCP then
+		calculatedKey = calculatedKey + 50
+	end
+	local levelToFind
+	for i = 1, #levelLeaps do
+		if calculatedKey <=levelLeaps[i].Key then
+			levelToFind = levelLeaps[i]
+			break
+		end
+	end
+	for i = 1, #enchantLevelInfo do
+		if enchantLevelInfo[i].lvl == levelToFind.lvl and enchantLevelInfo[i].cp == levelToFind.cp and enchantLevelInfo[i][1] == parity then
+			return enchantLevelInfo[i][2]
+		end
+		-- if not enchantLevelInfo[i+1] then
+		-- 	return enchantLevelInfo[i][2]
+		-- end
+		-- if isCP and enchantLevelInfo[i].cp then
+		-- 	if enchantLevelInfo[i+1].cp > level then
+		-- 		return enchantLevelInfo[i][2]
+		-- 	end
+		-- elseif not isCP and enchantLevelInfo[i].lvl then
+		-- 	if not enchantLevelInfo[i+1].lvl then
+		-- 		return enchantLevelInfo[i][2]
+		-- 	end
+		-- 	if enchantLevelInfo[i+1].lvl > level then
+		-- 		return enchantLevelInfo[i][2]
+		-- 	end
+		-- end
+	end
+end
+
 -- Currently not properly implemented
 local function LLC_CraftEnchantingGlyphAttributes(self, isCP, level, enchantId, quality, autocraft, reference, gearRequestTable)
 	local _, parity, essenceId = getEnchantingResultItemId(enchantId)
-	local potencyId
-	for i = 1, #enchantLevelInfo do
-		if (not isCP and enchantLevelInfo[i].lvl == level) or (isCP and enchantLevelInfo[i].cp == level ) then
-			if enchantLevelInfo[i][1] == parity then
-				potencyId = enchantLevelInfo[i][2]
-			end
-		end
-	end
+	local potencyId = findNextPotencyByLevel(isCP, level, parity)
 	local aspectId = qualityItemIdInfo[quality]
 	local a = LLC_CraftEnchantingGlyphItemID(self, potencyId, essenceId, aspectId, autocraft, reference, gearRequestTable, gearRequestTable.smithingQuantity)
 	return a
@@ -269,14 +316,7 @@ LibLazyCrafting.functionTable.CraftEnchantingGlyphByAttributes = LLC_CraftEnchan
 
 local function LLC_EnchantAttributesToGlyphIds(isCP, level, enchantId, quality)
 	local _, parity, essenceId = getEnchantingResultItemId(enchantId)
-	local potencyId
-	for i = 1, #enchantLevelInfo do
-		if (not isCP and enchantLevelInfo[i].lvl == level) or (isCP and enchantLevelInfo[i].cp == level ) then
-			if enchantLevelInfo[i][1] == parity then
-				potencyId = enchantLevelInfo[i][2]
-			end
-		end
-	end
+	local potencyId = findNextPotencyByLevel(isCP, level, parity)
 	local aspectId = qualityItemIdInfo[quality]
 	return potencyId, essenceId, aspectId
 end
@@ -315,13 +355,13 @@ local function LLC_EnchantingCraftinteraction(station, earliest, addon, position
 	if earliest and not IsPerformingCraftProcess() then
 		local locations = 
 		{
-		select(1,findItemLocationById(earliest["potencyItemID"])),
-		select(2,findItemLocationById(earliest["potencyItemID"])),
-		select(1,findItemLocationById(earliest["essenceItemID"])),
-		select(2,findItemLocationById(earliest["essenceItemID"])),
-		select(1,findItemLocationById(earliest["aspectItemID"])),
-		select(2,findItemLocationById(earliest["aspectItemID"])),
-		earliest["quantity"]
+			select(1,findItemLocationById(earliest["potencyItemID"])),
+			select(2,findItemLocationById(earliest["potencyItemID"])),
+			select(1,findItemLocationById(earliest["essenceItemID"])),
+			select(2,findItemLocationById(earliest["essenceItemID"])),
+			select(1,findItemLocationById(earliest["aspectItemID"])),
+			select(2,findItemLocationById(earliest["aspectItemID"])),
+			earliest["quantity"]
 		}
 		local maxCraftable = math.min(earliest["quantity"] or 1, GetMaxIterationsPossibleForEnchantingItem(unpack(locations)))
 		locations[7] = maxCraftable

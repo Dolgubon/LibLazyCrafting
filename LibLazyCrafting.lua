@@ -17,7 +17,7 @@ end
 
 -- Initialize libraries
 local libLoaded
-local LIB_NAME, VERSION = "LibLazyCrafting", 2.996
+local LIB_NAME, VERSION = "LibLazyCrafting", 3.0
 local LibLazyCrafting, oldminor
 if LibStub then
 	LibLazyCrafting, oldminor = LibStub:NewLibrary(LIB_NAME, VERSION)
@@ -770,7 +770,6 @@ end
 local function OnAddonLoaded()
 	if not libLoaded then
 		libLoaded = true
-		local LibLazyCrafting = LibStub('LibLazyCrafting')
 		LibLazyCrafting:Init()
 		EVENT_MANAGER:UnregisterForEvent(LIB_NAME, EVENT_ADD_ON_LOADED)
 		EVENT_MANAGER:RegisterForEvent(LIB_NAME, EVENT_CRAFTING_STATION_INTERACT,CraftInteract)
