@@ -18,7 +18,7 @@
 local LibLazyCrafting = _G["LibLazyCrafting"]
 
 local widgetType = 'smithing'
-local widgetVersion = 2.96
+local widgetVersion = 2.98
 if not LibLazyCrafting:RegisterWidget(widgetType, widgetVersion) then return  end
 
 local LLC = LibLazyCrafting
@@ -295,20 +295,21 @@ function enoughMaterials(craftRequestTable)
 end
 
 local function findMatTierByIndex(index)
-	local a = {	[1] = 7,
-	[2] = 12,
-	[3] = 17,
-	[4] = 22,
-	[5] = 25,
-	[6] = 28,
-	[7] = 29,
-	[8] = 32,
-	[9] = 39,
-	[10] = 41,}
+	local a = {
+		[1] = 7,
+		[2] = 12,
+		[3] = 17,
+		[4] = 22,
+		[5] = 25,
+		[6] = 28,
+		[7] = 31,
+		[8] = 33,
+		[9] = 39,
+		[10] = 41,
+	}
 	for i = 1, #a do
 		if index  > a[i] then
 		else
-
 			return i
 		end
 	end
@@ -391,30 +392,36 @@ local function canCraftItem(craftRequestTable)
 	else
 		matIndex = findMatTierByIndex(craftRequestTable['materialIndex'])
 	end
-
-	if level >= matIndex then
-		if traitsRequired<= traitsKnown then
-			-- Check if the specific trait is known
-			if IsSmithingTraitKnownForResult(craftRequestTable["pattern"], craftRequestTable["materialIndex"], craftRequestTable["materialQuantity"],craftRequestTable["style"], craftRequestTable["trait"]) then
-				-- Check if the style is known for that piece
-				if craftRequestTable["station"] == CRAFTING_TYPE_JEWELRYCRAFTING or craftRequestTable["style"]==LLC_FREE_STYLE_CHOICE or IsSmithingStyleKnown(craftRequestTable["style"], craftRequestTable["pattern"]) then
-					return true
-				else
-
-					missing.knowledge["style"] = true
-				end
-
-			else
-
-				missing.knowledge["trait"] = true
-			end
-		else
-			missing.knowledge["traitNumber"] = true
-		end
-	else
+	local missingInd = false
+	--CheckInventorySpaceSilently
+	if level < matIndex then
 		missing['craftSkill'] = true
+		missingInd = true
 	end
-	return false, missing
+	if traitsRequired> traitsKnown then
+		missing.knowledge["traitNumber"] = true
+		missingInd = true
+	end
+	-- Check if the specific trait is known
+	if not IsSmithingTraitKnownForResult(craftRequestTable["pattern"], craftRequestTable["materialIndex"], craftRequestTable["materialQuantity"],craftRequestTable["style"], craftRequestTable["trait"]) then
+		missingInd = true
+		missing.knowledge["trait"] = true
+	end
+	-- Check if the style is known for that piece
+	if craftRequestTable["station"] == CRAFTING_TYPE_JEWELRYCRAFTING or craftRequestTable["style"]==LLC_FREE_STYLE_CHOICE or IsSmithingStyleKnown(craftRequestTable["style"], craftRequestTable["pattern"]) then
+	else
+		missingInd = true
+		missing.knowledge["style"] = true
+	end
+	if not CheckInventorySpaceSilently(1) then
+		missingInd = true
+		missing.inventorySpace = true
+	end
+	if missingInd then
+		return false, missing
+	else
+		return true
+	end
 end
 
 -- Returns SetIndex, Set Full Name, Traits Required
@@ -649,7 +656,7 @@ local function LLC_CraftSmithingItem(self, patternIndex, materialIndex, material
 	requestTable["reference"] = reference
 	requestTable["smithingQuantity"] = smithingQuantity or 1
 	requestTable["initialQuantity"] = quantity
-	if setIndex == 470 and station == CRAFTING_TYPE_JEWELRYCRAFTING then -- New Moon Acolyte pattern indexes are swapped for jewelry!
+	if GetSetIndexes()[setIndex] and GetSetIndexes()[setIndex].isSwapped and station == CRAFTING_TYPE_JEWELRYCRAFTING then -- New Moon Acolyte pattern indexes are swapped for jewelry!
 		if requestTable.pattern == 1 then
 			requestTable.pattern = 2
 		else
@@ -834,7 +841,10 @@ local function LLC_SmithingCraftInteraction( station, earliest, addon , position
 			if earliest.setIndex~=INDEX_NO_SET then
 				parameters[1] = parameters[1] + setPatternOffset[station]
 			end
-			parameters[7] = math.min(earliest.smithingQuantity or 1,  GetMaxIterationsPossibleForSmithingItem(unpack(parameters)))
+			parameters[7] = math.min(GetMaxIterationsPossibleForSmithingItem(unpack(parameters)), earliest.smithingQuantity or 1)
+			if (earliest.smithingQuantity or 1) > GetMaxIterationsPossibleForSmithingItem(unpack(parameters)) then
+				d("Mismatch asked quantity: "..earliest.smithingQuantity.." actual max "..GetMaxIterationsPossibleForSmithingItem(unpack(parameters)))
+			end
 			if parameters[7] == 0 then
 				return
 			end
@@ -902,7 +912,6 @@ local function LLC_SmithingCraftInteraction( station, earliest, addon , position
 			--ImproveSmithingItem(number itemToImproveBagId, number itemToImproveSlotIndex, number numBoostersToUse)
 			--GetSmithingImprovedItemLink(number itemToImproveBagId, number itemToImproveSlotIndex, number TradeskillType craftingSkillType, number LinkStyle linkStyle)
 	else
-		-- LLC_NO_FURTHER_CRAFT_POSSIBLE
 		LibLazyCrafting.SendCraftEvent( LLC_NO_FURTHER_CRAFT_POSSIBLE,  station)
 	end
 
@@ -1177,13 +1186,13 @@ local setInfo =
 	{{148688 , 148708, [6] = 148695, [7] =148724 },3,},	-- 51 Vasterie's Tutelage
 	{{155778 , 155798, [6] = 155785, [7] =155813 },8,},	-- 52 Ancient Dragonguard
 	{{155404 , 155424, [6] = 155411, [7] =155439 },5,},	-- 53 Daring Corsair
-	{{156152 , 156172, [6] = 156159, [7] =156187 },3,},	-- 54 New Moon Acolyte -- Note, set ring and neck are swapped. neck ID is 156188
-	{{158546 , 158496, [6] = 158553, [7] =158358 },3,}, -- 55 Critical Riposte
-	{{158920 , 158870, [6] = 158927, [7] =158732 },3,}, -- 56 Unchained Aggressor
-	{{159294 , 159244, [6] = 159301, [7] =159106 },3,}, -- 57 Dauntless Combatant
-	{{161451 , 161401, [6] = 161458, [7] =161263 },3,}, -- 58 Stuhn's Favor
-	{{161825 , 161775, [6] = 161832, [7] =161637 },3,}, -- 491 Dragon's Appetite
-	{{163287 , 163237, [6] = 163294, [7] =163099 },3,}, -- 506 Spell Parasite
+	{{156152 , 156172, [6] = 156159, [7] =156187 },3,isSwapped=true},	-- 54 New Moon Acolyte -- Note, set ring and neck are swapped. neck ID is 156188
+	{{158546 , 158496, [6] = 158553, [7] =158358 },3,isSwapped=true}, -- 55 Critical Riposte
+	{{158920 , 158870, [6] = 158927, [7] =158732 },3,isSwapped=true}, -- 56 Unchained Aggressor
+	{{159294 , 159244, [6] = 159301, [7] =159106 },3,isSwapped=true}, -- 57 Dauntless Combatant
+	{{161451 , 161401, [6] = 161458, [7] =161263 },3,isSwapped=true}, -- 58 Stuhn's Favor
+	{{161825 , 161775, [6] = 161832, [7] =161637 },3,isSwapped=true}, -- 491 Dragon's Appetite
+	{{163287 , 163237, [6] = 163294, [7] =163099 },3,isSwapped=true}, -- 506 Spell Parasite
 }
 
 SetIndexes = {}
@@ -1778,8 +1787,19 @@ local function getItemLinkFromParticulars(setId, trait, pattern, station,level, 
 	else
 		return nil
 	end
-	
 end
+
+local function getNonCraftableReasons(request)
+	local results = {}
+	results.canCraftHere =  canCraftItemHere(station, request["setIndex"])
+	local canCraft, canCraftMissings = canCraftItem(request)
+	local enoughMats, missingMats = enoughMaterials(request)
+	results.missingKnowledge = canCraftMissings
+	results.missingMats = missingMats
+	results.finalVerdict = results.canCraftHere and canCraft and enoughMats
+	return results
+end
+
 LibLazyCrafting.functionTable.getItemLinkFromParticulars = getItemLinkFromParticulars
 LibLazyCrafting.getItemLinkFromParticulars = getItemLinkFromParticulars
 -- LibLazyCrafting.functionTable.getItemLinkFromRequest = getItemLinkFromRequest
@@ -1810,6 +1830,7 @@ LibLazyCrafting.craftInteractionTables[CRAFTING_TYPE_BLACKSMITHING] =
 	end,
 	["materialRequirements"] = function(self, request) return compileRequirements(request) end,
 	["getItemLinkFromRequest"] = getItemLinkFromRequest,
+	["getNonCraftableReasons"] = getNonCraftableReasons,
 }
 -- Should be the same for other stations though. Except for the check
 LibLazyCrafting.craftInteractionTables[CRAFTING_TYPE_WOODWORKING] = copy(LibLazyCrafting.craftInteractionTables[CRAFTING_TYPE_BLACKSMITHING])

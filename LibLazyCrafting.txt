@@ -6,8 +6,8 @@
 ; You can read the full terms at https://account.elderscrollsonline.com/add-on-terms
 
 ## APIVersion: 100030 100031
-## Title: LibLazyCrafting v3.0
-## Version: 3.0
+## Title: LibLazyCrafting v3.02
+## Version: 3.02
 ## Author: Dolgubon
 ## Contributors: ziggr
 ## OptionalDependsOn: pChat LibStub

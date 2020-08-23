@@ -17,7 +17,7 @@ end
 
 -- Initialize libraries
 local libLoaded
-local LIB_NAME, VERSION = "LibLazyCrafting", 3.0
+local LIB_NAME, VERSION = "LibLazyCrafting", 3.02
 local LibLazyCrafting, oldminor
 if LibStub then
 	LibLazyCrafting, oldminor = LibStub:NewLibrary(LIB_NAME, VERSION)
@@ -528,7 +528,6 @@ LibLazyCrafting.functionTable.findItemByReference =  LLC_FindItemByReference
 
 
 local function LLC_GetMatRequirements(self, requestTable)
-
 	if requestTable.station then
 		return LibLazyCrafting.craftInteractionTables[requestTable.station]:materialRequirements( requestTable)
 	end
@@ -575,6 +574,19 @@ function LibLazyCrafting.SendCraftEvent( event,  station, requester, returnTable
 	end
 end
 
+local function compileNonCraftableReasons(self)
+	local results = {}
+	for i = 1, #craftingQueue[self.addonName] do
+		results[i] = {}
+		if LibLazyCrafting.craftInteractionTables[i].getNonCraftableReasons then
+			for j = 1, #craftingQueue[self.addonName][i] do
+				local request = craftingQueue[self.addonName][i][j]
+				results[i][request.reference] = LibLazyCrafting.craftInteractionTables[i].getNonCraftableReasons(request)
+			end
+		end
+	end
+	return results
+end
 
 
 function LibLazyCrafting:Init()
@@ -599,6 +611,7 @@ function LibLazyCrafting:Init()
 
 		LLCAddonInteractionTable["personalQueue"]  = craftingQueue[addonName]
 		LLCAddonInteractionTable["styleTable"] = styleTable
+		LLCAddonInteractionTable["compileNonCraftableReasons"] = compileNonCraftableReasons
 
 		LLC.debugDisplayNames[addonName] = optionalDebugAuthor
 
@@ -691,6 +704,9 @@ LLC.LLCThrowError = LLCThrowError
 
 -- Called when a crafting station is opened. Should then craft anything needed in the queue
 local function CraftInteract(event, station)
+	if IsPerformingCraftProcess() then
+		return
+	end
 	for k,v in pairs(LibLazyCrafting.craftInteractionTables) do
 		if v:check( station) then
 			local earliest, addon , position = LibLazyCrafting.findEarliestRequest(station)
@@ -762,9 +778,9 @@ end
 
 
 LibLazyCrafting.functionTable.craftInteract =function()
-if GetCraftingInteractionType() ~= 0 then
-	CraftInteract(nil, GetCraftingInteractionType())
-end
+	if GetCraftingInteractionType() ~= 0 then
+		CraftInteract(nil, GetCraftingInteractionType())
+	end
 end
 
 local function OnAddonLoaded()

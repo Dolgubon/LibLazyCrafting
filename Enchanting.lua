@@ -149,6 +149,7 @@ local glyphInfo = {-- negative first, then positive
 	{95, 93, 45886,45884,"Decrease Spell Harm","Increase Magical Harm",ITEMTYPE_GLYPH_JEWELRY ,ITEMTYPE_GLYPH_JEWELRY , 45848},
 	{89, 88, 45873,45872,"Shielding","Bashing",ITEMTYPE_GLYPH_JEWELRY ,ITEMTYPE_GLYPH_JEWELRY , 45849},
 	{147, 146, 68344,68343,"Prismatic Onslaught","Prismatic Defense", ITEMTYPE_GLYPH_WEAPON, ITEMTYPE_GLYPH_ARMOR, 68342},
+	{178, 179, 166046,166047,"Reduce Skill Cost","Prismatic Recovery", ITEMTYPE_GLYPH_JEWELRY, ITEMTYPE_GLYPH_JEWELRY, 166045},
 }
 
 local enchantLevelInfo = {
