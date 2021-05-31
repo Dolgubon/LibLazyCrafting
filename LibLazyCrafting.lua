@@ -17,7 +17,7 @@ end
 
 -- Initialize libraries
 local libLoaded
-local LIB_NAME, VERSION = "LibLazyCrafting", 3.02
+local LIB_NAME, VERSION = "LibLazyCrafting", 3.07
 local LibLazyCrafting, oldminor
 if LibStub then
 	LibLazyCrafting, oldminor = LibStub:NewLibrary(LIB_NAME, VERSION)
@@ -179,8 +179,27 @@ LibLazyCrafting.craftResultFunctions = craftResultFunctions
 --------------------------------------
 --- GENERAL HELPER FUNCTIONS
 
-function GetItemNameFromItemId(itemId) -- Global due to the large general use.
+function LibLazyCrafting.AddHomeMarker(setId, station)
+	if HomeStationMarker then
+		if setIndex == INDEX_NO_SET then
+			HomeStationMarker.AddMarker(nil, station)
+		else
+			HomeStationMarker.AddMarker(setId, station)
+		end
+	end
+end
 
+function LibLazyCrafting.DeleteHomeMarker(setId, station)
+	if HomeStationMarker then
+		if setIndex == INDEX_NO_SET then
+			HomeStationMarker.DeleteMarker(nil, station)
+		else
+			HomeStationMarker.DeleteMarker(setId, station)
+		end
+	end
+end
+
+function GetItemNameFromItemId(itemId) -- Global due to the large general use.
 	return GetItemLinkName(ZO_LinkHandler_CreateLink("Test Trash", nil, ITEM_LINK_TYPE,itemId, 1, 26, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 5, 0, 0, 0, 10000, 0))
 end
 
@@ -297,6 +316,7 @@ function LibLazyCrafting.stackableCraftingComplete(event, station, lastCheck, cr
 			}
 			LibLazyCrafting.SendCraftEvent( LLC_CRAFT_SUCCESS,  station, currentCraftAttempt.addon,resultTable )
 			tableClear(currentCraftAttempt)
+			LibLazyCrafting.DeleteHomeMarker(nil, station)
 		else
 			-- Loop to craft multiple copies
 			local earliest = craftingQueue[currentCraftAttempt.addon][craftingType][currentCraftAttempt.position]
@@ -463,12 +483,17 @@ end
 local function LLC_CancelItem(self, station, position)
 	if position == nil then
 		if station == nil then
-			craftingQueue[self.addonName] = {{},{},{},{},{},{},{}}
+			for i = 1, 7 do
+				LLC_CancelItem(self, i, nil)
+			end
 		else
-			craftingQueue[self.addonName][station] = {}
+			for i = 1, #craftingQueue[self.addonName][station] do
+				LLC_CancelItem(self, station, 1)
+			end
 		end
 	else
-		table.remove(craftingQueue[self.addonName][station], position)
+		local removed = table.remove(craftingQueue[self.addonName][station], position)
+		LibLazyCrafting.DeleteHomeMarker(removed.setIndex, removed.station)
 	end
 end
 
@@ -476,9 +501,8 @@ local function LLC_CancelItemByReference(self, reference)
 	for i = 1, #craftingQueue[self.addonName] do
 		for j = 1, #craftingQueue[self.addonName][i] do
 			if craftingQueue[self.addonName][i][j] and craftingQueue[self.addonName][i][j].reference==reference then
-
-				table.remove(craftingQueue[self.addonName][i], j)
-
+				local removed = table.remove(craftingQueue[self.addonName][i], j)
+				LibLazyCrafting.DeleteHomeMarker(removed.setIndex, removed.station)
 			end
 		end
 	end
@@ -601,7 +625,7 @@ function LibLazyCrafting:Init()
 		-- Add the 'open functions' here.
 		local LLCAddonInteractionTable = {}
 		if LibLazyCrafting.addonInteractionTables[addonName] then
-			d("LibLazyCrafting:AddRequestingAddon has been called twice, or the chosen addon name has already been used. Use GetRequestingAddon instead")
+			d("LibLazyCrafting:AddRequestingAddon has been called a second time by "..addonName..", or the chosen addon name has already been used. Use GetRequestingAddon instead")
 		end
 		craftingQueue[addonName] = { {}, {}, {}, {}, {}, {}, {}} -- Initialize the addon's personal queue. The tables are empty, station specific queues.
 
@@ -649,6 +673,7 @@ function LibLazyCrafting:Init()
 	LLC_INITIAL_CRAFT_SUCCESS = "initial stage of crafting complete" -- Thrown when the white item of a higher quality item is created
 	LLC_ENCHANTMENT_FAILED = "enchantment failed"
 	LLC_CRAFT_PARTIAL_IMPROVEMENT = "item has been improved one stage, but is not yet at final quality"
+	LLC_CRAFT_BEGIN = "starting crafting"
 
 	LLC_Global = LibLazyCrafting:AddRequestingAddon("LLC_Global",true, function(event, station, result)
 		d(GetItemLink(result.bag,result.slot).." crafted at slot "..tostring(result.slot).." with reference "..result.reference) end)

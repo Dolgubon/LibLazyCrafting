@@ -90,7 +90,7 @@ local function LLC_CraftProvisioningItemByRecipeId(self, recipeId, timesToMake, 
         ["timesToMake"] = timesToMake or 1
     }
     )
-
+    LibLazyCrafting.AddHomeMarker(nil, CRAFTING_TYPE_PROVISIONING)
     --sortCraftQueue()
     if GetCraftingInteractionType()==CRAFTING_TYPE_PROVISIONING then
         LibLazyCrafting.craftInteract(event, CRAFTING_TYPE_PROVISIONING)

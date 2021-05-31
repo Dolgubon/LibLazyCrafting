@@ -82,6 +82,7 @@ local function LLC_CraftEnchantingGlyphItemID(self, potencyItemID, essenceItemID
 		requestTable["station"] = CRAFTING_TYPE_ENCHANTING
 	end
 
+	LibLazyCrafting.AddHomeMarker(nil, CRAFTING_TYPE_ENCHANTING)
 	table.insert(craftingQueue[self.addonName][CRAFTING_TYPE_ENCHANTING],requestTable)
 
 	--sortCraftQueue()
@@ -91,8 +92,8 @@ local function LLC_CraftEnchantingGlyphItemID(self, potencyItemID, essenceItemID
 	return requestTable
 end
 --/script LLC_Global:CraftEnchantingItemId(45830, 45838, 45851, true, "Hum", nil, 2)
-local function LLC_CraftEnchantingGlyph(self, potencyBagId, potencySlot, essenceBagId, essenceSlot, aspectBagId, aspectSlot, autocraft, reference, gearRequestTable)
-	return LLC_CraftEnchantingGlyphItemID(self, GetItemId(potencyBagId, potencySlot),GetItemId(essenceBagId, essenceSlot),GetItemId(aspectBagId,aspectSlot),autocraft, reference, gearRequestTable)
+local function LLC_CraftEnchantingGlyph(self, potencyBagId, potencySlot, essenceBagId, essenceSlot, aspectBagId, aspectSlot, autocraft, reference, gearRequestTable, quantity)
+	return LLC_CraftEnchantingGlyphItemID(self, GetItemId(potencyBagId, potencySlot),GetItemId(essenceBagId, essenceSlot),GetItemId(aspectBagId,aspectSlot),autocraft, reference, gearRequestTable, quantity)
 end
 
 local function LLC_AddGlyphToExistingGear(self, existingRequestTable, gearBag, gearSlot)
@@ -426,7 +427,7 @@ local function applyGlyphToItem(requestTable)
 	local numLoops = math.min(#glyphInfo, #equipInfo)
 	for i = numLoops,1, -1 do
 
-		local equipBag , equipSlot = searchUniqueId(equipInfo[i].uniqueId)
+		local equipBag, equipSlot = searchUniqueId(equipInfo[i].uniqueId)
 		local glyphBag, glyphSlot = searchUniqueId(glyphInfo[i].uniqueId)
 		if not equipBag or not glyphBag then
 			if not equipBag then
@@ -471,6 +472,8 @@ local function handleEnchantComplete(event, station, slot)
 			removedTable = table.remove(craftingQueue[currentCraftAttempt.Requester][CRAFTING_TYPE_ENCHANTING] , currentCraftAttempt.position )
 			removedTable.quantity = removedTable.quantity - 1
 			currentCraftAttempt.quantity = currentCraftAttempt.quantity - 1
+
+			LibLazyCrafting.DeleteHomeMarker(nil, CRAFTING_TYPE_ENCHANTING)
 		else
 			removedTable =  craftingQueue[currentCraftAttempt.Requester][CRAFTING_TYPE_ENCHANTING][currentCraftAttempt.position]
 			removedTable.quantity = removedTable.quantity - 1
