@@ -985,7 +985,7 @@ local function smithingCompleteNewItemHandler(station, bag, slot)
 			currentCraftAttempt.smithingQuantity = currentCraftAttempt.smithingQuantity - 1
 		end
 		if currentCraftAttempt.quality>1 then
-			--d("Improving #".. tostring(currentCraftAttempt.reference))
+			-- d("Improving #".. tostring(currentCraftAttempt.reference))
 
 			if removedRequest.dualEnchantingSmithing then
 				table.insert(removedRequest.equipInfo,
@@ -1009,6 +1009,8 @@ local function smithingCompleteNewItemHandler(station, bag, slot)
 			local copiedTable = LibLazyCrafting.tableShallowCopy(removedRequest)
 			copiedTable.slot = slot
 			copiedTable.smithingQuantity = 1
+			LibLazyCrafting.DeleteHomeMarker(removedRequest.setIndex, station)
+			LibLazyCrafting.AddHomeMarker(INDEX_NO_SET, station)
 			LibLazyCrafting.SendCraftEvent(LLC_INITIAL_CRAFT_SUCCESS, station, currentCraftAttempt.Requester, copiedTable)
 		else
 			removedRequest.bag = BAG_BACKPACK
@@ -1205,7 +1207,10 @@ local setInfo =
 	{{168747 , 168767, [6] = 168754, [7] =168782 },9,isSwapped=true}, -- 541 Aetherial Ascension
 	{{168373 , 168393, [6] = 168380, [7] =168408 },6,isSwapped=true}, -- 540 Legacy of Karth
 	{{167999 , 168019, [6] = 168006, [7] =168034 },3,isSwapped=true}, -- 539 Red Eagle's Fury
-
+	{{172455 , 172475, [6] = 172462, [7] =172490 },3,isSwapped=true}, -- 582 Hist Whisperer's Song
+	{{172829 , 172849, [6] = 172836, [7] =172864 },7,isSwapped=true}, -- 583 Heartland Conquerer
+	{{173203 , 173223, [6] = 173210, [7] =173238 },5,isSwapped=true}, -- 584 Diamond's Victory
+	
 }
 
 SetIndexes = {}
@@ -1497,7 +1502,7 @@ local function internalScrapeSetItemItemIds()
 	local estimatedTime = math.floor((20000*apiVersionDifference+200000)/300*25/1000)+3
 	zo_callLater(function()
 	CHAT_SYSTEM:AddMessage("LibLazyCrafting: Beginning scrape of set items. Estimated time: "..estimatedTime.."s")
-	CHAT_SYSTEM:AddMessage("This is a once per major game update scan. Please wait until it it is complete.")end
+	CHAT_SYSTEM:AddMessage("This is a (usually) once per major game update scan. Please wait until it it is complete.")end
 	, 25)
 	
 	local craftedItemIds = LibLazyCraftingSavedVars.SetIds or {}
@@ -1879,9 +1884,9 @@ local function initializeSetInfo()
 	end
 	local vars = LibLazyCraftingSavedVars
 	-- Last condition is bc I forgot to actually add them before the patch increase :(
-	if not vars.SetIds or not vars.lastScrapedAPIVersion or vars.lastScrapedAPIVersion<GetAPIVersion() or LibLazyCraftingSavedVars.SetIds[540] == nil then
-		if LibLazyCraftingSavedVars.SetIds and LibLazyCraftingSavedVars.SetIds[540] == nil then
-			d("LibLazyCrafting: Usually this scraping only runs once per major game patch, but this re-run is required to fix a bug from a previous LLC version.")
+	if not vars.SetIds or not vars.lastScrapedAPIVersion or vars.lastScrapedAPIVersion<GetAPIVersion() or LibLazyCraftingSavedVars.SetIds[584] == nil then
+		if LibLazyCraftingSavedVars.SetIds and LibLazyCraftingSavedVars.SetIds[584] == nil then
+			d("LibLazyCrafting: Usually this scraping only runs once per major game patch, but this re-run is required to add the new sets from Blackwood.")
 		end
 		internalScrapeSetItemItemIds()
 	end

@@ -130,9 +130,9 @@ local function LLC_AlchemyCraftInteraction(station, earliest, addon , position)
 	currentCraftAttempt.prevSlots = LibLazyCrafting.backpackInventory()
 end
 
-local function LLC_AlchemyCraftingComplete(event, station, lastCheck)
+local function LLC_AlchemyCraftingComplete(station, lastCheck)
 	dbug("EVENT:CraftComplete")
-	LibLazyCrafting.stackableCraftingComplete(event, station, lastCheck, CRAFTING_TYPE_ALCHEMY, currentCraftAttempt)
+	LibLazyCrafting.stackableCraftingComplete(station, lastCheck, CRAFTING_TYPE_ALCHEMY, currentCraftAttempt)
 
 end
 

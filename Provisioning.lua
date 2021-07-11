@@ -117,8 +117,8 @@ local function LLC_ProvisioningCraftInteraction(station, earliest, addon , posit
     currentCraftAttempt.prevSlots = LibLazyCrafting.backpackInventory()
 end
 
-local function LLC_ProvisioningCraftingComplete(event, station, lastCheck)
-    LibLazyCrafting.stackableCraftingComplete(event, station, lastCheck, CRAFTING_TYPE_PROVISIONING, currentCraftAttempt)
+local function LLC_ProvisioningCraftingComplete(station, lastCheck)
+    LibLazyCrafting.stackableCraftingComplete(station, lastCheck, CRAFTING_TYPE_PROVISIONING, currentCraftAttempt)
 end
 
 local function LLC_ProvisioningIsItemCraftable(self, station, request)

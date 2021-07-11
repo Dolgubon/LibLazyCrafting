@@ -17,7 +17,7 @@ end
 
 -- Initialize libraries
 local libLoaded
-local LIB_NAME, VERSION = "LibLazyCrafting", 3.07
+local LIB_NAME, VERSION = "LibLazyCrafting", 3.074
 local LibLazyCrafting, oldminor
 if LibStub then
 	LibLazyCrafting, oldminor = LibStub:NewLibrary(LIB_NAME, VERSION)
@@ -180,8 +180,9 @@ LibLazyCrafting.craftResultFunctions = craftResultFunctions
 --- GENERAL HELPER FUNCTIONS
 
 function LibLazyCrafting.AddHomeMarker(setId, station)
+	-- d("Add " .. tostring(setId) .." : " .. station)
 	if HomeStationMarker then
-		if setIndex == INDEX_NO_SET then
+		if setId == LibLazyCrafting.INDEX_NO_SET then
 			HomeStationMarker.AddMarker(nil, station)
 		else
 			HomeStationMarker.AddMarker(setId, station)
@@ -190,8 +191,9 @@ function LibLazyCrafting.AddHomeMarker(setId, station)
 end
 
 function LibLazyCrafting.DeleteHomeMarker(setId, station)
+	-- d("Delete " .. tostring(setId) .." : " .. station)
 	if HomeStationMarker then
-		if setIndex == INDEX_NO_SET then
+		if setId == LibLazyCrafting.INDEX_NO_SET then
 			HomeStationMarker.DeleteMarker(nil, station)
 		else
 			HomeStationMarker.DeleteMarker(setId, station)
@@ -294,7 +296,7 @@ local function tableClear(t)
 end
 -- Common code called by Alchemy and Provisioning crafting complete handlers.
 
-function LibLazyCrafting.stackableCraftingComplete(event, station, lastCheck, craftingType, currentCraftAttempt)
+function LibLazyCrafting.stackableCraftingComplete(station, lastCheck, craftingType, currentCraftAttempt)
 	dbug("EVENT:CraftComplete")
 	if not (currentCraftAttempt and currentCraftAttempt.addon) then return end
 	local currSlots = LibLazyCrafting.backpackInventory()
@@ -322,7 +324,7 @@ function LibLazyCrafting.stackableCraftingComplete(event, station, lastCheck, cr
 			local earliest = craftingQueue[currentCraftAttempt.addon][craftingType][currentCraftAttempt.position]
 			earliest.timesToMake = earliest.timesToMake - 1
 			currentCraftAttempt.timesToMake = earliest.timesToMake
-			if GetCraftingInteractionType()==0 then zo_callLater(function() LibLazyCrafting.stackableCraftingComplete(event, station, true, craftingType, currentCraftAttempt) end,100) end
+			if GetCraftingInteractionType()==0 then zo_callLater(function() LibLazyCrafting.stackableCraftingComplete( station, true, craftingType, currentCraftAttempt) end,100) end
 		end
 	elseif lastCheck then
 		-- give up on finding it.
@@ -330,7 +332,7 @@ function LibLazyCrafting.stackableCraftingComplete(event, station, lastCheck, cr
 	else
 		-- further search
 		-- search again later
-		if GetCraftingInteractionType()==0 then zo_callLater(function() LibLazyCrafting.stackableCraftingComplete(event, station, true, craftingType, currentCraftAttempt) end,100) end
+		if GetCraftingInteractionType()==0 then zo_callLater(function() LibLazyCrafting.stackableCraftingComplete( station, true, craftingType, currentCraftAttempt) end,100) end
 	end
 end
 

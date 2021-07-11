@@ -365,7 +365,8 @@ local function LLC_EnchantingCraftinteraction(station, earliest, addon, position
 			select(2,findItemLocationById(earliest["aspectItemID"])),
 			earliest["quantity"]
 		}
-		local maxCraftable = math.min(earliest["quantity"] or 1, GetMaxIterationsPossibleForEnchantingItem(unpack(locations)))
+		local max = GetMaxIterationsPossibleForEnchantingItem(unpack(locations))
+		local maxCraftable = math.min(earliest["quantity"] or 1, max )
 		locations[7] = maxCraftable
 		if locations[1]  and locations[3] and locations[5] and maxCraftable>0 then
 			dbug("CALL:ZOEnchantCraft")
@@ -464,7 +465,7 @@ local function wasItemMade(bag, slot)
 	return  GetItemLinkName(GetItemLink(BAG_BACKPACK, slot,0)) == GetItemLinkName(currentCraftAttempt.link)
 		and GetItemLinkQuality(GetItemLink(BAG_BACKPACK, slot,0)) == GetItemLinkQuality(currentCraftAttempt.link)
 end
-local function handleEnchantComplete(event, station, slot)
+local function handleEnchantComplete(station, slot)
 			-- We found it!
 		dbug("ACTION:RemoveQueueItem")
 		local removedTable = craftingQueue[currentCraftAttempt.Requester][CRAFTING_TYPE_ENCHANTING][currentCraftAttempt.position]
@@ -479,7 +480,6 @@ local function handleEnchantComplete(event, station, slot)
 			removedTable.quantity = removedTable.quantity - 1
 			currentCraftAttempt.quantity = currentCraftAttempt.quantity - 1
 		end
-		-- d(removedTable)
 		if removedTable.dualEnchantingSmithing then
 			removedTable.glyphInfo= removedTable.glyphInfo or {}
 			table.insert(removedTable.glyphInfo,
@@ -509,7 +509,7 @@ local function handleEnchantComplete(event, station, slot)
 		return removedTable
 end
 
-local function LLC_EnchantingCraftingComplete(event, station, lastCheck)
+local function LLC_EnchantingCraftingComplete(station, lastCheck)
 	if currentCraftAttempt.allRunesKnown==false then -- User didn't know all the glyphs, so we get the item link *now* since now they know them
 	-- Hopefully they have more than one
 		currentCraftAttempt.link = GetEnchantingResultingItemLink(unpack(currentCraftAttempt.locations))
@@ -520,7 +520,7 @@ local function LLC_EnchantingCraftingComplete(event, station, lastCheck)
 	local found = false
 	local removedTable
 	while slot ~= nil do
-		removedTable = handleEnchantComplete(event, station, slot)
+		removedTable = handleEnchantComplete(station, slot)
 		bag, slot = LibLazyCrafting.findNextSlotIndex(wasItemMade, slot+1)
 		found = true
 	end
