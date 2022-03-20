@@ -382,8 +382,11 @@ local function canCraftItem(craftRequestTable)
 		setPatternOffset = {14, 15,[6]=6,[7]=2}
 	end
 
-	local _,_,_,_,traitsRequired, traitsKnown = GetSmithingPatternInfo(craftRequestTable["pattern"] + setPatternOffset[craftRequestTable["station"]])
-
+	-- This offset index was used in the call GetSmithingPatternInfo, but not in IsSmithingTraitKnownForResult
+	-- which caused the check to fail if you didn't have the same traits known for both rings and necklaces in sets.
+	local patternIndex = craftRequestTable["pattern"] + setPatternOffset[craftRequestTable["station"]]
+	local _,_,_,_,traitsRequired, traitsKnown = GetSmithingPatternInfo(patternIndex)
+	
 	local level, max =  getCraftLevel(craftRequestTable['station'])
 	-- check if level is high enough
 	local matIndex
@@ -403,7 +406,7 @@ local function canCraftItem(craftRequestTable)
 		missingInd = true
 	end
 	-- Check if the specific trait is known
-	if not IsSmithingTraitKnownForResult(craftRequestTable["pattern"], craftRequestTable["materialIndex"], craftRequestTable["materialQuantity"],craftRequestTable["style"], craftRequestTable["trait"]) then
+	if not IsSmithingTraitKnownForResult(patternIndex, craftRequestTable["materialIndex"], craftRequestTable["materialQuantity"],craftRequestTable["style"], craftRequestTable["trait"]) then
 		missingInd = true
 		missing.knowledge["trait"] = true
 	end
