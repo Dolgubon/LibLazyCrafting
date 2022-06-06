@@ -18,7 +18,7 @@
 local LibLazyCrafting = _G["LibLazyCrafting"]
 
 local widgetType = 'smithing'
-local widgetVersion = 2.98
+local widgetVersion = 2.99
 if not LibLazyCrafting:RegisterWidget(widgetType, widgetVersion) then return  end
 
 local LLC = LibLazyCrafting
@@ -1210,7 +1210,15 @@ local setInfo =
 	{{172455 , 172475, [6] = 172462, [7] =172490 },3,isSwapped=true}, -- 582 Hist Whisperer's Song
 	{{172829 , 172849, [6] = 172836, [7] =172864 },7,isSwapped=true}, -- 583 Heartland Conquerer
 	{{173203 , 173223, [6] = 173210, [7] =173238 },5,isSwapped=true}, -- 584 Diamond's Victory
-	
+	{{178806 , 178826, [6] = 178813, [7] =178841 },3,isSwapped=true}, -- 610 Wretched Vitality
+	{{179180 , 179200, [6] = 179187, [7] =179215 },7,isSwapped=true}, -- 611 Deadlands Demolisher
+	{{179554 , 179574, [6] = 179561, [7] =179589 },5,isSwapped=true}, -- 612 Iron Flask
+	{{184771 , 184791, [6] = 184778, [7] =184807 },3,isSwapped=true}, -- ??? Order's Wrath
+	{{185151 , 185171, [6] = 185158, [7] =185187 },5,isSwapped=true}, -- ??? Serpent's Disdain
+	{{185531 , 185551, [6] = 185538, [7] =185567 },7,isSwapped=true}, -- ??? Druid'd Braid
+	--  640 Order's Wrath  3
+	--  641 Serpent's Disdain  5
+	--  642 Druid's Braid  7
 }
 
 SetIndexes = {}
@@ -1498,7 +1506,7 @@ end
 
 --- This was created mostly in slash commands. So variable names suck, locals are used rarely due to chat space limitations
 local function internalScrapeSetItemItemIds()
-	local apiVersionDifference = GetAPIVersion() - 100029
+	local apiVersionDifference = GetAPIVersion() - 101029
 	local estimatedTime = math.floor((20000*apiVersionDifference+200000)/300*25/1000)+3
 	zo_callLater(function()
 	CHAT_SYSTEM:AddMessage("LibLazyCrafting: Beginning scrape of set items. Estimated time: "..estimatedTime.."s")
