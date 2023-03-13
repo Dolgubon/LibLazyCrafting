@@ -152,6 +152,7 @@ local glyphInfo = {-- negative first, then positive
 	{147, 146, 68344,68343,"Prismatic Onslaught","Prismatic Defense", ITEMTYPE_GLYPH_WEAPON, ITEMTYPE_GLYPH_ARMOR, 68342},
 	{178, 179, 166046,166047,"Reduce Skill Cost","Prismatic Recovery", ITEMTYPE_GLYPH_JEWELRY, ITEMTYPE_GLYPH_JEWELRY, 166045},
 }
+LibLazyCrafting.glyphEssenceIdInfo = glyphInfo
 
 local enchantLevelInfo = {
 	-- Parity, potencyItemId, quality, pre50 lvl indicator, level, cp
@@ -189,6 +190,8 @@ local enchantLevelInfo = {
 	{-1, 68340,366,50,lvl=nil,cp=160},
 }
 
+LibLazyCrafting.enchantPotencyLevelInfo = enchantLevelInfo
+
 local levelLeaps = { -- internal, so we can take shortcut. Key is level + 50 if it's CP
 	{Key=1,lvl=1,cp=nil},
 	{Key=5,lvl=5,cp=nil},
@@ -217,19 +220,23 @@ local qualityItemIdInfo =
 	45854,
 }
 
+local cpQualityInfo = {
+	[10] = {125, 135, 145, 155, 165},
+	[30] = {127, 137, 147, 157, 167},
+	[50] = {129, 139, 149, 169, 169},
+	[70] = {131, 141, 151, 161, 171},
+	[100] = {272, 273, 274, 275, 276 },
+	[150] = {308, 309, 310, 311, 312},
+	[160] = {366, 367, 368, 369, 370},
+}
+
+LibLazyCrafting.enchantCPQualityInfo = cpQualityInfo
+
 local function getQualityInfo(isCP, level, quality)
 	if not isCP then
 		return 20,  math.floor(level/5) * 5 + 5 + quality
 	end
-	local cpQualityInfo = {
-		[10] = {125, 135, 145, 155, 165},
-		[30] = {127, 137, 147, 157, 167},
-		[50] = {129, 139, 149, 169, 169},
-		[70] = {131, 141, 151, 161, 171},
-		[100] = {272, 273, 274, 275, 276 },
-		[150] = {308, 309, 310, 311, 312},
-		[160] = {366, 367, 368, 369, 370},
-	}
+
 	return cpQualityInfo[level][quality], 50
 end
 
@@ -303,6 +310,39 @@ local function findNextPotencyByLevel(isCP, level, parity)
 		-- end
 	end
 end
+
+local function getComponentRunesForGlyphItemLink(itemLink)
+	local itemId = GetItemLinkItemId(itemLink)
+	local level, isCP = GetItemLinkGlyphMinLevels(itemLink)
+	local quality =  GetItemLinkFunctionalQuality(itemLink)
+	local parity
+	local essenceId
+	local potencyId
+	local aspectId = qualityItemIdInfo[quality]
+	--	{83, 19, 45868,26582,"Absorb Magicka","Magicka", ITEMTYPE_GLYPH_WEAPON, ITEMTYPE_GLYPH_ARMOR, 45832},
+	for i = 1, #glyphInfo do
+		if glyphInfo[i][3] == itemId then
+			parity = -1
+			essenceId = glyphInfo[i][9]
+		elseif glyphInfo[i][4] == itemId then
+			parity = 1
+			essenceId = glyphInfo[i][9]
+		end
+	end
+		--{1,  45813,127,50,lvl=nil,cp=30},
+	for i = 1, #enchantLevelInfo do
+		if enchantLevelInfo[i]["lvl"] == level and enchantLevelInfo[i]["cp"] == isCP and parity == enchantLevelInfo[i][1] then
+			potencyId = enchantLevelInfo[i][2]
+		end
+	end
+	local response = {
+		["essenceItemID"] = essenceId, 
+		["aspectItemID"] = aspectId, 
+		["potencyItemID"] = potencyId,
+	}
+	return response
+end
+LibLazyCrafting.getComponentRunesForGlyphItemLink = getComponentRunesForGlyphItemLink
 
 -- Currently not properly implemented
 local function LLC_CraftEnchantingGlyphAttributes(self, isCP, level, enchantId, quality, autocraft, reference, gearRequestTable)

@@ -205,6 +205,7 @@ local function maxStyle (craftRequestTable) -- Searches to find the style that t
     local numAllowed = 0
     local maxStack = -1
     local useStolen = AreAnyItemsStolen(BAG_BACKPACK) and false
+    local useSmartStyleSave = styleTable.smartStyleSlotSave
     for i, v in pairs(styleTable) do
         if v then
             numAllowed = numAllowed + 1
@@ -215,9 +216,10 @@ local function maxStyle (craftRequestTable) -- Searches to find the style that t
 	            for key, itemInfo in pairs(bagCache) do
 	                local slotId = itemInfo.slotIndex
 	                if itemInfo.stolen == true then
+	                	-- if there's a stolen style mat, then use that style first
 	                    local itemType, specialType = GetItemType(bagId, slotId)
 	                    if itemType == ITEMTYPE_STYLE_MATERIAL then
-	                        local icon, stack, sellPrice, meetsUsageRequirement, locked, equipType, itemStyleId, quality = GetItemInfo(bagId, slotId)
+	                        local _, stack, _, _, _, _, itemStyleId, _ = GetItemInfo(bagId, slotId)
 	                        if itemStyleId == i then
 	                            if stack > maxStack then
 	                                maxStack = stack
@@ -229,12 +231,20 @@ local function maxStyle (craftRequestTable) -- Searches to find the style that t
 	                end
 	            end
 	 
-	            if useStolen == false then
-	                if GetCurrentSmithingStyleItemCount(i)>GetCurrentSmithingStyleItemCount(max) then
-	                    if GetCurrentSmithingStyleItemCount(i)>0 and v then
-	                        max = i
-	                    end
-	                end
+	            if useStolen == false then -- if we're using a stolen style stone, then skip this
+	            	if useSmartStyleSave then
+	            		if GetCurrentSmithingStyleItemCount(max) == 0 or GetCurrentSmithingStyleItemCount(i)<GetCurrentSmithingStyleItemCount(max) then
+		                    if GetCurrentSmithingStyleItemCount(i)>0 and v then
+		                        max = i
+		                    end
+		                end
+	            	else
+		                if GetCurrentSmithingStyleItemCount(i)>GetCurrentSmithingStyleItemCount(max) then
+		                    if GetCurrentSmithingStyleItemCount(i)>0 and v then
+		                        max = i
+		                    end
+		                end
+		            end
 	            end
 	        end
         end
@@ -1216,12 +1226,13 @@ local setInfo =
 	{{178806 , 178826, [6] = 178813, [7] =178841 },3,isSwapped=true}, -- 610 Wretched Vitality
 	{{179180 , 179200, [6] = 179187, [7] =179215 },7,isSwapped=true}, -- 611 Deadlands Demolisher
 	{{179554 , 179574, [6] = 179561, [7] =179589 },5,isSwapped=true}, -- 612 Iron Flask
-	{{184771 , 184791, [6] = 184778, [7] =184807 },3,isSwapped=true}, -- ??? Order's Wrath
-	{{185151 , 185171, [6] = 185158, [7] =185187 },5,isSwapped=true}, -- ??? Serpent's Disdain
-	{{185531 , 185551, [6] = 185538, [7] =185567 },7,isSwapped=true}, -- ??? Druid'd Braid
-	--  640 Order's Wrath  3
-	--  641 Serpent's Disdain  5
-	--  642 Druid's Braid  7
+	{{184771 , 184791, [6] = 184778, [7] =184807 },3,isSwapped=true}, -- 640 Order's Wrath
+	{{185151 , 185171, [6] = 185158, [7] =185187 },5,isSwapped=true}, -- 641 Serpent's Disdain
+	{{185531 , 185551, [6] = 185538, [7] =185567 },7,isSwapped=true}, -- 642 Druid'd Braid
+	{{191232 , 191252, [6] = 191239, [7] =191268 },7,isSwapped=true}, -- 677 Chimera's Rebuke
+	{{191612 , 191632, [6] = 191619, [7] =191648 },7,isSwapped=true}, -- 678 Old Growth Brewer
+	{{191992 , 192012, [6] = 191999, [7] =192028 },7,isSwapped=true}, -- 679 Claw of the Forest Wraith
+
 }
 
 SetIndexes = {}
@@ -1773,6 +1784,7 @@ local function getItemLinkFromRequest(requestTable)
 	end
 	return finalLink
 end
+
 local function fillOutFromParticulars(level, isCP, quality,style, potencyId, essenceId,aspectId,  link)
 	local itemId = GetItemLinkItemId( link)
 	local enchantId = 0
@@ -1836,6 +1848,11 @@ local function getItemLinkFromParticulars(setId, trait, pattern, station,level, 
 	end
 end
 
+
+-- local function getLinkFromRequest(request)
+-- 	return getItemLinkFromParticulars(request.setIndex,request.trait ,request.pattern ,request.station ,request.,request.,request.quality,request.style, request.potencyItemId , request.essenceItemId, request.aspectItemId)
+-- end
+
 local function getNonCraftableReasons(request)
 	local results = {}
 	results.canCraftHere =  canCraftItemHere(station, request["setIndex"])
@@ -1849,6 +1866,9 @@ end
 
 LibLazyCrafting.functionTable.getItemLinkFromParticulars = getItemLinkFromParticulars
 LibLazyCrafting.getItemLinkFromParticulars = getItemLinkFromParticulars
+LibLazyCrafting.functionTable.getItemLinkFromRequest = getItemLinkFromRequest
+LibLazyCrafting.getItemLinkFromRequest = getItemLinkFromRequest
+
 -- LibLazyCrafting.functionTable.getItemLinkFromRequest = getItemLinkFromRequest
 
 LibLazyCrafting.craftInteractionTables[CRAFTING_TYPE_BLACKSMITHING] =
