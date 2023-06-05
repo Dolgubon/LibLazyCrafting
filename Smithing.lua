@@ -207,7 +207,7 @@ local function maxStyle (craftRequestTable) -- Searches to find the style that t
     local useStolen = AreAnyItemsStolen(BAG_BACKPACK) and false
     local useSmartStyleSave = styleTable.smartStyleSlotSave
     for i, v in pairs(styleTable) do
-        if v then
+        if v and type(i)=="number" then
             numAllowed = numAllowed + 1
 	        
 	        if IsSmithingStyleKnown(i, piece) then
@@ -902,6 +902,10 @@ local function LLC_SmithingCraftInteraction( station, earliest, addon , position
 				-- This is to save on improvement mats.
 
 				if earliest.quality>2 and currentItemQuality >ITEM_QUALITY_MAGIC then
+					d("Improvement skill is not at maximum. Improvement prevented to save mats.")
+					return
+				end
+				if station == CRAFTING_TYPE_JEWELRYCRAFTING and earliest.quality>1 and currentItemQuality >ITEM_QUALITY_NORMAL then
 					d("Improvement skill is not at maximum. Improvement prevented to save mats.")
 					return
 				end
@@ -1915,7 +1919,7 @@ local function initializeSetInfo()
 	end
 	local vars = LibLazyCraftingSavedVars
 	-- Last condition is bc I forgot to actually add them before the patch increase :(
-	if not vars.SetIds or not vars.lastScrapedAPIVersion or vars.lastScrapedAPIVersion<GetAPIVersion() or LibLazyCraftingSavedVars.SetIds[584] == nil then
+	if not vars.SetIds or not vars.lastScrapedAPIVersion or vars.lastScrapedAPIVersion<GetAPIVersion()-1 or LibLazyCraftingSavedVars.SetIds[584] == nil then
 		if LibLazyCraftingSavedVars.SetIds and LibLazyCraftingSavedVars.SetIds[584] == nil then
 			d("LibLazyCrafting: Usually this scraping only runs once per major game patch, but this re-run is required to add the new sets from Blackwood.")
 		end
