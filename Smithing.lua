@@ -18,7 +18,7 @@
 local LibLazyCrafting = _G["LibLazyCrafting"]
 
 local widgetType = 'smithing'
-local widgetVersion = 2.99
+local widgetVersion = 3.0
 if not LibLazyCrafting:RegisterWidget(widgetType, widgetVersion) then return  end
 
 local LLC = LibLazyCrafting
@@ -386,7 +386,8 @@ local function canCraftItem(craftRequestTable)
 	--CanSmithingStyleBeUsedOnPattern()
 	-- Check stylemats
 	local setPatternOffset = {}
-	if craftRequestTable["setIndex"] == INDEX_NO_SET then
+
+	if craftRequestTable["setIndex"] == INDEX_NO_SET or ZO_Smithing_IsConsolidatedStationCraftingMode() then
 		setPatternOffset = {0,0,[6]=0,[7]=0}
 	else
 		setPatternOffset = {14, 15,[6]=6,[7]=2}
@@ -395,8 +396,9 @@ local function canCraftItem(craftRequestTable)
 	-- This offset index was used in the call GetSmithingPatternInfo, but not in IsSmithingTraitKnownForResult
 	-- which caused the check to fail if you didn't have the same traits known for both rings and necklaces in sets.
 	local patternIndex = craftRequestTable["pattern"] + setPatternOffset[craftRequestTable["station"]]
-	local _,_,_,_,traitsRequired, traitsKnown = GetSmithingPatternInfo(patternIndex)
-	
+	local _,_,_,_,_, traitsKnown = GetSmithingPatternInfo(patternIndex)
+	traitsRequired = GetSetIndexes()[craftRequestTable["setIndex"]][3]
+
 	local level, max =  getCraftLevel(craftRequestTable['station'])
 	-- check if level is high enough
 	local matIndex
@@ -471,6 +473,9 @@ local function canCraftItemHere(station, setIndex)
 	if not setIndex then setIndex = INDEX_NO_SET end
 
 	if GetCraftingInteractionType()==station then
+		if IsConsolidatedSmithingItemSetIdUnlocked(setIndex) then
+			return true
+		end
 
 		if GetCurrentSetInteractionIndex()==setIndex or setIndex==INDEX_NO_SET then
 			return true
@@ -822,6 +827,20 @@ local currentCraftAttempt =
 -- Ideas to increase Queue Accuracy:
 --		previousCraftAttempt/check for currentCraftAttempt = {}
 
+local function setCorrectSetIndex_ConsolidatedStation(setIndex)
+	if not ZO_Smithing_IsConsolidatedStationCraftingMode() then
+		return
+	end
+	if GetActiveConsolidatedSmithingItemSetId() == setIndex or setIndex==INDEX_NO_SET then
+		return
+	end
+	local setIndexToSelect = SMITHING.setNodeLookupData[setIndex].data.dataSource:GetSetIndex()
+	SMITHING.categoryTree:SelectNode( SMITHING.setNodeLookupData[setIndex])
+	SetActiveConsolidatedSmithingSetByIndex(setIndexToSelect)
+
+
+end
+
 
 -------------------------------------------------------
 -- SMITHING INTERACTION FUNCTIONS
@@ -829,12 +848,10 @@ local currentCraftAttempt =
 local hasNewItemBeenMade = false
 
 local function LLC_SmithingCraftInteraction( station, earliest, addon , position)
-
 	dbug("EVENT:CraftIntBegin")
 	--abc = abc + 1 if abc>50 then d("raft")return end
 
 	local earliest, addon , position = LibLazyCrafting.findEarliestRequest(station)
-
 	if earliest and not IsPerformingCraftProcess() then
 		if earliest.type =="smithing" then
 
@@ -847,6 +864,7 @@ local function LLC_SmithingCraftInteraction( station, earliest, addon , position
 				earliest.useUniversalStyleItem,
 				1,
 			}
+			setCorrectSetIndex_ConsolidatedStation(earliest.setIndex)
 			if earliest.style == LLC_FREE_STYLE_CHOICE then
 				parameters[4] = maxStyle(earliest)
 			end
@@ -867,6 +885,8 @@ local function LLC_SmithingCraftInteraction( station, earliest, addon , position
 			LibLazyCrafting:setWatchingForNewItems (true)
 
 			hasNewItemBeenMade = false
+
+			
 			CraftSmithingItem(unpack(parameters))
 			-- d(unpack(parameters))
 
@@ -1236,7 +1256,9 @@ local setInfo =
 	{{191232 , 191252, [6] = 191239, [7] =191268 },7,isSwapped=true}, -- 677 Chimera's Rebuke
 	{{191612 , 191632, [6] = 191619, [7] =191648 },7,isSwapped=true}, -- 678 Old Growth Brewer
 	{{191992 , 192012, [6] = 191999, [7] =192028 },7,isSwapped=true}, -- 679 Claw of the Forest Wraith
-
+	{{194562 , 194582, [6] = 194569, [7] =194598 },7,isSwapped=true}, -- 695 Shattered Fate
+	{{194942 , 194962, [6] = 194949, [7] =194978 },7,isSwapped=true}, -- 696 Telvanni Efficiency
+	{{195322 , 195342, [6] = 195329, [7] =195358 },7,isSwapped=true}, -- 697 Seeker Synthesis
 }
 
 SetIndexes = {}
@@ -1759,8 +1781,8 @@ local function computeLinkParticulars(requestTable, link)
 	local matIndex = requestTable["materialIndex"]
 	local materialQuantity =  requestTable["materialQuantity"] 
 	local cpQuality, level = levelStuff(level, isCP, quality)
-	cpQuality = 364
-	lvl = 50
+	-- cpQuality = 364
+	-- lvl = 50
 	link = string.format("|H1:item:%d:%d:%d:%d:%d:%d:0:0:0:0:0:0:0:0:0:%d:0:0:0:10000:0|h|h", itemId, cpQuality, lvl, enchantId, enchantCPQuality, enchantLvl,requestTable.style) 
 	return link
 end
@@ -1919,10 +1941,10 @@ local function initializeSetInfo()
 	end
 	local vars = LibLazyCraftingSavedVars
 	-- Last condition is bc I forgot to actually add them before the patch increase :(
-	if not vars.SetIds or not vars.lastScrapedAPIVersion or vars.lastScrapedAPIVersion<GetAPIVersion()-1 or LibLazyCraftingSavedVars.SetIds[584] == nil then
-		if LibLazyCraftingSavedVars.SetIds and LibLazyCraftingSavedVars.SetIds[584] == nil then
-			d("LibLazyCrafting: Usually this scraping only runs once per major game patch, but this re-run is required to add the new sets from Blackwood.")
-		end
+	if not vars.SetIds or not vars.lastScrapedAPIVersion or vars.lastScrapedAPIVersion<GetAPIVersion() or LibLazyCraftingSavedVars.SetIds[695] == nil then
+		-- if LibLazyCraftingSavedVars.SetIds and LibLazyCraftingSavedVars.SetIds[695] == nil then
+		-- 	d("LibLazyCrafting: Usually this scraping only runs once per major game patch, but this re-run is required to add the new sets from Blackwood.")
+		-- end
 		internalScrapeSetItemItemIds()
 	end
 end
