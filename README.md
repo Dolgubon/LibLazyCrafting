@@ -108,13 +108,13 @@ Improve the item at the specified bag index and slot index to the specified qual
 The exact same functions are used by both provisioning and furniture, so they are combined here. You can use the AKA functions as your preference/use requires.
 
 ### CraftProvisioningItemByRecipeId( *integer recipeId, integer timesToMake, boolean autocraft, string reference*)
-AKA CraftFurnishingItemByRecipeId
-* Recipe ID is the item link of the recipe that creates the food or furniture you want to make
+AKA CraftFurnishingItemByRecipeId  
+* Recipe ID is the item link of the recipe that creates the food or furniture you want to make  
 ### CraftProvisioningItemByRecipeIndex(*integer recipeListIndex, integer recipeIndex, timesToMake, autocraft, reference*)
-AKA CraftFurnishingItemByRecipeIndex
-AKA CraftProvisioningItem
-This is the game equivalent craft provisioning function, so recipeListIndex and recipeIndex have the same function as in the game's API. Not particularly suggested for use.
-But, you can use GetRecipeInfoFromItemId(recipeId) to get the relevant recipeListIndex and recipeIndex, which may be useful as there are many game API functions which use those as parameters.
+AKA CraftFurnishingItemByRecipeIndex  
+AKA CraftProvisioningItem  
+This is the game equivalent craft provisioning function, so recipeListIndex and recipeIndex have the same function as in the game's API. Not particularly suggested for use.  
+But, you can use GetRecipeInfoFromItemId(recipeId) to get the relevant recipeListIndex and recipeIndex, which may be useful as there are many game API functions which use those as parameters.  
 
 ## Alchemy
 
@@ -147,7 +147,7 @@ Similar to alchemy, this will convert the bag and slot IDs into item IDs and use
 Note: LLC_Global is a global queue meant only for testing and exploration. It is not recommended to actually use this within your addon; see General Usage for more info
 You can paste these functions into chat to craft stuff
 
-/script LLC_Global:CraftSmithingItemByLevel(3, true, 150,3 ,1 ,false, CRAFTING_TYPE_CLOTHIER, 0, 3,true) -- crafts a blue CP150 shoes
-/script for i= 2, 25 do LLC_Global:CraftSmithingItemByLevel(3, false, i * 2,3 ,1 ,false, CRAFTING_TYPE_CLOTHIER, 0, 3,true) end -- Crafts lvl 4,6, 8, 10, etc. up to lvl 50. The items will be blue shoes.
-/script LLC_Global:CraftEnchantingItemId(45830, 45838, 45851) -- Crafts a Monumental Glyph of Flame Resist
-/script LLC_Global:CraftProvisioningItem(1, 1) -- Nooot actually sure what this crafts. TODO, find out
+/script LLC_Global:CraftSmithingItemByLevel(3, true, 150,3 ,1 ,false, CRAFTING_TYPE_CLOTHIER, 0, 3,true) -- crafts a blue CP150 shoes  
+/script for i= 2, 25 do LLC_Global:CraftSmithingItemByLevel(3, false, i * 2,3 ,1 ,false, CRAFTING_TYPE_CLOTHIER, 0, 3,true) end -- Crafts lvl 4,6, 8, 10, etc. up to lvl 50. The items will be blue shoes.  
+/script LLC_Global:CraftEnchantingItemId(45830, 45838, 45851) -- Crafts a Monumental Glyph of Flame Resist  
+/script LLC_Global:CraftProvisioningItem(1, 1) -- Nooot actually sure what this crafts. TODO, find out  
