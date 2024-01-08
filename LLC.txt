@@ -38,7 +38,5 @@ functions.lua
 
 ;------------
 ;Furnishings:
-;At the moment, furniture is not handled. Adding furniture would require additional changes to either all of the current craft files, or to the core
-;LLC file, so that it can handle furniture. If you would like to use the featues of the library for furniture, I will consider adding support in.
-
+;Furniture crafting uses the exact same functions as Provisinoing.
 

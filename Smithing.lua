@@ -397,7 +397,7 @@ local function canCraftItem(craftRequestTable)
 	-- which caused the check to fail if you didn't have the same traits known for both rings and necklaces in sets.
 	local patternIndex = craftRequestTable["pattern"] + setPatternOffset[craftRequestTable["station"]]
 	local _,_,_,_,_, traitsKnown = GetSmithingPatternInfo(patternIndex)
-	traitsRequired = GetSetIndexes()[craftRequestTable["setIndex"]][3]
+	local traitsRequired = GetSetIndexes()[craftRequestTable["setIndex"]][3]
 
 	local level, max =  getCraftLevel(craftRequestTable['station'])
 	-- check if level is high enough
@@ -501,10 +501,6 @@ local function GetMaxImprovementMats(bag, slot ,station)
 	return numBooster
 end
 
-
-local function LLC_GetSmithingPatternInfo(patternIndex, station, set)
-end
-
 -- Finds the material index based on the level
 local function findMatIndex(level, champion)
 
@@ -529,6 +525,7 @@ end
 
 local function GetMatRequirements(pattern, index, station)
 	if station == nil then station = GetCraftingInteractionType() end
+	local mats
 	if station == CRAFTING_TYPE_JEWELRYCRAFTING then
 		mats = JEWELY_MAT_REQUIREMENT[index][pattern]
 		return mats
@@ -827,6 +824,14 @@ local currentCraftAttempt =
 -- Ideas to increase Queue Accuracy:
 --		previousCraftAttempt/check for currentCraftAttempt = {}
 
+local setLookupTable = {}
+local function generateSetLookupTable()
+	for tableSetIndexes = 1, GetNumConsolidatedSmithingSets() do
+		setLookupTable[GetConsolidatedSmithingItemSetIdByIndex(tableSetIndexes)] = tableSetIndexes
+	end
+end
+
+
 local function setCorrectSetIndex_ConsolidatedStation(setIndex)
 	if not ZO_Smithing_IsConsolidatedStationCraftingMode() then
 		return
@@ -834,16 +839,37 @@ local function setCorrectSetIndex_ConsolidatedStation(setIndex)
 	if GetActiveConsolidatedSmithingItemSetId() == setIndex or setIndex==INDEX_NO_SET then
 		return
 	end
-	local setIndexToSelect = SMITHING.setNodeLookupData[setIndex].data.dataSource:GetSetIndex()
-	SMITHING.categoryTree:SelectNode( SMITHING.setNodeLookupData[setIndex])
-	SetActiveConsolidatedSmithingSetByIndex(setIndexToSelect)
-
-
+	--
+	if setLookupTable[setIndex] == nil then
+		generateSetLookupTable()
+	end
+	if IsInGamepadPreferredMode() then
+		SetActiveConsolidatedSmithingSetByIndex(setLookupTable[setIndex])
+		pcall(function() SMITHING_GAMEPAD:RefreshSetSelector() end)
+		pcall(function() SMITHING_GAMEPAD.header.tabBar:SetSelectedIndex(1) end )
+	else
+		SMITHING.setSearchBox:SetText("")
+		ZO_ClearTable(SMITHING.setFilters)
+		SMITHING:RefreshSetCategories()
+		SMITHING.categoryTree:SelectNode( SMITHING.setNodeLookupData[setIndex])
+		
+		
+	end
 end
 
 
 -------------------------------------------------------
 -- SMITHING INTERACTION FUNCTIONS
+
+local craftingSounds = 
+{
+	[CRAFTING_TYPE_BLACKSMITHING] = "Blacksmith_Create_Tooltip_Glow",
+	[CRAFTING_TYPE_CLOTHIER] = "Clothier_Create_Tooltip_Glow",
+	[CRAFTING_TYPE_WOODWORKING] = "Woodworker_Create_Tooltip_Glow",
+	[CRAFTING_TYPE_JEWELRYCRAFTING] = "JewelryCrafter_Create_Tooltip_Glow",
+	["improve"] = "Crafting_Create_Slot_Animated",
+
+}
 
 local hasNewItemBeenMade = false
 
@@ -886,7 +912,9 @@ local function LLC_SmithingCraftInteraction( station, earliest, addon , position
 
 			hasNewItemBeenMade = false
 
-			
+			if IsInGamepadPreferredMode() then -- Gamepad seems to not play craft sounds
+				PlaySound(craftingSounds[station])
+			end
 			CraftSmithingItem(unpack(parameters))
 			-- d(unpack(parameters))
 
@@ -938,6 +966,9 @@ local function LLC_SmithingCraftInteraction( station, earliest, addon , position
 				return end
 			dbug("CALL:ZOImprovement")
 			LibLazyCrafting.isCurrentlyCrafting = {true, "improve", earliest["Requester"]}
+			if IsInGamepadPreferredMode() then
+				PlaySound(craftingSounds.improve)
+			end
 			ImproveSmithingItem(earliest.ItemBagID,earliest.ItemSlotID, numBooster)
 			currentCraftAttempt = copy(earliest)
 			currentCraftAttempt.position = position
@@ -1371,21 +1402,6 @@ local improvementChances =
 	[3] = {2,3,4,8},
 }
 
-local improvementChancesJewelry =
-{
-	[0] = {3,5,7,10},
-	[1] = {2,4,5,7},
-	[2] = {2,3,4,5},
-	[3] = {1,2,3,4},
-}
-
-local function getImprovementChancesTable(station)
-	if station == CRAFTING_TYPE_JEWELRYCRAFTING then
-		return improvementChancesJewelry
-	else
-		return improvementChances
-	end
-end
 
 local function compileImprovementRequirements(request, requirements)
 	local station = request.station
@@ -1397,7 +1413,7 @@ local function compileImprovementRequirements(request, requirements)
 	local improvementLevel = getImprovementLevel(station)
 
 	for i  = currentQuality, request.quality - 1 do
-		requirements[GetItemLinkItemId( GetSmithingImprovementItemLink(station, i, 0) )] = getImprovementChancesTable(station)[improvementLevel][i]
+		requirements[GetItemLinkItemId( GetSmithingImprovementItemLink(station, i, 0) )] = improvementChances[improvementLevel][i]
 	end
 	return requirements
 end
@@ -1443,7 +1459,7 @@ function compileRequirements(request, requirements)-- Ingot/style mat/trait mat/
 		local improvementLevel = getImprovementLevel(station)
 
 		for i  = 1, request.quality - 1 do
-			requirements[GetItemLinkItemId( GetSmithingImprovementItemLink(station, i, 0) )] = getImprovementChancesTable(station)[improvementLevel][i]
+			requirements[GetItemLinkItemId( GetSmithingImprovementItemLink(station, i, 0) )] = improvementChances[improvementLevel][i]
 		end
 
 		return requirements

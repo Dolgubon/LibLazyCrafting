@@ -506,47 +506,47 @@ local function wasItemMade(bag, slot)
 		and GetItemLinkQuality(GetItemLink(BAG_BACKPACK, slot,0)) == GetItemLinkQuality(currentCraftAttempt.link)
 end
 local function handleEnchantComplete(station, slot)
-			-- We found it!
-		dbug("ACTION:RemoveQueueItem")
-		local removedTable = craftingQueue[currentCraftAttempt.Requester][CRAFTING_TYPE_ENCHANTING][currentCraftAttempt.position]
-		if (currentCraftAttempt.quantity or 1) <= 1 then
-			removedTable = table.remove(craftingQueue[currentCraftAttempt.Requester][CRAFTING_TYPE_ENCHANTING] , currentCraftAttempt.position )
-			removedTable.quantity = removedTable.quantity - 1
-			currentCraftAttempt.quantity = currentCraftAttempt.quantity - 1
+	-- We found it!
+	dbug("ACTION:RemoveQueueItem")
+	local removedTable = craftingQueue[currentCraftAttempt.Requester][CRAFTING_TYPE_ENCHANTING][currentCraftAttempt.position]
+	if (currentCraftAttempt.quantity or 1) <= 1 then
+		removedTable = table.remove(craftingQueue[currentCraftAttempt.Requester][CRAFTING_TYPE_ENCHANTING] , currentCraftAttempt.position )
+		removedTable.quantity = removedTable.quantity - 1
+		currentCraftAttempt.quantity = currentCraftAttempt.quantity - 1
 
-			LibLazyCrafting.DeleteHomeMarker(nil, CRAFTING_TYPE_ENCHANTING)
-		else
-			removedTable =  craftingQueue[currentCraftAttempt.Requester][CRAFTING_TYPE_ENCHANTING][currentCraftAttempt.position]
-			removedTable.quantity = removedTable.quantity - 1
-			currentCraftAttempt.quantity = currentCraftAttempt.quantity - 1
-		end
-		if removedTable.dualEnchantingSmithing then
-			removedTable.glyphInfo= removedTable.glyphInfo or {}
-			table.insert(removedTable.glyphInfo,
-			{
-				bag=BAG_BACKPACK,
-				slot=slot,
-				uniqueId=GetItemUniqueId(BAG_BACKPACK, slot),
-				uniqueIdString = Id64ToString(GetItemUniqueId(BAG_BACKPACK, slot)),
-			})
-			removedTable.glyphBag = BAG_BACKPACK
-			removedTable.glyphSlot = slot
-			removedTable['glyphUniqueId'] = GetItemUniqueId(removedTable.glyphBag, removedTable.glyphSlot)
-			removedTable['glyphStringUniqueId'] = Id64ToString(removedTable['glyphUniqueId'])
-			return removedTable
-		end
-		--sortCraftQueue()
-		local resultTable = 
+		LibLazyCrafting.DeleteHomeMarker(nil, CRAFTING_TYPE_ENCHANTING)
+	else
+		removedTable =  craftingQueue[currentCraftAttempt.Requester][CRAFTING_TYPE_ENCHANTING][currentCraftAttempt.position]
+		removedTable.quantity = removedTable.quantity - 1
+		currentCraftAttempt.quantity = currentCraftAttempt.quantity - 1
+	end
+	if removedTable.dualEnchantingSmithing then
+		removedTable.glyphInfo= removedTable.glyphInfo or {}
+		table.insert(removedTable.glyphInfo,
 		{
-			["bag"] = BAG_BACKPACK,
-			["slot"] = slot,
-			['link'] = currentCraftAttempt.link,
-			['uniqueId'] = GetItemUniqueId(BAG_BACKPACK, currentCraftAttempt.slot),
-			["quantity"] = removedTable.quantity,
-			["reference"] = removedTable.reference,
-		}
-		LibLazyCrafting.SendCraftEvent( LLC_CRAFT_SUCCESS ,  station, removedTable.Requester , resultTable )
+			bag=BAG_BACKPACK,
+			slot=slot,
+			uniqueId=GetItemUniqueId(BAG_BACKPACK, slot),
+			uniqueIdString = Id64ToString(GetItemUniqueId(BAG_BACKPACK, slot)),
+		})
+		removedTable.glyphBag = BAG_BACKPACK
+		removedTable.glyphSlot = slot
+		removedTable['glyphUniqueId'] = GetItemUniqueId(removedTable.glyphBag, removedTable.glyphSlot)
+		removedTable['glyphStringUniqueId'] = Id64ToString(removedTable['glyphUniqueId'])
 		return removedTable
+	end
+	--sortCraftQueue()
+	local resultTable = 
+	{
+		["bag"] = BAG_BACKPACK,
+		["slot"] = slot,
+		['link'] = currentCraftAttempt.link,
+		['uniqueId'] = GetItemUniqueId(BAG_BACKPACK, currentCraftAttempt.slot),
+		["quantity"] = removedTable.quantity,
+		["reference"] = removedTable.reference,
+	}
+	LibLazyCrafting.SendCraftEvent( LLC_CRAFT_SUCCESS ,  station, removedTable.Requester , resultTable )
+	return removedTable
 end
 
 local function LLC_EnchantingCraftingComplete(station, lastCheck)

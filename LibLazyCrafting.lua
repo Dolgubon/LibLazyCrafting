@@ -17,7 +17,7 @@ end
 
 -- Initialize libraries
 local libLoaded
-local LIB_NAME, VERSION = "LibLazyCrafting", 3.086
+local LIB_NAME, VERSION = "LibLazyCrafting", 3.0865
 local LibLazyCrafting, oldminor
 if LibStub then
 	LibLazyCrafting, oldminor = LibStub:NewLibrary(LIB_NAME, VERSION)
@@ -207,16 +207,10 @@ end
 
 -- Mostly a queue function, but kind of a helper function too
 local function isItemCraftable(request, station)
-
-	if LibLazyCrafting.craftInteractionTables[station].isItemCraftable then
-
-		return LibLazyCrafting.craftInteractionTables[station]:isItemCraftable(station, request)
+	local stationToUse =  request.recipeIndex and CRAFTING_TYPE_PROVISIONING or station
+	if LibLazyCrafting.craftInteractionTables[stationToUse].isItemCraftable then
+		return LibLazyCrafting.craftInteractionTables[stationToUse]:isItemCraftable(station, request)
 	end
-
-	if station ==CRAFTING_TYPE_ENCHANTING or station == CRAFTING_TYPE_PROVISIONING or station == CRAFTING_TYPE_ALCHEMY then
-		return true
-	end
-
 end
 
 function findItemLocationById(itemID)
@@ -305,7 +299,7 @@ function LibLazyCrafting.stackableCraftingComplete(station, lastCheck, craftingT
 		dbug("RESULT:StackableMade")
 		if currentCraftAttempt["timesToMake"] < 2 then
 			dbug("ACTION:RemoveQueueItem")
-			table.remove( craftingQueue[currentCraftAttempt.addon][craftingType] , currentCraftAttempt.position )
+			table.remove( craftingQueue[currentCraftAttempt.addon][station] , currentCraftAttempt.position )
 			--LibLazyCrafting.sortCraftQueue()
 			local resultTable =
 			{
@@ -321,10 +315,10 @@ function LibLazyCrafting.stackableCraftingComplete(station, lastCheck, craftingT
 			LibLazyCrafting.DeleteHomeMarker(nil, station)
 		else
 			-- Loop to craft multiple copies
-			local earliest = craftingQueue[currentCraftAttempt.addon][craftingType][currentCraftAttempt.position]
+			local earliest = craftingQueue[currentCraftAttempt.addon][station][currentCraftAttempt.position]
 			earliest.timesToMake = earliest.timesToMake - 1
 			currentCraftAttempt.timesToMake = earliest.timesToMake
-			if GetCraftingInteractionType()==0 then zo_callLater(function() LibLazyCrafting.stackableCraftingComplete( station, true, craftingType, currentCraftAttempt) end,100) end
+			if GetCraftingInteractionType()==0 then zo_callLater(function() LibLazyCrafting.stackableCraftingComplete( station, true, station, currentCraftAttempt) end,100) end
 		end
 	elseif lastCheck then
 		-- give up on finding it.
@@ -332,7 +326,7 @@ function LibLazyCrafting.stackableCraftingComplete(station, lastCheck, craftingT
 	else
 		-- further search
 		-- search again later
-		if GetCraftingInteractionType()==0 then zo_callLater(function() LibLazyCrafting.stackableCraftingComplete( station, true, craftingType, currentCraftAttempt) end,100) end
+		if GetCraftingInteractionType()==0 then zo_callLater(function() LibLazyCrafting.stackableCraftingComplete( station, true, station, currentCraftAttempt) end,100) end
 	end
 end
 
@@ -374,6 +368,9 @@ local function getItemLinkFromItemId(itemId) local name = GetItemLinkName(ZO_Lin
     return ZO_LinkHandler_CreateLink(zo_strformat("<<t:1>>",name), nil, ITEM_LINK_TYPE,itemId, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0)
 end
 
+LibLazyCrafting.getItemLinkFromItemId = getItemLinkFromItemId
+LibLazyCrafting.functionTable.getItemLinkFromItemId = getItemLinkFromItemId
+
 function LibLazyCrafting.HaveMaterials(materialList)
     for _, mat in ipairs(materialList) do
         local itemLink = mat.itemLink
@@ -409,7 +406,6 @@ end
 LibLazyCrafting.sortCraftQueue = sortCraftQueue
 
 
-local abc = 1
 -- Finds the highest priority request.
 local function findEarliestRequest(station)
 	local earliest = {["timestamp"] = GetTimeStamp() + 100000} -- should be later than anything else, as it's 'in the future'
@@ -709,7 +705,7 @@ end
 -- If it is a string, simply check to see if the user's name is the optional debug name for the addon, throw an error
 -- if it is true, always throw the error.
 
-local function LLCThrowError(addonNameOrTableOrAlwaysThrow, message)
+local function LLCThrowError(addonNameOrTable, message)
 	local addonName
 	if type(addonNameOrTable)=="table" then
 		addonName = addonNameOrTable.addonName
@@ -729,6 +725,21 @@ LLC.LLCThrowError = LLCThrowError
 ------------------------------------------------------
 -- CRAFT EVENT HANDLERS
 
+-- Helper function. Finds the earliest craftable request, then crafts it using the relevant crafting function
+-- Return true if we started crafting something
+local function CraftEarliest(event, station)
+	local stationInteractionTable = LibLazyCrafting.craftInteractionTables[station]
+	local earliest, addon , position = LibLazyCrafting.findEarliestRequest(station)
+	if not earliest then return false end
+	if earliest.recipeIndex then -- is furniture/recipe
+		LibLazyCrafting.craftInteractionTables[CRAFTING_TYPE_PROVISIONING]["function"]( station, earliest, addon , position)
+		return true
+	else
+		stationInteractionTable["function"]( station, earliest, addon , position)
+		return true
+	end
+end
+
 -- Called when a crafting station is opened. Should then craft anything needed in the queue
 local function CraftInteract(event, station)
 	if IsPerformingCraftProcess() then
@@ -736,17 +747,8 @@ local function CraftInteract(event, station)
 	end
 	for k,v in pairs(LibLazyCrafting.craftInteractionTables) do
 		if v:check( station) then
-			local earliest, addon , position = LibLazyCrafting.findEarliestRequest(station)
-			if earliest then
-				if earliest.isFurniture then
-					if v.canCraftFurniture then
-						v["function"]( station, earliest, addon , position)
-						return
-					end
-				else
-					v["function"]( station, earliest, addon , position)
-					return
-				end
+			if CraftEarliest(event, station) then
+				return
 			end
 		end
 	end
@@ -778,24 +780,23 @@ local function CraftComplete(event, station)
 	for k,v in pairs(LibLazyCrafting.craftInteractionTables) do
 		if v:check( station) then
 			if GetCraftingInteractionType()==0 then -- This is called when the user exits the crafting station while the game is crafting
-
 				endInteraction(EVENT_END_CRAFTING_STATION_INTERACT, station)
-				zo_callLater(function() v["complete"]( station) LibLazyCrafting.isCurrentlyCrafting = {false, "", ""} end, timetest)
+				if LibLazyCrafting.recipeCurrentCraftAttempt and LibLazyCrafting.recipeCurrentCraftAttempt.recipeIndex then
+					LibLazyCrafting.craftInteractionTables[CRAFTING_TYPE_PROVISIONING]["complete"](station)
+				else
+					v["complete"]( station) 
+				end
+				LibLazyCrafting.isCurrentlyCrafting = {false, "", ""} 
 				return
 			else
-				v["complete"]( station)
+				if LibLazyCrafting.recipeCurrentCraftAttempt and LibLazyCrafting.recipeCurrentCraftAttempt.recipeIndex then
+					LibLazyCrafting.craftInteractionTables[CRAFTING_TYPE_PROVISIONING]["complete"](station)
+				else
+					v["complete"]( station) 
+				end
 				LibLazyCrafting.isCurrentlyCrafting = {false, "", ""}
-				local earliest, addon , position = LibLazyCrafting.findEarliestRequest(station)
-				if earliest then
-					if earliest.isFurniture then
-						if v.canCraftFurniture then
-							v["function"]( station, earliest, addon , position)
-							return
-						end
-					else
-						v["function"]( station, earliest, addon , position)
-						return
-					end
+				if CraftEarliest(event, station) then
+					return
 				end
 			end
 		end

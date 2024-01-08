@@ -7,7 +7,7 @@
 -- Publication Date: Febuary 5, 2017
 --
 -- File Name: Provisioning.lua
--- File Description: Contains the functions for Provisioning
+-- File Description: Contains the functions for Provisioning AND furniture, as they use the same functions
 -- Load Order Requirements: After LibLazyCrafting.lua
 --
 -----------------------------------------------------------------------------------
@@ -19,8 +19,10 @@ local LibLazyCrafting = _G["LibLazyCrafting"]
 local sortCraftQueue = LibLazyCrafting.sortCraftQueue
 
 local widgetType = 'provisioning'
-local widgetVersion = 1.8
+local widgetVersion = 1.9
 if not LibLazyCrafting:RegisterWidget(widgetType, widgetVersion) then return false end
+
+local currentCraftAttempt
 
 local function dbug(...)
     if not DolgubonGlobalDebugOutput then return end
@@ -42,9 +44,13 @@ local function LLC_CraftProvisioningItemByRecipeIndex(self, recipeListIndex, rec
     if reference == nil then reference = "" end
     if not self then d("Please call with colon notation") end
     if autocraft==nil then autocraft = self.autocraft end
-    if not (recipeListIndex and recipeIndex) then return end
+    local _,_,_,_,_,_,station = GetRecipeInfo(recipeListIndex, recipeIndex)
+    if not (recipeListIndex and recipeIndex and station) then 
+        d("LibLazyCrafting: recipeListIndex:"..recipeListIndex.." and recipeIndex:"..recipeIndex.." does not seem to refer to a valid recipe")
+        return 
+    end
 
-    table.insert(craftingQueue[self.addonName][CRAFTING_TYPE_PROVISIONING],
+    table.insert(craftingQueue[self.addonName][station],
     {
         ["recipeId"] = nil,
         ["recipeListIndex"] = recipeListIndex,
@@ -53,14 +59,14 @@ local function LLC_CraftProvisioningItemByRecipeIndex(self, recipeListIndex, rec
         ["autocraft"] = autocraft,
         ["Requester"] = self.addonName,
         ["reference"] = reference,
-        ["station"] = CRAFTING_TYPE_PROVISIONING,
+        ["station"] = station,
         ["timesToMake"] = timesToMake or 1
     }
     )
 
     --sortCraftQueue()
-    if GetCraftingInteractionType()==CRAFTING_TYPE_PROVISIONING then
-        LibLazyCrafting.craftInteract(event, CRAFTING_TYPE_PROVISIONING)
+    if GetCraftingInteractionType()==station then
+        LibLazyCrafting.craftInteract(event, station)
     end
 end
 
@@ -75,25 +81,28 @@ local function LLC_CraftProvisioningItemByRecipeId(self, recipeId, timesToMake, 
     -- Translate now, fail silently if we cannot.
     local recipeLink = toRecipeLink(recipeId)
     local recipeListIndex, recipeIndex = GetItemLinkGrantedRecipeIndices(recipeLink)
+    local station = GetItemLinkRecipeCraftingSkillType(recipeLink)
+    local resultLink = GetItemLinkRecipeResultItemLink(recipeLink)
     if not (recipeListIndex and recipeIndex) then d("Recipe not found") return end
 
-    table.insert(craftingQueue[self.addonName][CRAFTING_TYPE_PROVISIONING],
+    table.insert(craftingQueue[self.addonName][station],
     {
         ["recipeId"] = recipeId,
         ["recipeListIndex"] = recipeListIndex,
         ["recipeIndex"] = recipeIndex,
+        ["resultLink"] = resultLink,
         ["timestamp"] = GetTimeStamp(),
         ["autocraft"] = autocraft,
         ["Requester"] = self.addonName,
         ["reference"] = reference,
-        ["station"] = CRAFTING_TYPE_PROVISIONING,
-        ["timesToMake"] = timesToMake or 1
+        ["station"] = station,
+        ["timesToMake"] = timesToMake or 1,
     }
     )
-    LibLazyCrafting.AddHomeMarker(nil, CRAFTING_TYPE_PROVISIONING)
+    LibLazyCrafting.AddHomeMarker(nil, station)
     --sortCraftQueue()
-    if GetCraftingInteractionType()==CRAFTING_TYPE_PROVISIONING then
-        LibLazyCrafting.craftInteract(event, CRAFTING_TYPE_PROVISIONING)
+    if GetCraftingInteractionType()==station then
+        LibLazyCrafting.craftInteract(event, station)
     end
 end
 
@@ -115,14 +124,24 @@ local function LLC_ProvisioningCraftInteraction(station, earliest, addon , posit
     currentCraftAttempt.timestamp = GetTimeStamp()
     currentCraftAttempt.addon = addon
     currentCraftAttempt.prevSlots = LibLazyCrafting.backpackInventory()
+    LibLazyCrafting.recipeCurrentCraftAttempt = currentCraftAttempt
+    if station == CRAFTING_TYPE_ENCHANTING then
+        ENCHANTING.potencySound = SOUNDS["NONE"]
+        ENCHANTING.potencyLength = 0
+        ENCHANTING.essenceSound = SOUNDS["NONE"]
+        ENCHANTING.essenceLength = 0
+        ENCHANTING.aspectSound = SOUNDS["NONE"]
+        ENCHANTING.aspectLength = 0
+    end
 end
 
 local function LLC_ProvisioningCraftingComplete(station, lastCheck)
     LibLazyCrafting.stackableCraftingComplete(station, lastCheck, CRAFTING_TYPE_PROVISIONING, currentCraftAttempt)
+    LibLazyCrafting.recipeCurrentCraftAttempt = nil
 end
 
 local function LLC_ProvisioningIsItemCraftable(self, station, request)
-    if station ~= CRAFTING_TYPE_PROVISIONING then return false end
+    if station ~= request.station then return false end
 
     local materialList  = {}
     if not request.recipeListIndex and recipe.recipeIndex then return nil end
@@ -154,8 +173,15 @@ LibLazyCrafting.craftInteractionTables[CRAFTING_TYPE_PROVISIONING] =
     ["complete"] = LLC_ProvisioningCraftingComplete,
     ["endInteraction"] = function(station) --[[endInteraction()]] end,
     ["isItemCraftable"] = LLC_ProvisioningIsItemCraftable
-
 }
 
 LibLazyCrafting.functionTable.CraftProvisioningItemByRecipeId = LLC_CraftProvisioningItemByRecipeId
 LibLazyCrafting.functionTable.CraftProvisioningItemByRecipeIndex = LLC_CraftProvisioningItemByRecipeIndex
+LibLazyCrafting.functionTable.CraftFurnishingItemByRecipeId = LLC_CraftProvisioningItemByRecipeId
+LibLazyCrafting.functionTable.CraftFurnishingItemByRecipeIndex = LLC_CraftProvisioningItemByRecipeIndex
+LibLazyCrafting.functionTable.CraftProvisioningItem = LLC_CraftProvisioningItemByRecipeIndex
+
+-- CraftProvisionerItem = function(...)d(...)d("----")end
+-- /script CraftProvisionerItem(22, 30, 1)
+-- /script LLC_Global:CraftProvisioningItemByRecipeIndex(22, 30, 1)
+-- /script local o = CraftProvisionerItem CraftProvisionerItem = function(...)d(...)d("----") o(...)end
