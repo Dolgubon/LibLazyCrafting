@@ -1,5 +1,3 @@
-# Intro
-
 # What does LibLazyCrafting do, and why should you use it?
 * Allows addons to **create and upgrade and even enchant** a piece of gear or create other crafting items with just one function
 * Allows addons to request items to be crafted anywhere, not just at the relevant crafting station - **negating the need for code to handle crafting events**
@@ -69,18 +67,18 @@ Functions available:
 
 ### CraftSmithingItemByLevel( *integer patternIndex,boolean isCP ,integer level, integer styleIndex,integer traitIndex,boolean useUniversalStyleItem,integer stationOverride, integer setIndex,integer quality,boolean autocraft,string reference,integer potencyId, integer essenceId, integer aspectId,integer smithingQuantity*)
 This is the main function in this module. 
-*patternIndex*: Pattern Index is whether you want to make a sword, dagger, staff, etc. It is dependent on the provided station parameter. That is, if you give 1 for pattern and CRAFTING_TYPE_BLACKSMITHING for station, LLC will create an Axe.
+* patternIndex*: Pattern Index is whether you want to make a sword, dagger, staff, etc. It is dependent on the provided station parameter. That is, if you give 1 for pattern and CRAFTING_TYPE_BLACKSMITHING for station, LLC will create an Axe.
 If you give 1 for pattern and CRAFTING_TYPE_CLOTHIER, then LLC will create a robe.
-*isCP, level* -> Self explanatory, unless you don't play ESO
-*styleIndex, traitIndex*: Matches the game's values
-*useUniversalStyleItem*: AKA mimic stone
-*stationOverride*: Allows you to set a specific crafting station. Default is the station you are at. If you are not at a station and do not pass a value, the function will fail.
-*setIndex*: An integer determining the crafted set you wish to create. The default is 1, which signifies no set. A list of set indexes can be found in the Smithing.lua file, or with GetSetIndexes()
-*quality*: One of the ITEM_QUALITY global constants. The default is white quality.
-*autocraft*: Determines if the library will craft the item. If it is false, the library will keep it in queue until the requesting addon tells it to craft the item.
-*reference*: This can be any type of data. It lets your addon to identify the request, to delete it, craft it, and know when it is complete. The default is the empty string.potencyId, essenceId, aspectId: If you want to create equipment with glyphs, use these parameters
-*smithingQuantity*: How many to make
-*potencyId, essenceID, and aspectID* - these can be used if you want the gear to be created with an enchantment. 
+* isCP, level* -> Self explanatory, unless you don't play ESO
+* styleIndex, traitIndex*: Matches the game's values
+* useUniversalStyleItem*: AKA mimic stone
+* stationOverride*: Allows you to set a specific crafting station. Default is the station you are at. If you are not at a station and do not pass a value, the function will fail.
+* setIndex*: An integer determining the crafted set you wish to create. The default is 1, which signifies no set. A list of set indexes can be found in the Smithing.lua file, or with GetSetIndexes()
+* quality*: One of the ITEM_QUALITY global constants. The default is white quality.
+* autocraft*: Determines if the library will craft the item. If it is false, the library will keep it in queue until the requesting addon tells it to craft the item.
+* reference*: This can be any type of data. It lets your addon to identify the request, to delete it, craft it, and know when it is complete. The default is the empty string.potencyId, essenceId, aspectId: If you want to create equipment with glyphs, use these parameters
+* smithingQuantity*: How many to make
+* potencyId, essenceID, and aspectID* - these can be used if you want the gear to be created with an enchantment. 
 **
 returns: The request table, which contains all the information about the craft request.
 
