@@ -27,12 +27,12 @@ Add the following to your manifest.txt file:
 Next, register your addon with LibLazyCrafting (LLC) in the addon initialized function. This will let you associate craft requests with your addon, as well as set various parameters when your addon calls LLC functions
 
 ### local interactionTable = LibLazyCrafting:AddRequestingAddon(*String addonName, boolean autoCraft, function callbackFunction, string optionalDebugAuthor, table optionalStyleTable*)
-*String addonName*: The name of the requesting addon.
-*boolean autoCraft*: Whether requests from this addon should by default be crafted as soon as possible, or if your addon will initiate the crafts (usually upon request by the user)
-*function callbackFunction* (* String event, integer CraftingType, table requestTable*) : The function that should be called when a requested craft is either complete, or failed for some reason. Different parameters may be returned depending on the event
-*string optionalDebugAuthor*: This is optional, and if you give it your name, then it'll do debug messages when the character name matches. AKA when you run the addon yourself. Not sure how good the debug message coverage is.
-*table optionalStyleTable*: This is used if you do no choice/max style for crafting equippable gear. Basically, these are what styles LLC can use. You can still manually choose to use other styles if you want, but if you don't specify, the addon will use styles from this table.
-**returns**: An interaction table with which your addon can use when calling the various functions provided by LLC. This interaction table contains most of the functions LLC provides.
+* *String addonName*: The name of the requesting addon.  
+* *boolean autoCraft*: Whether requests from this addon should by default be crafted as soon as possible, or if your addon will initiate the crafts (usually upon request by the user)  
+* *function callbackFunction* (* String event, integer CraftingType, table requestTable*) : The function that should be called when a requested craft is either complete, or failed for some reason. Different parameters may be returned depending on the event  
+* *string optionalDebugAuthor*: This is optional, and if you give it your name, then it'll do debug messages when the character name matches. AKA when you run the addon yourself. Not sure how good the debug message coverage is.  
+* *table optionalStyleTable*: This is used if you do no choice/max style for crafting equippable gear. Basically, these are what styles LLC can use. You can still manually choose to use other styles if you want, but if you don't specify, the addon will use styles from this table.
+**returns**: An interaction table with which your addon can use when calling the various functions provided by LLC. This interaction table contains most of the functions LLC provides.  
 
 ### See reference section at the end for info on LLC Event names, what the reference parameter is, what the request table is, and what an Item ID is
 The reference section also contains some useful information about the game's API.
