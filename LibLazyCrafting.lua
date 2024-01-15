@@ -17,7 +17,7 @@ end
 
 -- Initialize libraries
 local libLoaded
-local LIB_NAME, VERSION = "LibLazyCrafting", 3.0865
+local LIB_NAME, VERSION = "LibLazyCrafting", 3.0866
 local LibLazyCrafting, oldminor
 if LibStub then
 	LibLazyCrafting, oldminor = LibStub:NewLibrary(LIB_NAME, VERSION)
@@ -308,6 +308,8 @@ function LibLazyCrafting.stackableCraftingComplete(station, lastCheck, craftingT
 				['link'] = currentCraftAttempt.link,
 				['uniqueId'] = GetItemUniqueId(BAG_BACKPACK, currentCraftAttempt.slot),
 				["quantity"] = 1,
+				["recipeListIndex"] = currentCraftAttempt.recipeListIndex,
+				["recipeIndex"] = currentCraftAttempt.recipeIndex,
 				["reference"] = currentCraftAttempt.reference,
 			}
 			LibLazyCrafting.SendCraftEvent( LLC_CRAFT_SUCCESS,  station, currentCraftAttempt.addon,resultTable )
@@ -550,6 +552,9 @@ LibLazyCrafting.functionTable.findItemByReference =  LLC_FindItemByReference
 
 
 local function LLC_GetMatRequirements(self, requestTable)
+	if requestTable.recipeIndex then
+		return LibLazyCrafting.craftInteractionTables[CRAFTING_TYPE_PROVISIONING]:materialRequirements(requestTable)
+	end
 	if requestTable.station then
 		return LibLazyCrafting.craftInteractionTables[requestTable.station]:materialRequirements( requestTable)
 	end

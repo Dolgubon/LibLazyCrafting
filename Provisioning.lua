@@ -81,6 +81,7 @@ local function LLC_CraftProvisioningItemByRecipeId(self, recipeId, timesToMake, 
 
 	-- ZOS API prefers recipeListIndex + recipeIndex, not recipeId or recipeLink.
 	-- Translate now, fail silently if we cannot.
+	local recipeLink = toRecipeLink(recipeId)
 	local recipeListIndex, recipeIndex = GetItemLinkGrantedRecipeIndices(recipeLink)
 	local request = LLC_CraftProvisioningItemByRecipeIndex(self, recipeListIndex, recipeIndex, timesToMake, autocraft, reference)
 	request.recipeId = recipeId
@@ -92,11 +93,11 @@ local function CraftProvisioningItemByResultItemId(self, resultItemId, timesToMa
 	if reference == nil then reference = "" end
 	if not self then d("Please call with colon notation") end
 	if autocraft==nil then autocraft = self.autocraft end
-	if not recipeId then return end
+	if not resultItemId then return end
 
 	-- ZOS API prefers recipeListIndex + recipeIndex, not recipeId or recipeLink.
 	-- Translate now, fail silently if we cannot.
-	local recipeListIndex, recipeIndex = GetRecipeInfoFromItemId(resultItemId)
+	local station, recipeListIndex, recipeIndex = GetRecipeInfoFromItemId(resultItemId)
 	local request = LLC_CraftProvisioningItemByRecipeIndex(self, recipeListIndex, recipeIndex, timesToMake, autocraft, reference)
 	request.resultId = resultItemId
 	return request
@@ -120,6 +121,8 @@ local function LLC_ProvisioningCraftInteraction(station, earliest, addon , posit
 	currentCraftAttempt.timestamp = GetTimeStamp()
 	currentCraftAttempt.addon = addon
 	currentCraftAttempt.prevSlots = LibLazyCrafting.backpackInventory()
+	currentCraftAttempt.recipeListIndex = earliest.recipeListIndex
+	currentCraftAttempt.recipeIndex = earliest.recipeIndex
 	LibLazyCrafting.recipeCurrentCraftAttempt = currentCraftAttempt
 	-- If we're on the glyph creation stage and these aren't set, then you get a Lua error
 	if station == CRAFTING_TYPE_ENCHANTING then
@@ -162,6 +165,20 @@ local function LLC_ProvisioningIsItemCraftable(self, station, request)
 	return LibLazyCrafting.HaveMaterials(materialList)
 end
 
+local function CompileProvisioningRequirements(request)
+	local requirements = {}
+	local _,_,numIngredients = GetRecipeInfo(request.recipeListIndex, request.recipeIndex)
+	for i = 1, numIngredients do
+		local id = GetItemLinkItemId(GetRecipeIngredientItemLink(request.recipeListIndex, request.recipeIndex, i))
+		if id then
+			requirements[id] = GetRecipeIngredientRequiredQuantity(request.recipeListIndex, request.recipeIndex, i)
+		end
+	end
+	return requirements
+end
+
+
+
 LibLazyCrafting.craftInteractionTables[CRAFTING_TYPE_PROVISIONING] =
 {
 	["station"] = CRAFTING_TYPE_PROVISIONING,
@@ -169,7 +186,8 @@ LibLazyCrafting.craftInteractionTables[CRAFTING_TYPE_PROVISIONING] =
 	['function'] = LLC_ProvisioningCraftInteraction,
 	["complete"] = LLC_ProvisioningCraftingComplete,
 	["endInteraction"] = function(station) --[[endInteraction()]] end,
-	["isItemCraftable"] = LLC_ProvisioningIsItemCraftable
+	["isItemCraftable"] = LLC_ProvisioningIsItemCraftable,
+	["materialRequirements"] = function(self, request) return CompileProvisioningRequirements(request) end,
 }
 
 LibLazyCrafting.functionTable.CraftProvisioningItemByRecipeId 		= LLC_CraftProvisioningItemByRecipeId
