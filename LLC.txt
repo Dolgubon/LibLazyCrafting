@@ -16,15 +16,15 @@ functions.lua
 
 ;-------------
 ;Smithing:
-;The main reason or inspiration for this library, the improvements for Blacksmithing, Clothing and Woodworking are also much more apparent. This 
-;library allows an addon to request items to be made at any quality. It also provides indexes for gear sets (again, more of a 'standardization' 
-;thing) as well as providing a function to obtain material requirements anywhere. (Currently, only provides a number amount. It will eventually 
+;The main reason or inspiration for this library, the improvements for Blacksmithing, Clothing and Woodworking are also much more apparent. This
+;library allows an addon to request items to be made at any quality. It also provides indexes for gear sets (again, more of a 'standardization'
+;thing) as well as providing a function to obtain material requirements anywhere. (Currently, only provides a number amount. It will eventually
 ;provide item links to go with it)
 
 ;------------
 ;Enchanting:
 ;As consumables are much simpler than smithing, Enchanting is just another way to craft the items. You can call the functions as you normally would,
-;with bag and slot IDs, or additionally you can call it by passing itemIds. 
+;with bag and slot IDs, or additionally you can call it by passing itemIds.
 
 ;------------
 ;Alchemy:

@@ -90,7 +90,7 @@ end
 
 -- Returns an item link from the given itemId.
 local function getItemLinkFromItemId(itemId)
-	return string.format("|H1:item:%d:%d:50:0:0:0:0:0:0:0:0:0:0:0:0:%d:%d:0:0:%d:0|h|h", itemId, 0, ITEMSTYLE_NONE, 0, 10000) 
+	return string.format("|H1:item:%d:%d:50:0:0:0:0:0:0:0:0:0:0:0:0:%d:%d:0:0:%d:0|h|h", itemId, 0, ITEMSTYLE_NONE, 0, 10000)
 end
 
 
@@ -199,7 +199,7 @@ local function maxStyle (craftRequestTable) -- Searches to find the style that t
     local bagId = BAG_BACKPACK
     SHARED_INVENTORY:RefreshInventory(bagId)
     local bagCache = SHARED_INVENTORY:GetOrCreateBagCache(bagId)
- 
+
     local max = -1
     local numKnown = 0
     local numAllowed = 0
@@ -209,10 +209,10 @@ local function maxStyle (craftRequestTable) -- Searches to find the style that t
     for i, v in pairs(styleTable) do
         if v and type(i)=="number" then
             numAllowed = numAllowed + 1
-	        
+
 	        if IsSmithingStyleKnown(i, piece) then
 	            numKnown = numKnown + 1
-	 
+
 	            for key, itemInfo in pairs(bagCache) do
 	                local slotId = itemInfo.slotIndex
 	                if itemInfo.stolen == true then
@@ -230,7 +230,7 @@ local function maxStyle (craftRequestTable) -- Searches to find the style that t
 	                    end
 	                end
 	            end
-	 
+
 	            if useStolen == false then -- if we're using a stolen style stone, then skip this
 	            	if useSmartStyleSave then
 	            		if GetCurrentSmithingStyleItemCount(max) == 0 or GetCurrentSmithingStyleItemCount(i)<GetCurrentSmithingStyleItemCount(max) then
@@ -271,7 +271,7 @@ function enoughMaterials(craftRequestTable)
 	local missingSomething = false
 	local smithingQuantity = 1
 	smithingQuantity = craftRequestTable.smithingQuantity or 1
-	if craftRequestTable["style"] 
+	if craftRequestTable["style"]
 		and craftRequestTable['station']~= CRAFTING_TYPE_JEWELRYCRAFTING and not craftRequestTable["useUniversalStyleItem"] then
 		if craftRequestTable["style"]==LLC_FREE_STYLE_CHOICE then
 			if maxStyle(craftRequestTable) <0 then
@@ -463,7 +463,7 @@ local function GetCurrentSetInteractionIndex()
 	else
 		return INDEX_NO_SET, "No Set",  0
 	end
-	
+
 end
 LibLazyCrafting.functionTable.GetCurrentSetInteractionIndex  = GetCurrentSetInteractionIndex
 
@@ -642,7 +642,7 @@ local function LLC_CraftSmithingItem(self, patternIndex, materialIndex, material
 
 	-- create smithing request table and add to the queue
 	if self.addonName=="LLC_Global" then d("Item added") end
-	local requestTable 
+	local requestTable
 	if potencyId and essenceId and aspectId then
 		requestTable = LibLazyCrafting.functionTable.CraftEnchantingItemId(self,potencyId, essenceId, aspectId, autocraft, reference )
 		requestTable['dualEnchantingSmithing'] = true
@@ -654,7 +654,7 @@ local function LLC_CraftSmithingItem(self, patternIndex, materialIndex, material
 	else
 		requestTable = {}
 	end
-	
+
 	requestTable["type"] = "smithing"
 	requestTable["pattern"] =patternIndex
 	requestTable["style"] = styleIndex
@@ -703,7 +703,7 @@ end
 
 LibLazyCrafting.functionTable.isSmithingLevelValid = isValidLevel
 
-local function LLC_CraftSmithingItemByLevel(self, patternIndex, isCP , level, styleIndex, traitIndex, 
+local function LLC_CraftSmithingItemByLevel(self, patternIndex, isCP , level, styleIndex, traitIndex,
 	useUniversalStyleItem, stationOverride, setIndex, quality, autocraft, reference, potencyId, essenceId, aspectId, smithingQuantity)
 
 	if isValidLevel( isCP ,level) then
@@ -852,8 +852,8 @@ local function setCorrectSetIndex_ConsolidatedStation(setIndex)
 		ZO_ClearTable(SMITHING.setFilters)
 		SMITHING:RefreshSetCategories()
 		SMITHING.categoryTree:SelectNode( SMITHING.setNodeLookupData[setIndex])
-		
-		
+
+
 	end
 end
 
@@ -861,7 +861,7 @@ end
 -------------------------------------------------------
 -- SMITHING INTERACTION FUNCTIONS
 
-local craftingSounds = 
+local craftingSounds =
 {
 	[CRAFTING_TYPE_BLACKSMITHING] = "Blacksmith_Create_Tooltip_Glow",
 	[CRAFTING_TYPE_CLOTHIER] = "Clothier_Create_Tooltip_Glow",
@@ -1064,10 +1064,10 @@ local function smithingCompleteNewItemHandler(station, bag, slot)
 					uniqueIdString = Id64ToString(GetItemUniqueId(BAG_BACKPACK, slot)),
 				})
 				removedRequest["craftNow"] = true
-				InternalImproveSmithingItem({["addonName"]=currentCraftAttempt.Requester}, BAG_BACKPACK, slot, currentCraftAttempt.quality, 
+				InternalImproveSmithingItem({["addonName"]=currentCraftAttempt.Requester}, BAG_BACKPACK, slot, currentCraftAttempt.quality,
 					currentCraftAttempt.autocraft, currentCraftAttempt.reference, removedRequest)
 				LibLazyCrafting.SendCraftEvent(LLC_INITIAL_CRAFT_SUCCESS, station, currentCraftAttempt.Requester, removedRequest)
-				
+
 				LibLazyCrafting.DeleteHomeMarker(removedRequest.setIndex, station)
 				return
 			end
@@ -1471,8 +1471,8 @@ function compileRequirements(request, requirements)-- Ingot/style mat/trait mat/
 end
 
 LibLazyCrafting.functionTable.CompileRequirements = compileRequirements
-local itemSetIds ={ 
-    [0] = 
+local itemSetIds ={
+    [0] =
     {
         [1] = "43529,35",
         [2] = 44241,
@@ -1537,22 +1537,22 @@ end
 local varsDefault = {}
 
 local function miniaturizeSetInfo(toMinify)
-	local minifiedTable={} 
-	local numConsecutive,lastPosition = 0,1 
-	for i = 2, #toMinify do 
-		if toMinify[lastPosition]+numConsecutive+1==toMinify[i] then 
-			numConsecutive=numConsecutive+1 
-		else 
-			if numConsecutive>0 then 
+	local minifiedTable={}
+	local numConsecutive,lastPosition = 0,1
+	for i = 2, #toMinify do
+		if toMinify[lastPosition]+numConsecutive+1==toMinify[i] then
+			numConsecutive=numConsecutive+1
+		else
+			if numConsecutive>0 then
 				table.insert(minifiedTable,tostring(toMinify[lastPosition])..","..numConsecutive)
-			else 
-				table.insert(minifiedTable,toMinify[lastPosition]) 
-			end 
-			numConsecutive=0 
-			lastPosition=i 
+			else
+				table.insert(minifiedTable,toMinify[lastPosition])
+			end
+			numConsecutive=0
+			lastPosition=i
 		end
-	end 
-	if numConsecutive>0 then 
+	end
+	if numConsecutive>0 then
 		table.insert(minifiedTable,tostring(toMinify[lastPosition])..","..numConsecutive)
 	else
 		table.insert(minifiedTable,toMinify[lastPosition])
@@ -1568,20 +1568,20 @@ local function internalScrapeSetItemItemIds()
 	CHAT_SYSTEM:AddMessage("LibLazyCrafting: Beginning scrape of set items. Estimated time: "..estimatedTime.."s")
 	CHAT_SYSTEM:AddMessage("This is a (usually) once per major game update scan. Please wait until it it is complete.")end
 	, 25)
-	
+
 	local craftedItemIds = LibLazyCraftingSavedVars.SetIds or {}
-	for k, setTable in pairs(LibLazyCrafting.GetSetIndexes()) do 
+	for k, setTable in pairs(LibLazyCrafting.GetSetIndexes()) do
 		if craftedItemIds[setTable[4] ] ~= nil then
 			craftedItemIds[setTable[4] ].ignore = true
 		else
-			craftedItemIds[setTable[4] ] = {} 
+			craftedItemIds[setTable[4] ] = {}
 		end
-	end 
+	end
 	craftedItemIds[0]= craftedItemIds[0] or nil
-	local excludedTraits={[9]=true,[19]=true,[20]=true,[10]=true,[24]=true,[27]=true,} 
-	local function isExcludedTrait(a) 
-		local trait=GetItemLinkTraitInfo(a)  
-		return excludedTraits[trait] 
+	local excludedTraits={[9]=true,[19]=true,[20]=true,[10]=true,[24]=true,[27]=true,}
+	local function isExcludedTrait(a)
+		local trait=GetItemLinkTraitInfo(a)
+		return excludedTraits[trait]
 	end
 	local maxloop=1
 	local function loopSpacer(start, last, functionToRun, interval)
@@ -1598,8 +1598,8 @@ local function internalScrapeSetItemItemIds()
 				loopSpacer(start+interval+1, last, functionToRun, interval)
 			end
 			,25)
-		else 
-			
+		else
+
 			LibLazyCraftingSavedVars.SetIds = craftedItemIds
 			for k, v in pairs(LibLazyCraftingSavedVars.SetIds) do
 				if v.ignore then
@@ -1621,18 +1621,18 @@ local function internalScrapeSetItemItemIds()
 
 	loopSpacer(lowerEnd,170000+12000*apiVersionDifference,
 		function(id)
-			local link="|H1:item:"..id..":0:50:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0|h|h" 
+			local link="|H1:item:"..id..":0:50:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0|h|h"
 			local itemType,specializedType=GetItemLinkItemType(link)
 			if itemType<3 and itemType>0 then
-				if (specializedType==300 or specializedType==0 or specializedType==250)and not isExcludedTrait(link) and GetItemLinkFlavorText(link)==""  then 
+				if (specializedType==300 or specializedType==0 or specializedType==250)and not isExcludedTrait(link) and GetItemLinkFlavorText(link)==""  then
 					local isSet,_,_,_,_,setId=GetItemLinkSetInfo(link)
 					if craftedItemIds[setId] and not craftedItemIds[setId].ignore and isSet then
 						table.insert(craftedItemIds[setId],id)
-					end 
-				end 
+					end
+				end
 			end
 		end,300)
-	
+
 end--[[
 
 GetItemLinkEquipType()
@@ -1644,7 +1644,7 @@ local jewelryPatterns=
 	EQUIP_TYPE_RING,
 	EQUIP_TYPE_NECK,
 }
-local woodPatterns = 
+local woodPatterns =
 {
 	WEAPONTYPE_BOW,
 	WEAPONTYPE_SHIELD,
@@ -1653,7 +1653,7 @@ local woodPatterns =
 	WEAPONTYPE_LIGHTNING_STAFF,
 	WEAPONTYPE_HEALING_STAFF,
 }
-local armourPatterns = 
+local armourPatterns =
 {
 	EQUIP_TYPE_CHEST,
 	EQUIP_TYPE_FEET,
@@ -1663,7 +1663,7 @@ local armourPatterns =
 	EQUIP_TYPE_SHOULDERS,
 	EQUIP_TYPE_WAIST,
 }
-local blackWeaponPatterns = 
+local blackWeaponPatterns =
 {
 	WEAPONTYPE_AXE,
 	WEAPONTYPE_HAMMER,
@@ -1706,8 +1706,8 @@ local function mapItemType(station, pattern)
 			armourType = armourPatterns[math.max(pattern - 1, 1)]
 			local check = itemLinkArmourCheck(armourWeight, armourType)
 			if pattern <3 then
-				return function(link) 
-					if check(link) then 
+				return function(link)
+					if check(link) then
 						local textureFileName = GetItemLinkIcon(link)
 						if pattern == 1 then
 							return textureFileName == "/esoui/art/icons/gear_breton_light_robe_d.dds"
@@ -1753,8 +1753,8 @@ local function levelStuff(level, isCP, quality)
 		end
 		if level <151 then
 			return 217 + 18*(level-100)/10 + quality, 50
-		elseif level == 160 then 
-			return 365 + quality, 50 
+		elseif level == 160 then
+			return 365 + quality, 50
 		end
 	end
 
@@ -1774,7 +1774,7 @@ local function computeLinkParticulars(requestTable, link)
 			local potencyId = requestTable.potencyItemID
 			local essenceId = requestTable.essenceItemID
 			local parity
-			for i = 1, #potency do 
+			for i = 1, #potency do
 				if potency[i][2]==potencyId then
 					parity = potency[i][1]
 				end
@@ -1795,11 +1795,11 @@ local function computeLinkParticulars(requestTable, link)
 		end
 	end
 	local matIndex = requestTable["materialIndex"]
-	local materialQuantity =  requestTable["materialQuantity"] 
+	local materialQuantity =  requestTable["materialQuantity"]
 	local cpQuality, level = levelStuff(level, isCP, quality)
 	-- cpQuality = 364
 	-- lvl = 50
-	link = string.format("|H1:item:%d:%d:%d:%d:%d:%d:0:0:0:0:0:0:0:0:0:%d:0:0:0:10000:0|h|h", itemId, cpQuality, lvl, enchantId, enchantCPQuality, enchantLvl,requestTable.style) 
+	link = string.format("|H1:item:%d:%d:%d:%d:%d:%d:0:0:0:0:0:0:0:0:0:%d:0:0:0:10000:0|h|h", itemId, cpQuality, lvl, enchantId, enchantCPQuality, enchantLvl,requestTable.style)
 	return link
 end
 local linkTable = {}
@@ -1835,7 +1835,7 @@ local function fillOutFromParticulars(level, isCP, quality,style, potencyId, ess
 	if potencyId and essenceId then
 		local essence, potency, aspect = LibLazyCrafting.getGlyphInfo()
 		local parity
-		for i = 1, #potency do 
+		for i = 1, #potency do
 			if potency[i][2]==potencyId then
 				parity = potency[i][1]
 				enchantCPQuality = potency[i][3]
@@ -1858,7 +1858,7 @@ local function fillOutFromParticulars(level, isCP, quality,style, potencyId, ess
 		end
 	end
 	local cpQuality, lvl = levelStuff(level, isCP, quality)
-	link = string.format("|H1:item:%d:%d:%d:%d:%d:%d:0:0:0:0:0:0:0:0:0:%d:0:0:0:10000:0|h|h", itemId, cpQuality, lvl, enchantId, enchantCPQuality, enchantLvl,style) 
+	link = string.format("|H1:item:%d:%d:%d:%d:%d:%d:0:0:0:0:0:0:0:0:0:%d:0:0:0:10000:0|h|h", itemId, cpQuality, lvl, enchantId, enchantCPQuality, enchantLvl,style)
 	return link
 end
 
@@ -1952,7 +1952,7 @@ LibLazyCrafting.craftInteractionTables[CRAFTING_TYPE_JEWELRYCRAFTING] = copy(Lib
 LibLazyCrafting.craftInteractionTables[CRAFTING_TYPE_JEWELRYCRAFTING]["station"] = CRAFTING_TYPE_JEWELRYCRAFTING
 
 local function initializeSetInfo()
-	if not LibLazyCraftingSavedVars then 
+	if not LibLazyCraftingSavedVars then
 		LibLazyCraftingSavedVars = {}
 	end
 	local vars = LibLazyCraftingSavedVars
