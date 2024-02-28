@@ -166,6 +166,7 @@ local function LLC_ProvisioningIsItemCraftable(self, station, request)
 end
 
 local function CompileProvisioningRequirements(request)
+	request.timesToMake = request.quantity or 1
 	local requirements = {}
 	local _,_,numIngredients = GetRecipeInfo(request.recipeListIndex, request.recipeIndex)
 	for i = 1, numIngredients do
