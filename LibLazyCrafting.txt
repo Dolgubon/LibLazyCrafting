@@ -6,15 +6,15 @@
 ; You can read the full terms at https://account.elderscrollsonline.com/add-on-terms
 
 ## APIVersion: 101040
-## Title: LibLazyCrafting v4.0
-## Version: 4.0
+## Title: LibLazyCrafting v4.001
+## Version: 4.001
 ## Author: Dolgubon
 ## Contributors: ziggr
 ## OptionalDependsOn: pChat LibStub HomeStationMarker
 ## Description: A library to help craft items.
 ## SavedVariables: LibLazyCraftingSavedVars
 ## IsLibrary: true
-## AddOnVersion: 4000
+## AddOnVersion: 4001
 
 LibLazyCrafting.lua
 
