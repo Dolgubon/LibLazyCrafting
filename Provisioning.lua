@@ -144,7 +144,7 @@ local function LLC_ProvisioningIsItemCraftable(self, station, request)
 	if station ~= request.station then return false end
 
 	local materialList  = {}
-	if not request.recipeListIndex and recipe.recipeIndex then return nil end
+	if not request.recipeListIndex or not request.recipeIndex then return nil end
 	local rli = request.recipeListIndex  -- for less typing
 	local ri = request.recipeIndex
 	local recipeInfo = { GetRecipeInfo(rli, ri) }
@@ -170,8 +170,8 @@ local function CompileProvisioningRequirements(request)
 	local _,_,numIngredients = GetRecipeInfo(request.recipeListIndex, request.recipeIndex)
 	for i = 1, numIngredients do
 		local id = GetItemLinkItemId(GetRecipeIngredientItemLink(request.recipeListIndex, request.recipeIndex, i))
-		if id then
-			requirements[id] = GetRecipeIngredientRequiredQuantity(request.recipeListIndex, request.recipeIndex, i)
+		if id and id~=0 then
+			requirements[id] = GetRecipeIngredientRequiredQuantity(request.recipeListIndex, request.recipeIndex, i) * request.timesToMake
 		end
 	end
 	return requirements
