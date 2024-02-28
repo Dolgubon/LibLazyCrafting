@@ -8,7 +8,7 @@
 -- File Name: Enchanting.lua
 -- File Description: Contains the functions for Enchanting
 -- Load Order Requirements: After LibLazyCrafting.lua
--- 
+--
 -----------------------------------------------------------------------------------
 
 local LibLazyCrafting = _G["LibLazyCrafting"]
@@ -28,7 +28,7 @@ local craftingQueue = LibLazyCrafting.craftingQueue
 --------------------------------------
 -- ENCHANTING HELPER FUNCTIONS
 
-local function getItemLinkFromItemId(itemId) local name = GetItemLinkName(ZO_LinkHandler_CreateLink("Test Trash", nil, ITEM_LINK_TYPE,itemId, 1, 26, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 5, 0, 0, 0, 10000, 0)) 
+local function getItemLinkFromItemId(itemId) local name = GetItemLinkName(ZO_LinkHandler_CreateLink("Test Trash", nil, ITEM_LINK_TYPE,itemId, 1, 26, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 5, 0, 0, 0, 10000, 0))
 	return ZO_LinkHandler_CreateLink(zo_strformat("<<t:1>>",name), nil, ITEM_LINK_TYPE,itemId, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0) end
 
 local function areIdsValid(potency, essence, aspect)
@@ -53,7 +53,7 @@ end
 -- ENCHANTING USER INTERACTION FUNCTIONS
 
 -- Since bag indexes can change, this ignores those. Instead, it takes in the name, or the index (table of indexes is found in table above, and is specific to this library)
--- Bag indexes will be determined at time of crafting	
+-- Bag indexes will be determined at time of crafting
 local function LLC_CraftEnchantingGlyphItemID(self, potencyItemID, essenceItemID, aspectItemID, autocraft, reference, gearRequestTable, quantity)
 	dbug('FUNCTION:LLCEnchantCraft')
 	if reference == nil then reference = "" end
@@ -86,8 +86,8 @@ local function LLC_CraftEnchantingGlyphItemID(self, potencyItemID, essenceItemID
 	table.insert(craftingQueue[self.addonName][CRAFTING_TYPE_ENCHANTING],requestTable)
 
 	--sortCraftQueue()
-	if GetCraftingInteractionType()==CRAFTING_TYPE_ENCHANTING then 
-		LibLazyCrafting.craftInteract(event, CRAFTING_TYPE_ENCHANTING) 
+	if GetCraftingInteractionType()==CRAFTING_TYPE_ENCHANTING then
+		LibLazyCrafting.craftInteract(event, CRAFTING_TYPE_ENCHANTING)
 	end
 	return requestTable
 end
@@ -110,7 +110,7 @@ end
 
 LibLazyCrafting.functionTable.AddGlyphToExistingGear = LLC_AddGlyphToExistingGear
 
-local validLevels = 
+local validLevels =
 {
 	1,
 	5,
@@ -211,7 +211,7 @@ local levelLeaps = { -- internal, so we can take shortcut. Key is level + 50 if 
 	{Key=210,lvl=nil,cp=160},
 }
 
-local qualityItemIdInfo = 
+local qualityItemIdInfo =
 {
 	45850,
 	45851,
@@ -248,8 +248,8 @@ local function closestGlyphLevel(isCP, level)
 	else
 		local enchantLevels = {160, 150, 100, 70, 50, 30, 10}
 		for i = 1, #enchantLevels do
-			if level >=enchantLevels[i] then 
-				return enchantLevels[i] 
+			if level >=enchantLevels[i] then
+				return enchantLevels[i]
 			end
 		end
 	end
@@ -260,7 +260,7 @@ LibLazyCrafting.getGlyphInfo = function () return glyphInfo, enchantLevelInfo,qu
 
 --[[
 /script g = SHARED_INVENTORY.bagCache[BAG_VIRTUAL] p =GetEnchantingResultingItemLink
-/script for k,v in pairs(g)do s=v.slotIndex a=GetItemLink(5,s)if GetItemLinkEnchantingRuneClassification(a)==2 and GetItemCraftingInfo(5,s)==3 
+/script for k,v in pairs(g)do s=v.slotIndex a=GetItemLink(5,s)if GetItemLinkEnchantingRuneClassification(a)==2 and GetItemCraftingInfo(5,s)==3
 	then b=p(5,45830,5,s,5,45850)c=p(5,45830,5,s,5,45850)d(GetItemLinkItemId(a).." "..b) end end
 	]]
 --SHARED_INVENTORY.bagCache[BAG_VIRTUAL]
@@ -336,8 +336,8 @@ local function getComponentRunesForGlyphItemLink(itemLink)
 		end
 	end
 	local response = {
-		["essenceItemID"] = essenceId, 
-		["aspectItemID"] = aspectId, 
+		["essenceItemID"] = essenceId,
+		["aspectItemID"] = aspectId,
 		["potencyItemID"] = potencyId,
 	}
 	return response
@@ -369,13 +369,13 @@ LibLazyCrafting.EnchantAttributesToGlyphIds = LLC_EnchantAttributesToGlyphIds
 function LLC_GetEnchantingResultItemLinkByAttributes(isCP, level, enchantId, quality, autocraft, reference)
 	local itemId = getEnchantingResultItemId(enchantId)
 	local quality1, quality2 = getQualityInfo(isCP, level, quality)
-	return string.format("|H1:item:%d:%d:%d:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0|h|h", itemId, quality1, quality2) 
+	return string.format("|H1:item:%d:%d:%d:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0|h|h", itemId, quality1, quality2)
 end
 
 ------------------------------------------------------------------------
 -- ENCHANTING STATION INTERACTION FUNCTIONS
 
-local currentCraftAttempt = 
+local currentCraftAttempt =
 {
 	["essenceItemID"] = 0,
 	["aspectItemID"] = 0,
@@ -395,7 +395,7 @@ local function LLC_EnchantingCraftinteraction(station, earliest, addon, position
 	dbug("FUNCTION:LLCEnchantCraft")
 	if not earliest then  LibLazyCrafting.SendCraftEvent( LLC_NO_FURTHER_CRAFT_POSSIBLE,  station) end
 	if earliest and not IsPerformingCraftProcess() then
-		local locations = 
+		local locations =
 		{
 			select(1,findItemLocationById(earliest["potencyItemID"])),
 			select(2,findItemLocationById(earliest["potencyItemID"])),
@@ -432,7 +432,7 @@ local function LLC_EnchantingCraftinteraction(station, earliest, addon, position
 			ENCHANTING.essenceLength = 0
 			ENCHANTING.aspectSound = SOUNDS["NONE"]
 			ENCHANTING.aspectLength = 0
-			
+
 		end
 	end
 end
@@ -487,15 +487,15 @@ local function applyGlyphToItem(requestTable)
 		zo_callLater(function()
 			EnchantItem(equipBag, equipSlot, glyphBag , glyphSlot)
 
-			
-			zo_callLater( function() 
+
+			zo_callLater( function()
 				local _,equipSlot = searchUniqueId(equipUniqueId)
-				LibLazyCrafting:SetItemStatusNew(equipSlot) 
+				LibLazyCrafting:SetItemStatusNew(equipSlot)
 			end, 550 )
 
 			LibLazyCrafting.SendCraftEvent(LLC_CRAFT_SUCCESS, 0, requestTable.Requester, requestTable )
 		end, (numLoops-i+1)*260
-		
+
 		)
 		currentCraftAttempt = {}
 	end
@@ -536,7 +536,7 @@ local function handleEnchantComplete(station, slot)
 		return removedTable
 	end
 	--sortCraftQueue()
-	local resultTable = 
+	local resultTable =
 	{
 		["bag"] = BAG_BACKPACK,
 		["slot"] = slot,
@@ -646,11 +646,11 @@ LibLazyCrafting.craftInteractionTables[CRAFTING_TYPE_ENCHANTING] =
 	['function'] = LLC_EnchantingCraftinteraction,
 	["complete"] = LLC_EnchantingCraftingComplete,
 	["endInteraction"] = function(self, station) --[[endInteraction()]] end,
-	["isItemCraftable"] = function(self, station, request) 
-		if station == CRAFTING_TYPE_ENCHANTING and haveEnoughMats(request.potencyItemID, request.essenceItemID, request.aspectItemID) 
-			and hasSkillToCraft(request.potencyItemID, request.essenceItemID, request.aspectItemID) then 
-			return true else return false 
-		end 
+	["isItemCraftable"] = function(self, station, request)
+		if station == CRAFTING_TYPE_ENCHANTING and haveEnoughMats(request.potencyItemID, request.essenceItemID, request.aspectItemID)
+			and hasSkillToCraft(request.potencyItemID, request.essenceItemID, request.aspectItemID) then
+			return true else return false
+		end
 	end,
 	["materialRequirements"] = compileGlyphRequirements,
 }

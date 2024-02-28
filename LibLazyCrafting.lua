@@ -17,7 +17,7 @@ end
 
 -- Initialize libraries
 local libLoaded
-local LIB_NAME, VERSION = "LibLazyCrafting", 4.004
+local LIB_NAME, VERSION = "LibLazyCrafting", 4005
 local LibLazyCrafting, oldminor
 if LibStub then
 	LibLazyCrafting, oldminor = LibStub:NewLibrary(LIB_NAME, VERSION)
@@ -34,7 +34,7 @@ LLC.name, LLC.version = LIB_NAME, VERSION
 
 LLC.debugDisplayNames = {}
 
-LibLazyCrafting.craftInteractionTables = LibLazyCrafting.craftInteractionTables or 
+LibLazyCrafting.craftInteractionTables = LibLazyCrafting.craftInteractionTables or
 {
 	["example"] =
 	{
@@ -96,7 +96,7 @@ local qualityIndexes =
 -- Thus, all that's needed to find the oldest request is cycle through each addon, and check only their first request.
 -- Unless a user has hundreds of addons using this library (unlikely) it shouldn't be a big strain. (shouldn't anyway)
 -- Not sure how to handle multiple stations for furniture. needs more research for that.
-craftingQueue = craftingQueue or 
+craftingQueue = craftingQueue or
 {
 	--["GenericTesting"] = {}, -- This is for say, calling from chat.
 	["ExampleAddon"] = -- This contains examples of all the crafting requests. It is removed upon initialization. Most values are random/default.
@@ -230,7 +230,7 @@ function findItemLocationById(itemID)
 			return BAG_BACKPACK,i
 		end
 	end
-	
+
 	if GetItemId(BAG_VIRTUAL, itemID) ~=0 then
 
 		return BAG_VIRTUAL, itemID
@@ -333,7 +333,7 @@ function LibLazyCrafting.stackableCraftingComplete(station, lastCheck, craftingT
 	end
 end
 
-LibLazyCrafting.newItemsSeen = 
+LibLazyCrafting.newItemsSeen =
 {
 
 }
@@ -679,7 +679,7 @@ function LibLazyCrafting:Init()
 		return LibLazyCrafting.addonInteractionTables[addonName]
 	end
 
-	
+
 	-- Response codes
 	LLC_CRAFT_SUCCESS = "success" -- extra result: Position of item, item link, maybe other stuff?
 	LLC_ITEM_TO_IMPROVE_NOT_FOUND = "item not found" -- extra result: Improvement request table
@@ -709,7 +709,7 @@ function LibLazyCrafting:SetItemStatusNew(itemSlot)
 	-- d(itemSlot)
 	-- PLAYER_INVENTORY:RefreshInventorySlot(1, itemSlot, BAG_BACKPACK)
 	local v = PLAYER_INVENTORY:GetBackpackItem(itemSlot)
-	
+
 	if v then
 		v.brandNew = true
 		v.age = 1
@@ -728,7 +728,7 @@ local function LLCThrowError(addonNameOrTable, message)
 	if type(addonNameOrTable)=="table" then
 		addonName = addonNameOrTable.addonName
 		if not addonName then
-			return 
+			return
 		end
 	else
 		addonName = addonNameOrTable
@@ -802,15 +802,15 @@ local function CraftComplete(event, station)
 				if LibLazyCrafting.recipeCurrentCraftAttempt and LibLazyCrafting.recipeCurrentCraftAttempt.recipeIndex then
 					LibLazyCrafting.craftInteractionTables[CRAFTING_TYPE_PROVISIONING]["complete"](station)
 				else
-					v["complete"]( station) 
+					v["complete"]( station)
 				end
-				LibLazyCrafting.isCurrentlyCrafting = {false, "", ""} 
+				LibLazyCrafting.isCurrentlyCrafting = {false, "", ""}
 				return
 			else
 				if LibLazyCrafting.recipeCurrentCraftAttempt and LibLazyCrafting.recipeCurrentCraftAttempt.recipeIndex then
 					LibLazyCrafting.craftInteractionTables[CRAFTING_TYPE_PROVISIONING]["complete"](station)
 				else
-					v["complete"]( station) 
+					v["complete"]( station)
 				end
 				LibLazyCrafting.isCurrentlyCrafting = {false, "", ""}
 				if CraftEarliest(event, station) then
