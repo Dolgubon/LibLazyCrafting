@@ -17,7 +17,7 @@ end
 
 -- Initialize libraries
 local libLoaded
-local LIB_NAME, VERSION = "LibLazyCrafting", 3.0866
+local LIB_NAME, VERSION = "LibLazyCrafting", 4.004
 local LibLazyCrafting, oldminor
 if LibStub then
 	LibLazyCrafting, oldminor = LibStub:NewLibrary(LIB_NAME, VERSION)
@@ -174,6 +174,7 @@ local craftResultFunctions = {[""]=function() end}
 
 LibLazyCrafting.functionTable = LibLazyCrafting.functionTable or {}
 LibLazyCrafting.craftResultFunctions = craftResultFunctions
+LibLazyCrafting.listeningFunctions = {}
 
 
 --------------------------------------
@@ -597,7 +598,13 @@ function LibLazyCrafting.SendCraftEvent( event,  station, requester, returnTable
 			d("Callback to LLC resulted in an error. Please contact the author of "..requester)
 			d(err)
 		end
-
+	end
+	for listenerName, callbackFunction in pairs(LibLazyCrafting.listeningFunctions) do
+		local errorFound, err =  pcall(function() callbackFunction(event, requester, station, returnTable )end)
+		if not errorFound then
+			d("Callback to LLC resulted in an error. Please contact the author of "..listenerName)
+			d(err)
+		end
 	end
 end
 
@@ -648,6 +655,7 @@ function LibLazyCrafting:Init()
 		for functionName, functionBody in pairs(LibLazyCrafting.functionTable) do
 			LLCAddonInteractionTable[functionName] = functionBody
 		end
+		LLCAddonInteractionTable["functionCallback"] = functionCallback
 
 		craftResultFunctions[addonName] = functionCallback
 
@@ -660,6 +668,11 @@ function LibLazyCrafting:Init()
 		LibLazyCrafting.addonInteractionTables[addonName] =  LLCAddonInteractionTable
 
 		return LLCAddonInteractionTable
+	end
+
+	-- If you just want to know everything that's crafted, call this function and give it your callback function
+	function LibLazyCrafting:AddListeningAddon(addonName, functionCallback)
+		LibLazyCrafting.listeningFunctions[addonName] = functionCallback
 	end
 
 	function  LibLazyCrafting:GetRequestingAddon(addonName)
