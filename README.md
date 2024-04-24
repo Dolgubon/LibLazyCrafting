@@ -27,12 +27,12 @@ Add the following to your manifest.txt file:
 Next, register your addon with LibLazyCrafting (LLC) in the addon initialized function. This will let you associate craft requests with your addon, as well as set various parameters when your addon calls LLC functions
 
 ### local interactionTable = LibLazyCrafting:AddRequestingAddon(*String addonName, boolean autoCraft, function callbackFunction, string optionalDebugAuthor, table optionalStyleTable*)
-* *String addonName*: The name of the requesting addon.  
-* *boolean autoCraft*: Whether requests from this addon should by default be crafted as soon as possible, or if your addon will initiate the crafts (usually upon request by the user)  
-* *function callbackFunction* (* String event, integer CraftingType, table requestTable*) : The function that should be called when a requested craft is either complete, or failed for some reason. Different parameters may be returned depending on the event  
-* *string optionalDebugAuthor*: This is optional, and if you give it your name, then it'll do debug messages when the character name matches. AKA when you run the addon yourself. Not sure how good the debug message coverage is.  
+* *String addonName*: The name of the requesting addon.
+* *boolean autoCraft*: Whether requests from this addon should by default be crafted as soon as possible, or if your addon will initiate the crafts (usually upon request by the user)
+* *function callbackFunction* (* String event, integer CraftingType, table requestTable*) : The function that should be called when a requested craft is either complete, or failed for some reason. Different parameters may be returned depending on the event
+* *string optionalDebugAuthor*: This is optional, and if you give it your name, then it'll do debug messages when the character name matches. AKA when you run the addon yourself. Not sure how good the debug message coverage is.
 * *table optionalStyleTable*: This is used if you do no choice/max style for crafting equippable gear. Basically, these are what styles LLC can use. You can still manually choose to use other styles if you want, but if you don't specify, the addon will use styles from this table.
-* **returns**: An interaction table with which your addon can use when calling the various functions provided by LLC. This interaction table contains most of the functions LLC provides.  
+* **returns**: An interaction table with which your addon can use when calling the various functions provided by LLC. This interaction table contains most of the functions LLC provides.
 
 ### See reference section at the end for info on LLC Event names, what the reference parameter is, what the request table is, and what an Item ID is
 The reference section also contains some useful information about the game's API.
@@ -42,7 +42,7 @@ The reference section also contains some useful information about the game's API
 Functions available:
 
 ### CraftSmithingItemByLevel( *integer patternIndex,boolean isCP ,integer level, integer styleIndex,integer traitIndex,boolean useUniversalStyleItem,integer stationOverride, integer setIndex,integer quality,boolean autocraft,string reference,integer potencyId, integer essenceId, integer aspectId,integer smithingQuantity*)
-This is the main function in this module. 
+This is the main function in this module.
 * patternIndex*: Pattern Index is whether you want to make a sword, dagger, staff, etc. It is dependent on the provided station parameter. That is, if you give 1 for pattern and CRAFTING_TYPE_BLACKSMITHING for station, LLC will create an Axe.
 If you give 1 for pattern and CRAFTING_TYPE_CLOTHIER, then LLC will create a robe.
 * isCP, level* -> Self explanatory, unless you don't play ESO
@@ -54,7 +54,7 @@ If you give 1 for pattern and CRAFTING_TYPE_CLOTHIER, then LLC will create a rob
 * autocraft*: Determines if the library will craft the item. If it is false, the library will keep it in queue until the requesting addon tells it to craft the item.
 * reference*: This can be any type of data. It lets your addon to identify the request, to delete it, craft it, and know when it is complete. The default is the empty string.potencyId, essenceId, aspectId: If you want to create equipment with glyphs, use these parameters
 * smithingQuantity*: How many to make
-* potencyId, essenceID, and aspectID* - these can be used if you want the gear to be created with an enchantment. 
+* potencyId, essenceID, and aspectID* - these can be used if you want the gear to be created with an enchantment.
 
 returns: The request table, which contains all the information about the craft request.
 
@@ -80,21 +80,23 @@ Improve the item at the specified bag index and slot index to the specified qual
 ### AddGlyphToExistingGear(existingRequestTable, gearBag, gearSlot)
 - Same as the above, but the gear already exists, and you're waiting on the glyph to be made
 
+### DeconstructSmithingItem(bagIndex, slotIndex, autocraft, reference)
+- Takes in the bag and slot indexes of an item, and will deconstruct that item. Checks for the unique id before deconstructing, but if item has moved in the meantime, then it will not deconstruct
 
 ## Provisioning and Furniture
 The exact same functions are used by both provisioning and furniture, so they are combined here. You can use the AKA functions as your preference/use requires.
 
 ### CraftProvisioningItemByResultItemId(*integer resultItemId, integer timesToMake, boolean autocraft, string reference*)
-AKA CraftFurnishingItemByResultItemId  
+AKA CraftFurnishingItemByResultItemId
 * What item do you want to make? Get the item ID and pass it to this function
 ### CraftProvisioningItemByRecipeId( *integer recipeId, integer timesToMake, boolean autocraft, string reference*)
-AKA CraftFurnishingItemByRecipeId  
-* Recipe ID is the item link of the recipe that creates the food or furniture you want to make  
+AKA CraftFurnishingItemByRecipeId
+* Recipe ID is the item link of the recipe that creates the food or furniture you want to make
 ### CraftProvisioningItemByRecipeIndex(*integer recipeListIndex, integer recipeIndex, timesToMake, autocraft, reference*)
-AKA CraftFurnishingItemByRecipeIndex  
-AKA CraftProvisioningItem  
-This is the game equivalent craft provisioning function, so recipeListIndex and recipeIndex have the same function as in the game's API. Not particularly suggested for use.  
-But, you can use GetRecipeInfoFromItemId(recipeId) to get the relevant recipeListIndex and recipeIndex, which may be useful as there are many game API functions which use those as parameters.  
+AKA CraftFurnishingItemByRecipeIndex
+AKA CraftProvisioningItem
+This is the game equivalent craft provisioning function, so recipeListIndex and recipeIndex have the same function as in the game's API. Not particularly suggested for use.
+But, you can use GetRecipeInfoFromItemId(recipeId) to get the relevant recipeListIndex and recipeIndex, which may be useful as there are many game API functions which use those as parameters.
 
 
 ## Alchemy
@@ -104,7 +106,7 @@ CraftAlchemyPotion
 * *integer solventId* ,  *integer reagentId1* ,  *integer reagentId2* ,  *integer reagentId3* - These are item IDs.
 * *integer timesToMake* - Does not take into account the passives
 ### CraftAlchemyPotionselvent(*selventBagId, solventSlotId, reagent1BagId, reagent1SlotId, reagent2BagId, reagent2SlotId, reagent3BagId, reagent3SlotId, timesToMake, autocraft, reference*)
-This is the 'base game API' equivalent function. LLC will convert the bag and slot IDs to the item IDs, so once the user arrives at an alchemy station, 
+This is the 'base game API' equivalent function. LLC will convert the bag and slot IDs to the item IDs, so once the user arrives at an alchemy station,
 even if the locations of the reagents have changed, it will use whatever it was when your addon called the function
 
 
@@ -126,25 +128,25 @@ Similar to alchemy, this will convert the bag and slot IDs into item IDs and use
 Note: LLC_Global is a global queue meant only for testing and exploration. It is not recommended to actually use this within your addon; see General Usage for more info
 You can paste these functions into chat to craft stuff
 
-/script LLC_Global:CraftSmithingItemByLevel(3, true, 150,3 ,1 ,false, CRAFTING_TYPE_CLOTHIER, 0, 3,true) -- crafts a blue CP150 shoes  
-/script for i= 2, 25 do LLC_Global:CraftSmithingItemByLevel(3, false, i * 2,3 ,1 ,false, CRAFTING_TYPE_CLOTHIER, 0, 3,true) end -- Crafts lvl 4,6, 8, 10, etc. up to lvl 50. The items will be blue shoes.  
-/script LLC_Global:CraftEnchantingItemId(45830, 45838, 45851) -- Crafts a Monumental Glyph of Flame Resist  
+/script LLC_Global:CraftSmithingItemByLevel(3, true, 150,3 ,1 ,false, CRAFTING_TYPE_CLOTHIER, 0, 3,true) -- crafts a blue CP150 shoes
+/script for i= 2, 25 do LLC_Global:CraftSmithingItemByLevel(3, false, i * 2,3 ,1 ,false, CRAFTING_TYPE_CLOTHIER, 0, 3,true) end -- Crafts lvl 4,6, 8, 10, etc. up to lvl 50. The items will be blue shoes.
+/script LLC_Global:CraftEnchantingItemId(45830, 45838, 45851) -- Crafts a Monumental Glyph of Flame Resist
 /script LLC_Global:CraftProvisioningItem(1, 1) -- Makes Fishy Sticks
 
 
 # Reference section
 
 ### LLC events
-Each LLC event has a string to identify them, not a number. (like how the game does it) This is for more clarity.  
-**LLC_CRAFT_SUCCESS** = "success" -- extra result: Position of item, item link, possibly other stuff depending on crafting type  
-**LLC_ITEM_TO_IMPROVE_NOT_FOUND** = "item not found" -- extra result: Improvement request table  
-**LLC_INSUFFICIENT_MATERIALS** = "not enough mats" -- extra result: what is missing, item identifier  
-**LLC_INSUFFICIENT_SKILL**  = "not enough skill" -- extra result: what skills are missing; both if not enough traits, not enough styles, or trait unknown  
-**LLC_NO_FURTHER_CRAFT_POSSIBLE** = "no further craft items possible" -- Thrown when there is no more items that can be made at the station  
-**LLC_INITIAL_CRAFT_SUCCESS** = "initial stage of crafting complete" -- Thrown when the white item of a higher quality item is created  
-**LLC_ENCHANTMENT_FAILED** = "enchantment failed"  
-**LLC_CRAFT_PARTIAL_IMPROVEMENT** = "item has been improved one stage, but is not yet at final quality"  
-**LLC_CRAFT_BEGIN** = "starting crafting"  
+Each LLC event has a string to identify them, not a number. (like how the game does it) This is for more clarity.
+**LLC_CRAFT_SUCCESS** = "success" -- extra result: Position of item, item link, possibly other stuff depending on crafting type
+**LLC_ITEM_TO_IMPROVE_NOT_FOUND** = "item not found" -- extra result: Improvement request table
+**LLC_INSUFFICIENT_MATERIALS** = "not enough mats" -- extra result: what is missing, item identifier
+**LLC_INSUFFICIENT_SKILL**  = "not enough skill" -- extra result: what skills are missing; both if not enough traits, not enough styles, or trait unknown
+**LLC_NO_FURTHER_CRAFT_POSSIBLE** = "no further craft items possible" -- Thrown when there is no more items that can be made at the station
+**LLC_INITIAL_CRAFT_SUCCESS** = "initial stage of crafting complete" -- Thrown when the white item of a higher quality item is created
+**LLC_ENCHANTMENT_FAILED** = "enchantment failed"
+**LLC_CRAFT_PARTIAL_IMPROVEMENT** = "item has been improved one stage, but is not yet at final quality"
+**LLC_CRAFT_BEGIN** = "starting crafting"
 
 ### What is Reference parameter?
 The reference parameter is usually optional, but if provided, it allows you to keep track of requests. You can use the reference to cancel a request, get a request's info, or know when a specific request was completed.

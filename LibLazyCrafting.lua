@@ -17,7 +17,7 @@ end
 
 -- Initialize libraries
 local libLoaded
-local LIB_NAME, VERSION = "LibLazyCrafting", 4005
+local LIB_NAME, VERSION = "LibLazyCrafting", 4007
 local LibLazyCrafting, oldminor
 if LibStub then
 	LibLazyCrafting, oldminor = LibStub:NewLibrary(LIB_NAME, VERSION)
@@ -818,7 +818,7 @@ local function CraftComplete(event, station)
 			end
 		end
 	end
-	LibLazyCrafting.SendCraftEvent( LLC_NO_FURTHER_CRAFT_POSSIBLE ,  station,addon , nil )
+	LibLazyCrafting.SendCraftEvent( LLC_NO_FURTHER_CRAFT_POSSIBLE ,  station,nil , nil )
 end
 
 
