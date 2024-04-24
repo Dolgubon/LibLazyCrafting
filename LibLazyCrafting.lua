@@ -662,7 +662,6 @@ function LibLazyCrafting:Init()
 		LLCAddonInteractionTable.autocraft = autocraft
 
 		-- Give add-on authors a way to check for required version beyond
-		-- "I hope LibStub returns what I asked for!"
 		LLCAddonInteractionTable["version"] = VERSION
 
 		LibLazyCrafting.addonInteractionTables[addonName] =  LLCAddonInteractionTable

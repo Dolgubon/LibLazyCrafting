@@ -1799,7 +1799,7 @@ local function computeLinkParticulars(requestTable, link)
 	local cpQuality, level = levelStuff(level, isCP, quality)
 	-- cpQuality = 364
 	-- lvl = 50
-	link = string.format("|H1:item:%d:%d:%d:%d:%d:%d:0:0:0:0:0:0:0:0:0:%d:0:0:0:10000:0|h|h", itemId, cpQuality, lvl, enchantId, enchantCPQuality, enchantLvl,requestTable.style)
+	link = string.format("|H1:item:%d:%d:%d:%d:%d:%d:0:0:0:0:0:0:0:0:0:%d:0:0:0:10000:0|h|h", itemId, cpQuality, level, enchantId, enchantCPQuality, enchantLvl,requestTable.style)
 	return link
 end
 local linkTable = {}

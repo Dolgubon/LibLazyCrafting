@@ -183,7 +183,7 @@ local function getRecipeItemIdFromResultItemId(resultId)
 end
 
 local function CompileProvisioningRequirements(request)
-	request.timesToMake = request.quantity or 1
+	request.timesToMake = request.timesToMake or request.quantity or 1
 	local requirements = {}
 	local _,_,numIngredients = GetRecipeInfo(request.recipeListIndex, request.recipeIndex)
 	if not GetRecipeInfo(request.recipeListIndex, request.recipeIndex) then -- is recipe known?
