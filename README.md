@@ -80,6 +80,8 @@ Improve the item at the specified bag index and slot index to the specified qual
 ### AddGlyphToExistingGear(existingRequestTable, gearBag, gearSlot)
 - Same as the above, but the gear already exists, and you're waiting on the glyph to be made
 
+### DeconstructSmithingItem(bagIndex, slotIndex, autocraft, reference)
+- Takes in the bag and slot indexes of an item, and will deconstruct that item. Checks for the unique id before deconstructing, but if item has moved in the meantime, then it will not deconstruct
 
 ## Provisioning and Furniture
 The exact same functions are used by both provisioning and furniture, so they are combined here. You can use the AKA functions as your preference/use requires.

@@ -87,7 +87,7 @@ local function LLC_CraftEnchantingGlyphItemID(self, potencyItemID, essenceItemID
 
 	--sortCraftQueue()
 	if GetCraftingInteractionType()==CRAFTING_TYPE_ENCHANTING then 
-		LibLazyCrafting.craftInteract(event, CRAFTING_TYPE_ENCHANTING) 
+		LibLazyCrafting.craftInteract(event, CRAFTING_TYPE_ENCHANTING)
 	end
 	return requestTable
 end

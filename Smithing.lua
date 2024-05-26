@@ -776,7 +776,6 @@ local function InternalImproveSmithingItem(self, BagIndex, SlotIndex, newQuality
 	--sortCraftQueue()
 	if not IsPerformingCraftProcess() and GetCraftingInteractionType()~=0 and not LibLazyCrafting.isCurrentlyCrafting[1] then
 		LibLazyCrafting.craftInteract(nil, GetCraftingInteractionType())
-
 	end
 	return craftingRequestTable
 end
@@ -792,6 +791,41 @@ local function LLC_AddExistingGlyphToGear(self, existingRequestTable, glyphBag, 
 	existingRequestTable.glyphCreated = true
 	return
 end
+
+
+local function LLC_DeconstructItem(self, bagIndex, slotIndex, autocraft, reference)
+	local station = nil
+	for i = 1, 7 do
+		if CanItemBeDeconstructed(bagIndex, slotIndex, i) then
+			station = i
+		end
+	end
+	if not station then
+		d(GetItemLink(bagIndex, slotIndex)+" cannot be deconstructed at any crafting station. It may not be possible to deconstruct this item")
+	end
+	
+	local craftingRequestTable = 
+	{
+		["reference"] = reference or "",
+		["autocraft"] = autocraft or true,
+		["ItemLink"] = GetItemLink(bagIndex, slotIndex),
+		["itemUniqueId"] = GetItemUniqueId(bagIndex, slotIndex),
+		['itemStringUniqueId'] = Id64ToString(GetItemUniqueId(bagIndex, slotIndex)),
+		["station"] = station,
+		["timestamp"] = LibLazyCrafting.GetNextQueueOrder(),
+		["slotIndex"] = slotIndex,
+		["bagIndex"] = bagIndex,
+		["Requester"] = self.addonName,
+		["type"] = "deconstruct"
+	}
+	table.insert(craftingQueue[self.addonName][station], craftingRequestTable)
+	if not IsPerformingCraftProcess() and GetCraftingInteractionType()~=0 and not LibLazyCrafting.isCurrentlyCrafting[1] then
+		LibLazyCrafting.craftInteract(nil, GetCraftingInteractionType())
+	end
+	return craftingRequestTable
+end
+
+LibLazyCrafting.functionTable.DeconstructSmithingItem = LLC_DeconstructItem
 
 LibLazyCrafting.functionTable.AddExistingGlyphToGear = LLC_AddExistingGlyph
 
@@ -871,6 +905,142 @@ local craftingSounds =
 
 }
 
+local function LLC_Smithing_MinorModuleInteraction(station, earliest, addon, position)
+	local parameters = {
+		earliest.pattern,
+		earliest.materialIndex,
+		earliest.materialQuantity,
+		earliest.style,
+		earliest.trait,
+		earliest.useUniversalStyleItem,
+		1,
+	}
+	setCorrectSetIndex_ConsolidatedStation(earliest.setIndex)
+	if earliest.style == LLC_FREE_STYLE_CHOICE then
+		parameters[4] = maxStyle(earliest)
+	end
+	local setPatternOffset = {14, 15,[6]=6,[7]=2}
+	if earliest.setIndex~=INDEX_NO_SET then
+		parameters[1] = parameters[1] + setPatternOffset[station]
+	end
+	parameters[7] = math.min(GetMaxIterationsPossibleForSmithingItem(unpack(parameters)), earliest.smithingQuantity or 1)
+	if (earliest.smithingQuantity or 1) > GetMaxIterationsPossibleForSmithingItem(unpack(parameters)) then
+		d("Mismatch asked quantity: "..earliest.smithingQuantity.." actual max "..GetMaxIterationsPossibleForSmithingItem(unpack(parameters)))
+	end
+	if parameters[7] == 0 then
+		return
+	end
+	dbug("CALL:ZOCraftSmithing")
+
+	LibLazyCrafting.isCurrentlyCrafting = {true, "smithing", earliest["Requester"]}
+	LibLazyCrafting:setWatchingForNewItems (true)
+
+	hasNewItemBeenMade = false
+
+	if IsInGamepadPreferredMode() then -- Gamepad seems to not play craft sounds
+		PlaySound(craftingSounds[station])
+	end
+	CraftSmithingItem(unpack(parameters))
+	-- d(unpack(parameters))
+
+	currentCraftAttempt = copy(earliest)
+	currentCraftAttempt.position = position
+	currentCraftAttempt.callback = LibLazyCrafting.craftResultFunctions[addon]
+	currentCraftAttempt.slot = FindFirstEmptySlotInBag(BAG_BACKPACK)
+
+	parameters[6] = LINK_STYLE_DEFAULT
+
+	currentCraftAttempt.link = GetSmithingPatternResultLink(unpack(parameters))
+	--d("Making reference #"..tostring(currentCraftAttempt.reference).." link: "..currentCraftAttempt.link)
+end
+
+local function LLC_improvement_MinorModuleInteraction(station, earliest, addon, position)
+	local parameters = {}
+	local currentSkill, maxSkill = getImprovementLevel(station)
+	local currentItemQuality = GetItemLinkQuality(GetItemLink(earliest.ItemBagID, earliest.ItemSlotID))
+	if earliest.quality == currentItemQuality then
+		dbug("ACTION:RemoveImprovementRequest")
+		d("Item is already at final quality, but LLC did not improve the item. It may have been improved by the user or another addon")
+		local returnTable = table.remove(craftingQueue[addon][station],position )
+		returnTable.bag = BAG_BACKPACK
+		LibLazyCrafting.SendCraftEvent( LLC_CRAFT_SUCCESS ,  station,addon , returnTable )
+
+
+		currentCraftAttempt = {}
+		--sortCraftQueue()
+		LibLazyCrafting.craftInteract(nil, station)
+		LibLazyCrafting.DeleteHomeMarker(returnTable.setIndex, station)
+		return
+	end
+	if currentSkill~=maxSkill then
+		-- cancel if quality is already blue and skill is not max
+		-- This is to save on improvement mats.
+
+		if earliest.quality>2 and currentItemQuality >ITEM_QUALITY_MAGIC then
+			d("Improvement skill is not at maximum. Improvement prevented to save mats.")
+			return
+		end
+		if station == CRAFTING_TYPE_JEWELRYCRAFTING and earliest.quality>1 and currentItemQuality >ITEM_QUALITY_NORMAL then
+			d("Improvement skill is not at maximum. Improvement prevented to save mats.")
+			return
+		end
+	end
+	local numBooster = GetMaxImprovementMats( earliest.ItemBagID,earliest.ItemSlotID,station)
+	if not numBooster then return end
+	local _,_, stackSize = GetSmithingImprovementItemInfo(station, currentItemQuality)
+	if stackSize< numBooster then
+		d("Not enough improvement mats")
+		return end
+	dbug("CALL:ZOImprovement")
+	LibLazyCrafting.isCurrentlyCrafting = {true, "improve", earliest["Requester"]}
+	if IsInGamepadPreferredMode() then
+		PlaySound(craftingSounds.improve)
+	end
+	ImproveSmithingItem(earliest.ItemBagID,earliest.ItemSlotID, numBooster)
+	currentCraftAttempt = copy(earliest)
+	currentCraftAttempt.position = position
+	currentCraftAttempt.callback = LibLazyCrafting.craftResultFunctions[addon]
+	currentCraftAttempt.previousQuality = currentItemQuality
+
+	currentCraftAttempt.link = GetSmithingImprovedItemLink(earliest.ItemBagID, earliest.ItemSlotID, station)
+end
+
+local function findAllDeconstructable()
+end
+
+	-- ["reference"] = reference or "",
+	-- ["autocraft"] = autocraft or true,
+	-- ["ItemLink"] = GetItemLink(bagIndex, slotIndex),
+	-- ["itemUniqueId"] = GetItemUniqueId(bagIndex, slotIndex),
+	-- ['itemStringUniqueId'] = Id64ToString(GetItemUniqueId(bagIndex, slotIndex)),
+	-- ["station"] = station,
+	-- ["timestamp"] = LibLazyCrafting.GetNextQueueOrder(),
+	-- ["type"] = "deconstruct"
+local function LLC_Deconstruction_MinorModuleInteraction(station, earliest, addon, position)
+	if GetItemUniqueId(earliest.bagIndex, earliest.slotIndex) == earliest.itemUniqueId then
+		currentCraftAttempt = {}
+		currentCraftAttempt = copy(earliest)
+		PrepareDeconstructMessage() 
+		AddItemToDeconstructMessage(earliest.bagIndex, earliest.slotIndex, 1)  
+		SendDeconstructMessage()
+	end
+	dbug("Not implemented yet")
+
+end
+
+local function LLC_Research_MinorModuleInteraction(station, earliest, addon, position)
+	dbug("Not implemented yet")
+end
+
+local smithingMinorModuleFunctions = 
+{
+	["smithing"] = LLC_Smithing_MinorModuleInteraction,
+	["improvement"] = LLC_improvement_MinorModuleInteraction,
+	["deconstruct"] = LLC_Deconstruction_MinorModuleInteraction,
+	["research"] = LLC_Research_MinorModuleInteraction,
+
+}
+
 local hasNewItemBeenMade = false
 
 local function LLC_SmithingCraftInteraction( station, earliest, addon , position)
@@ -879,105 +1049,7 @@ local function LLC_SmithingCraftInteraction( station, earliest, addon , position
 
 	local earliest, addon , position = LibLazyCrafting.findEarliestRequest(station)
 	if earliest and not IsPerformingCraftProcess() then
-		if earliest.type =="smithing" then
-
-			local parameters = {
-				earliest.pattern,
-				earliest.materialIndex,
-				earliest.materialQuantity,
-				earliest.style,
-				earliest.trait,
-				earliest.useUniversalStyleItem,
-				1,
-			}
-			setCorrectSetIndex_ConsolidatedStation(earliest.setIndex)
-			if earliest.style == LLC_FREE_STYLE_CHOICE then
-				parameters[4] = maxStyle(earliest)
-			end
-			local setPatternOffset = {14, 15,[6]=6,[7]=2}
-			if earliest.setIndex~=INDEX_NO_SET then
-				parameters[1] = parameters[1] + setPatternOffset[station]
-			end
-			parameters[7] = math.min(GetMaxIterationsPossibleForSmithingItem(unpack(parameters)), earliest.smithingQuantity or 1)
-			if (earliest.smithingQuantity or 1) > GetMaxIterationsPossibleForSmithingItem(unpack(parameters)) then
-				d("Mismatch asked quantity: "..earliest.smithingQuantity.." actual max "..GetMaxIterationsPossibleForSmithingItem(unpack(parameters)))
-			end
-			if parameters[7] == 0 then
-				return
-			end
-			dbug("CALL:ZOCraftSmithing")
-
-			LibLazyCrafting.isCurrentlyCrafting = {true, "smithing", earliest["Requester"]}
-			LibLazyCrafting:setWatchingForNewItems (true)
-
-			hasNewItemBeenMade = false
-
-			if IsInGamepadPreferredMode() then -- Gamepad seems to not play craft sounds
-				PlaySound(craftingSounds[station])
-			end
-			CraftSmithingItem(unpack(parameters))
-			-- d(unpack(parameters))
-
-			currentCraftAttempt = copy(earliest)
-			currentCraftAttempt.position = position
-			currentCraftAttempt.callback = LibLazyCrafting.craftResultFunctions[addon]
-			currentCraftAttempt.slot = FindFirstEmptySlotInBag(BAG_BACKPACK)
-
-			parameters[6] = LINK_STYLE_DEFAULT
-
-			currentCraftAttempt.link = GetSmithingPatternResultLink(unpack(parameters))
-			--d("Making reference #"..tostring(currentCraftAttempt.reference).." link: "..currentCraftAttempt.link)
-		elseif earliest.type =="improvement" then
-			local parameters = {}
-			local currentSkill, maxSkill = getImprovementLevel(station)
-			local currentItemQuality = GetItemLinkQuality(GetItemLink(earliest.ItemBagID, earliest.ItemSlotID))
-			if earliest.quality == currentItemQuality then
-				dbug("ACTION:RemoveImprovementRequest")
-				d("Item is already at final quality, but LLC did not improve the item. It may have been improved by the user or another addon")
-				local returnTable = table.remove(craftingQueue[addon][station],position )
-				returnTable.bag = BAG_BACKPACK
-				LibLazyCrafting.SendCraftEvent( LLC_CRAFT_SUCCESS ,  station,addon , returnTable )
-
-
-				currentCraftAttempt = {}
-				--sortCraftQueue()
-				LibLazyCrafting.craftInteract(nil, station)
-				LibLazyCrafting.DeleteHomeMarker(returnTable.setIndex, station)
-				return
-			end
-			if currentSkill~=maxSkill then
-				-- cancel if quality is already blue and skill is not max
-				-- This is to save on improvement mats.
-
-				if earliest.quality>2 and currentItemQuality >ITEM_QUALITY_MAGIC then
-					d("Improvement skill is not at maximum. Improvement prevented to save mats.")
-					return
-				end
-				if station == CRAFTING_TYPE_JEWELRYCRAFTING and earliest.quality>1 and currentItemQuality >ITEM_QUALITY_NORMAL then
-					d("Improvement skill is not at maximum. Improvement prevented to save mats.")
-					return
-				end
-			end
-			local numBooster = GetMaxImprovementMats( earliest.ItemBagID,earliest.ItemSlotID,station)
-			if not numBooster then return end
-			local _,_, stackSize = GetSmithingImprovementItemInfo(station, currentItemQuality)
-			if stackSize< numBooster then
-				d("Not enough improvement mats")
-				return end
-			dbug("CALL:ZOImprovement")
-			LibLazyCrafting.isCurrentlyCrafting = {true, "improve", earliest["Requester"]}
-			if IsInGamepadPreferredMode() then
-				PlaySound(craftingSounds.improve)
-			end
-			ImproveSmithingItem(earliest.ItemBagID,earliest.ItemSlotID, numBooster)
-			currentCraftAttempt = copy(earliest)
-			currentCraftAttempt.position = position
-			currentCraftAttempt.callback = LibLazyCrafting.craftResultFunctions[addon]
-			currentCraftAttempt.previousQuality = currentItemQuality
-
-			currentCraftAttempt.link = GetSmithingImprovedItemLink(earliest.ItemBagID, earliest.ItemSlotID, station)
-		end
-
+		smithingMinorModuleFunctions[earliest.type](station, earliest, addon, position)
 			--ImproveSmithingItem(number itemToImproveBagId, number itemToImproveSlotIndex, number numBoostersToUse)
 			--GetSmithingImprovedItemLink(number itemToImproveBagId, number itemToImproveSlotIndex, number TradeskillType craftingSkillType, number LinkStyle linkStyle)
 	else
@@ -1170,6 +1242,28 @@ local function SmithingCraftCompleteFunction(station)
 		currentCraftAttempt = {}
 		--sortCraftQueue()
 		backupPosition = nil
+		-- ["reference"] = reference or "",
+		-- ["autocraft"] = autocraft or true,
+		-- ["ItemLink"] = GetItemLink(bagIndex, slotIndex),
+		-- ["itemUniqueId"] = GetItemUniqueId(bagIndex, slotIndex),
+		-- ['itemStringUniqueId'] = Id64ToString(GetItemUniqueId(bagIndex, slotIndex)),
+		-- ["station"] = station,
+		-- ["timestamp"] = LibLazyCrafting.GetNextQueueOrder(),
+		-- ["type"] = "deconstruct"
+		-- LLC_Global:DeconstructSmithingItem
+	elseif currentCraftAttempt.type == "deconstruct" then
+		local id64 = GetItemUniqueId(currentCraftAttempt.bagIndex, currentCraftAttempt.slotIndex)
+		if id64 ~= currentCraftAttempt.itemUniqueId then
+			local addonName, position = removedRequest(station, currentCraftAttempt.timestamp)
+			if addonName then
+				returnTable = table.remove(craftingQueue[addonName][station],position)
+				local copiedTable = LibLazyCrafting.tableShallowCopy(returnTable)
+				LibLazyCrafting.SendCraftEvent(LLC_CRAFT_SUCCESS, station, returnTable.Requester, copiedTable )
+			end
+		end
+		currentCraftAttempt = {}
+		backupPosition = nil
+
 	else
 		return
 	end
@@ -1929,6 +2023,9 @@ LibLazyCrafting.craftInteractionTables[CRAFTING_TYPE_BLACKSMITHING] =
 			if stackSize< numBooster then
 				return false
 			end
+			return true
+		end
+		if request["type"] == "deconstruct" then
 			return true
 		end
 		if canCraftItemHere(station, request["setIndex"]) and canCraftItem(request) and enoughMaterials(request) then
