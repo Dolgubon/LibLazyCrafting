@@ -1357,8 +1357,8 @@ local setInfo =
 	{{147948 , 147968, [6] = 147955, [7] =147984 },8,},	-- 49 Coldharbour's Favourite
 	{{148318 , 148338, [6] = 148325, [7] =148354 },5,},	-- 50 Senche Raht's Grit
 	{{148688 , 148708, [6] = 148695, [7] =148724 },3,},	-- 51 Vasterie's Tutelage
-	{{155778 , 155798, [6] = 155785, [7] =155813 },6,},	-- 52 Ancient Dragonguard
-	{{155404 , 155424, [6] = 155411, [7] =155439 },3,},	-- 53 Daring Corsair
+	{{155778 , 155798, [6] = 155785, [7] =155813 },8,},	-- 52 Ancient Dragonguard
+	{{155404 , 155424, [6] = 155411, [7] =155439 },5,},	-- 53 Daring Corsair
 	{{156152 , 156172, [6] = 156159, [7] =156187 },3,isSwapped=true},	-- 54 New Moon Acolyte -- Note, set ring and neck are swapped. neck ID is 156188
 	{{158546 , 158496, [6] = 158553, [7] =158358 },3,isSwapped=true}, -- 55 Critical Riposte
 	{{158920 , 158870, [6] = 158927, [7] =158732 },3,isSwapped=true}, -- 56 Unchained Aggressor
@@ -1384,6 +1384,9 @@ local setInfo =
 	{{194562 , 194582, [6] = 194569, [7] =194598 },7,isSwapped=true}, -- 695 Shattered Fate
 	{{194942 , 194962, [6] = 194949, [7] =194978 },7,isSwapped=true}, -- 696 Telvanni Efficiency
 	{{195322 , 195342, [6] = 195329, [7] =195358 },7,isSwapped=true}, -- 697 Seeker Synthesis
+	{{205773 , 205793, [6] = 205780, [7] =205809 },5,isSwapped=true}, -- 764 Highland Sentinel
+	{{205393 , 205413, [6] = 205400, [7] =205429 },3,isSwapped=true}, -- 763 Tharriker's Strike
+	{{206153 , 206173, [6] = 206160, [7] =206189 },7,isSwapped=true}, -- 765 Threads of War
 }
 
 SetIndexes = {}
