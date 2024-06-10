@@ -1255,10 +1255,14 @@ local function SmithingCraftCompleteFunction(station)
 		local id64 = GetItemUniqueId(currentCraftAttempt.bagIndex, currentCraftAttempt.slotIndex)
 		if id64 ~= currentCraftAttempt.itemUniqueId then
 			local addonName, position = removedRequest(station, currentCraftAttempt.timestamp)
-			returnTable = table.remove(craftingQueue[addonName][station],position)
-			local copiedTable = LibLazyCrafting.tableShallowCopy(returnTable)
-			LibLazyCrafting.SendCraftEvent(LLC_CRAFT_SUCCESS, station, returnTable.Requester, copiedTable )
+			if addonName then
+				returnTable = table.remove(craftingQueue[addonName][station],position)
+				local copiedTable = LibLazyCrafting.tableShallowCopy(returnTable)
+				LibLazyCrafting.SendCraftEvent(LLC_CRAFT_SUCCESS, station, returnTable.Requester, copiedTable )
+			end
 		end
+		currentCraftAttempt = {}
+		backupPosition = nil
 
 	else
 		return
@@ -1353,8 +1357,8 @@ local setInfo =
 	{{147948 , 147968, [6] = 147955, [7] =147984 },8,},	-- 49 Coldharbour's Favourite
 	{{148318 , 148338, [6] = 148325, [7] =148354 },5,},	-- 50 Senche Raht's Grit
 	{{148688 , 148708, [6] = 148695, [7] =148724 },3,},	-- 51 Vasterie's Tutelage
-	{{155778 , 155798, [6] = 155785, [7] =155813 },8,},	-- 52 Ancient Dragonguard
-	{{155404 , 155424, [6] = 155411, [7] =155439 },5,},	-- 53 Daring Corsair
+	{{155778 , 155798, [6] = 155785, [7] =155813 },6,},	-- 52 Ancient Dragonguard
+	{{155404 , 155424, [6] = 155411, [7] =155439 },3,},	-- 53 Daring Corsair
 	{{156152 , 156172, [6] = 156159, [7] =156187 },3,isSwapped=true},	-- 54 New Moon Acolyte -- Note, set ring and neck are swapped. neck ID is 156188
 	{{158546 , 158496, [6] = 158553, [7] =158358 },3,isSwapped=true}, -- 55 Critical Riposte
 	{{158920 , 158870, [6] = 158927, [7] =158732 },3,isSwapped=true}, -- 56 Unchained Aggressor
