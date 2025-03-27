@@ -5,10 +5,10 @@
 ; States and/or other countries. All rights reserved.
 ; You can read the full terms at https://account.elderscrollsonline.com/add-on-terms
 
-## APIVersion: 101043
-## Title: LibLazyCrafting v4.011
-## Version: 4.011
-## AddOnVersion: 4011
+## APIVersion: 101045 101046
+## Title: LibLazyCrafting v4.014
+## Version: 4.014
+## AddOnVersion: 4014
 ## Author: Dolgubon
 ## Contributors: ziggr
 ## OptionalDependsOn: pChat LibStub HomeStationMarker

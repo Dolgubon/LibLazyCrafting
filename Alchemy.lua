@@ -82,7 +82,7 @@ end
 local function LLC_AlchemyCraftInteraction(station, earliest, addon , position)
 	dbug("FUNCTION:LLCAlchemyCraft")
 	if not earliest then LibLazyCrafting.SendCraftEvent( LLC_NO_FURTHER_CRAFT_POSSIBLE,  station) return end
-	if IsPerformingCraftProcess() then return end
+	if ZO_CraftingUtils_IsPerformingCraftProcess() then return end
 
 	-- Find bag locations of each material used in the crafting attempt.
 	local solventBagId, solventSlotIndex = findItemLocationById(earliest["solventId"])

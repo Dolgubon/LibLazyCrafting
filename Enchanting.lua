@@ -394,7 +394,7 @@ local lastSlotUsed = nil
 local function LLC_EnchantingCraftinteraction(station, earliest, addon, position)
 	dbug("FUNCTION:LLCEnchantCraft")
 	if not earliest then  LibLazyCrafting.SendCraftEvent( LLC_NO_FURTHER_CRAFT_POSSIBLE,  station) end
-	if earliest and not IsPerformingCraftProcess() then
+	if earliest and not ZO_CraftingUtils_IsPerformingCraftProcess() then
 		local locations = 
 		{
 			select(1,findItemLocationById(earliest["potencyItemID"])),
@@ -503,7 +503,7 @@ end
 
 local function wasItemMade(bag, slot)
 	return  GetItemLinkName(GetItemLink(BAG_BACKPACK, slot,0)) == GetItemLinkName(currentCraftAttempt.link)
-		and GetItemLinkQuality(GetItemLink(BAG_BACKPACK, slot,0)) == GetItemLinkQuality(currentCraftAttempt.link)
+		and GetItemLinkFunctionalQuality(GetItemLink(BAG_BACKPACK, slot,0)) == GetItemLinkFunctionalQuality(currentCraftAttempt.link)
 end
 local function handleEnchantComplete(station, slot)
 	-- We found it!
@@ -584,7 +584,7 @@ local function LLC_EnchantingCraftingComplete(station, lastCheck)
 		currentCraftAttempt = {}
 	elseif lastSlotUsed then
 		if GetItemLinkName(GetItemLink(BAG_BACKPACK, lastSlotUsed,0)) == GetItemLinkName(currentCraftAttempt.link)
-			and GetItemLinkQuality(GetItemLink(BAG_BACKPACK, lastSlotUsed,0)) == GetItemLinkQuality(currentCraftAttempt.link) then
+			and GetItemLinkFunctionalQuality(GetItemLink(BAG_BACKPACK, lastSlotUsed,0)) == GetItemLinkFunctionalQuality(currentCraftAttempt.link) then
 				currentCraftAttempt.slot = lastSlotUsed
 				lastSlotUsed = nil
 				return LLC_EnchantingCraftingComplete(event, station, lastCheck)

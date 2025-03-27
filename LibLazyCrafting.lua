@@ -17,7 +17,7 @@ end
 
 -- Initialize libraries
 local libLoaded
-local LIB_NAME, VERSION = "LibLazyCrafting", 4.011
+local LIB_NAME, VERSION = "LibLazyCrafting", 4.014
 local LibLazyCrafting, oldminor
 if LibStub then
 	LibLazyCrafting, oldminor = LibStub:NewLibrary(LIB_NAME, VERSION)
@@ -760,7 +760,7 @@ end
 
 -- Called when a crafting station is opened. Should then craft anything needed in the queue
 local function CraftInteract(event, station)
-	if IsPerformingCraftProcess() then
+	if ZO_CraftingUtils_IsPerformingCraftProcess() then
 		return
 	end
 	for k,v in pairs(LibLazyCrafting.craftInteractionTables) do
