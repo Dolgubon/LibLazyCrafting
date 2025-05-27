@@ -41,7 +41,7 @@ local dataTables = -- Might move all data tables over to this in the future
 	["SetIndexes"] = {},
 	["materialItemIDs"] = {},
 }
-local SetIndexes = {}
+local SetIndexes = LibLazyCrafting.GetSetIndexes()
 local materialItemIDs = {}
 
 local sortCraftQueue = LibLazyCrafting.sortCraftQueue
@@ -375,6 +375,41 @@ local function getCraftLevel(station)
 	end
 end
 
+local function mapPatternToResearchLine(station, pattern)
+	-- research line and pattern doesn't match up for all crafts, so normalize it
+	local researchLine = pattern
+	if station == CRAFTING_TYPE_CLOTHIER and pattern > 1 then
+		researchLine = researchLine - 1
+	end
+	if station == CRAFTING_TYPE_WOODWORKING then
+		local map = {
+			1, 6, 2, 3, 4, 5
+		}
+		researchLine = map[pattern]
+	end
+	return researchLine
+end
+
+local function getTraitInfoFromResearch(station, pattern, traitType)
+	-- research line and pattern doesn't match up for all crafts, so normalize it
+	-- Note that the CraftSmithingItem's trait index is 1 off from the itemtraitType constants used by smithing research line
+	-- so we need to subtract to match them
+	traitType = traitType - 1 
+	local researchLine = mapPatternToResearchLine(station, pattern)
+	local totalKnown = 0
+	local traitTypeKnown = false
+	for i = 1, 9 do
+		local trait, description, known = GetSmithingResearchLineTraitInfo(station, researchLine, i)
+
+		if known then
+			totalKnown = totalKnown + 1
+		end
+		if trait == traitType then
+			traitTypeKnown = known
+		end
+	end
+	return totalKnown, traitTypeKnown
+end
 
 local function canCraftItem(craftRequestTable)
 	local missing =
@@ -395,7 +430,15 @@ local function canCraftItem(craftRequestTable)
 	-- This offset index was used in the call GetSmithingPatternInfo, but not in IsSmithingTraitKnownForResult
 	-- which caused the check to fail if you didn't have the same traits known for both rings and necklaces in sets.
 	local patternIndex = craftRequestTable["pattern"] + setPatternOffset[craftRequestTable["station"]]
-	local _,_,_,_,_, traitsKnown = GetSmithingPatternInfo(patternIndex)
+	local patternToUseForTraits
+	if GetSetIndexes()[craftRequestTable["setIndex"]] and GetSetIndexes()[craftRequestTable["setIndex"]].isSwapped and station == CRAFTING_TYPE_JEWELRYCRAFTING then
+		if craftRequestTable["pattern"] == 1 then
+			patternToUseForTraits = 2
+		else
+			patternToUseForTraits = 1
+		end
+	end
+	local traitsKnown, specificTraitKnown = getTraitInfoFromResearch(craftRequestTable['station'], craftRequestTable["pattern"], craftRequestTable["trait"])
 	local traitsRequired = GetSetIndexes()[craftRequestTable["setIndex"]][3]
 
 	local level, max =  getCraftLevel(craftRequestTable['station'])
@@ -417,7 +460,8 @@ local function canCraftItem(craftRequestTable)
 		missingInd = true
 	end
 	-- Check if the specific trait is known
-	if not IsSmithingTraitKnownForPattern(patternIndex, craftRequestTable["trait"] - 1) then
+	-- d(GetSmithingResearchLineTraitInfo(craftRequestTable['station'],mapPatternToResearchLine(craftRequestTable['station'], craftRequestTable["pattern"]),  craftRequestTable["trait"] - 1 ))
+	if not specificTraitKnown then
 		missingInd = true
 		missing.knowledge["trait"] = true
 	end
@@ -671,7 +715,7 @@ local function LLC_CraftSmithingItem(self, patternIndex, materialIndex, material
 	requestTable["reference"] = reference
 	requestTable["smithingQuantity"] = smithingQuantity or 1
 	requestTable["initialQuantity"] = quantity
-	if GetSetIndexes()[setIndex] and GetSetIndexes()[setIndex].isSwapped and station == CRAFTING_TYPE_JEWELRYCRAFTING then -- New Moon Acolyte pattern indexes are swapped for jewelry!
+	if GetSetIndexes()[setIndex] and GetSetIndexes()[setIndex].isSwapped and station == CRAFTING_TYPE_JEWELRYCRAFTING then -- New Moon Acolyte pattern indexes and beyond are swapped for jewelry!
 		if requestTable.pattern == 1 then
 			requestTable.pattern = 2
 		else
@@ -711,7 +755,10 @@ local function LLC_CraftSmithingItemByLevel(self, patternIndex, isCP , level, st
 
 		local materialQuantity = GetMatRequirements(patternIndex, materialIndex, stationOverride)
 
-		return LLC_CraftSmithingItem(self, patternIndex, materialIndex, materialQuantity, styleIndex, traitIndex, useUniversalStyleItem, stationOverride, setIndex, quality, autocraft, reference, potencyId, essenceId, aspectId, smithingQuantity)
+		local requestTable = LLC_CraftSmithingItem(self, patternIndex, materialIndex, materialQuantity, styleIndex, traitIndex, useUniversalStyleItem, stationOverride, setIndex, quality, autocraft, reference, potencyId, essenceId, aspectId, smithingQuantity)
+		requestTable.level = level
+		requestTable.isCP = isCP
+		return requestTable
 	else
 	end
 end
@@ -867,6 +914,7 @@ end
 
 
 local function setCorrectSetIndex_ConsolidatedStation(setIndex)
+	SMITHING:SetMode(SMITHING_MODE_CREATION)
 	if not ZO_Smithing_IsConsolidatedStationCraftingMode() then
 		return
 	end
@@ -1293,133 +1341,6 @@ EVENT_MANAGER:AddFilterForEvent(LibLazyCrafting.name, EVENT_INVENTORY_SINGLE_SLO
 
 local compileRequirements
 
--- First is the name of the set. Second is a table of sample itemIds. Third is the number of required traits.
--- First itemId is for blacksmithing (axe, no trait), second is for clothing, (robe no trait) third is woodworking (Bow, no trait)
--- This is pretty much arbitrary, sorted by when the set was introduced, and how many traits are needed.
--- Declared at the end of the file for cleanliness
-
--- Language free!!!!
-
--- For brevity sake, sets are simply listed as 3 item IDs with the number of traits needed.
--- The name of the set is then added in on initialization using the API.
-local setInfo =
-{ --{{Axe    , Robe  ,  6  = Bow   ,  7  = Necklace},trait_ct},
-	{{43529  , 43549 , [6] = 43543 , [7] =  43561},0},  --  1 no set
-	{{46499  , 43805 , [6] = 46518 , [7] = 137683},2},  --  2 death's wind
-	{{47265  , 47279 , [6] = 47287 , [7] = 137685},2},  --  3 night's silence
-	{{49563  , 49575 , [6] = 49583 , [7] = 137691},2},  --  4 ashen grip
-	{{50708  , 43979 , [6] = 50727 , [7] = 137694},3},  --  5 torug's pact
-	{{46882  , 43808 , [6] = 46901 , [7] = 137684},3},  --  6 twilight's embrace
-	{{48031  , 48042 , [6] = 48050 , [7] = 137687},3},  --  7 seducer
-	{{48797  , 43849 , [6] = 48816 , [7] = 137689},4},  --  8 magnus' gift
-	{{51090  , 51105 , [6] = 51113 , [7] = 137695},4},  --  9 hist bark
-	{{47648  , 47663 , [6] = 47671 , [7] = 137686},4},  -- 10 whitestrake's
-	{{48414  , 48425 , [6] = 48433 , [7] = 137688},5},  -- 11 vampire's kiss
-	{{52233  , 52243 , [6] = 52251 , [7] = 137698},5},  -- 12 song of lamae
-	{{52614  , 52624 , [6] = 52632 , [7] = 137699},5},  -- 13 alessia's bulwark
-	{{49180  , 49195 , [6] = 49203 , [7] = 137690},6},  -- 14 night mother's gaze
-	{{51471  , 51486 , [6] = 51494 , [7] = 137696},6},  -- 15 willow's path
-	{{51852  , 51864 , [6] = 51872 , [7] = 137697},6},  -- 16 hunding's rage
-	{{53757  , 53772 , [6] = 53780 , [7] = 137702},8},  -- 17 kagrenac's hope
-	{{52995  , 53006 , [6] = 53014 , [7] = 137700},8},  -- 18 orgnum's scales
-	{{53376  , 44053 , [6] = 53393 , [7] = 137701},8},  -- 19 eyes of mara
-	{{54138  , 54149 , [6] = 54157 , [7] = 137703},8},  -- 20 shalidor's curse
-	{{49946  , 43968 , [6] = 49964 , [7] = 137692},8},  -- 21 oblivion's foe
-	{{50327  , 43972 , [6] = 50345 , [7] = 137693},8},  -- 22 spectre's eye
-	{{54965  , 54963 , [6] = 54971 , [7] = 137704},8},  -- 23 way of the arena
-	{{58175  , 58174 , [6] = 58182 , [7] = 137705},9},  -- 24 twice-born star
-	{{60261  , 60280 , [6] = 60268 , [7] = 137706},5},  -- 25 noble's conquest
-	{{60611  , 60630 , [6] = 60618 , [7] = 137707},7},  -- 26 redistributor
-	{{60961  , 60980 , [6] = 60968 , [7] = 137708},9},  -- 27 armor master
-	{{69949  , 69942 , [6] = 69956 , [7] = 137710},3},  -- 28 trial by fire
-	{{69599  , 69592 , [6] = 69606 , [7] = 137709},6},  -- 29 law of julianos
-	{{70649  , 70642 , [6] = 70656 , [7] = 137712},9},  -- 30 morkuldin
-	{{71813  , 71806 , [6] = 71820 , [7] = 137713},5},  -- 31 tava's favor
-	{{72163  , 72156 , [6] = 72170 , [7] = 137714},7},  -- 32 clever alchemist
-	{{72513  , 72506 , [6] = 72520 , [7] = 137715},9},  -- 33 eternal hunt
-	{{75386  , 75406 , [6] = 75393 , [7] = 137716},5},  -- 34 kvatch gladiator
-	{{75736  , 75756 , [6] = 75743 , [7] = 137717},7},  -- 35 varen's legacy
-	{{76086  , 76106 , [6] = 76093 , [7] = 137718},9},  -- 36 pelinal's aptitude
-	{{121551 , 121571, [6] = 121558, [7] = 137719},3},  -- 37 assassin's guile
-	{{122251 , 122271, [6] = 122258, [7] = 137721},6},  -- 38 shacklebreaker
-	{{121901 , 121921, [6] = 121908, [7] = 137720},8},  -- 39 daedric trickery
-	{{131070 , 131090, [6] = 131077, [7] = 137724},6},  -- 40 mechanical acuity
-	{{130370 , 130390, [6] = 130377, [7] = 137722},2},  -- 41 innate axiom
-	{{130720 , 130740, [6] = 130727, [7] = 137723},4},  -- 42 fortified brass
-	{{135717 , 135737, [6] = 135724, [7] = 138714},3},  -- 43 adept rider
-	{{136417 , 136437, [6] = 136424, [7] = 138730},9},  -- 44 nocturnal's favor
-	{{136067 , 136087, [6] = 136074, [7] = 138722},6},  -- 45 sload's semblance
-	{{143161 , 143181, [6] = 143168, [7] = 143197},2},	-- 46 Naga Shaman
-	{{143531 , 143551, [6] = 143538, [7] = 143567},4},	-- 47 Might of the Lost Legion
-	{{142791 , 142811, [6] = 142798, [7] = 142827},7,},	-- 48 Grave-Stake Collector
-	{{147948 , 147968, [6] = 147955, [7] =147984 },8,},	-- 49 Coldharbour's Favourite
-	{{148318 , 148338, [6] = 148325, [7] =148354 },5,},	-- 50 Senche Raht's Grit
-	{{148688 , 148708, [6] = 148695, [7] =148724 },3,},	-- 51 Vasterie's Tutelage
-	{{155778 , 155798, [6] = 155785, [7] =155813 },6,},	-- 52 Ancient Dragonguard
-	{{155404 , 155424, [6] = 155411, [7] =155439 },3,},	-- 53 Daring Corsair
-	{{156152 , 156172, [6] = 156159, [7] =156187 },3,isSwapped=true},	-- 54 New Moon Acolyte -- Note, set ring and neck are swapped. neck ID is 156188
-	{{158546 , 158496, [6] = 158553, [7] =158358 },3,isSwapped=true}, -- 55 Critical Riposte
-	{{158920 , 158870, [6] = 158927, [7] =158732 },3,isSwapped=true}, -- 56 Unchained Aggressor
-	{{159294 , 159244, [6] = 159301, [7] =159106 },3,isSwapped=true}, -- 57 Dauntless Combatant
-	{{161451 , 161401, [6] = 161458, [7] =161263 },3,isSwapped=true}, -- 58 Stuhn's Favor
-	{{161825 , 161775, [6] = 161832, [7] =161637 },3,isSwapped=true}, -- 491 Dragon's Appetite
-	{{163287 , 163237, [6] = 163294, [7] =163099 },3,isSwapped=true}, -- 506 Spell Parasite
-	{{168747 , 168767, [6] = 168754, [7] =168782 },9,isSwapped=true}, -- 541 Aetherial Ascension
-	{{168373 , 168393, [6] = 168380, [7] =168408 },6,isSwapped=true}, -- 540 Legacy of Karth
-	{{167999 , 168019, [6] = 168006, [7] =168034 },3,isSwapped=true}, -- 539 Red Eagle's Fury
-	{{172455 , 172475, [6] = 172462, [7] =172490 },3,isSwapped=true}, -- 582 Hist Whisperer's Song
-	{{172829 , 172849, [6] = 172836, [7] =172864 },7,isSwapped=true}, -- 583 Heartland Conquerer
-	{{173203 , 173223, [6] = 173210, [7] =173238 },5,isSwapped=true}, -- 584 Diamond's Victory
-	{{178806 , 178826, [6] = 178813, [7] =178841 },3,isSwapped=true}, -- 610 Wretched Vitality
-	{{179180 , 179200, [6] = 179187, [7] =179215 },7,isSwapped=true}, -- 611 Deadlands Demolisher
-	{{179554 , 179574, [6] = 179561, [7] =179589 },5,isSwapped=true}, -- 612 Iron Flask
-	{{184771 , 184791, [6] = 184778, [7] =184807 },3,isSwapped=true}, -- 640 Order's Wrath
-	{{185151 , 185171, [6] = 185158, [7] =185187 },5,isSwapped=true}, -- 641 Serpent's Disdain
-	{{185531 , 185551, [6] = 185538, [7] =185567 },7,isSwapped=true}, -- 642 Druid'd Braid
-	{{191232 , 191252, [6] = 191239, [7] =191268 },7,isSwapped=true}, -- 677 Chimera's Rebuke
-	{{191612 , 191632, [6] = 191619, [7] =191648 },7,isSwapped=true}, -- 678 Old Growth Brewer
-	{{191992 , 192012, [6] = 191999, [7] =192028 },7,isSwapped=true}, -- 679 Claw of the Forest Wraith
-	{{194562 , 194582, [6] = 194569, [7] =194598 },7,isSwapped=true}, -- 695 Shattered Fate
-	{{194942 , 194962, [6] = 194949, [7] =194978 },7,isSwapped=true}, -- 696 Telvanni Efficiency
-	{{195322 , 195342, [6] = 195329, [7] =195358 },7,isSwapped=true}, -- 697 Seeker Synthesis
-	{{205393 , 205413, [6] = 205400, [7] =205429 },3,isSwapped=true}, -- 763 Tharriker's Strike
-	{{205773 , 205793, [6] = 205780, [7] =205809 },5,isSwapped=true}, -- 764 Highland Sentinel
-	{{206153 , 206173, [6] = 206160, [7] =206189 },7,isSwapped=true}, -- 765 Threads of War
-}
-
-SetIndexes = {}
-
-for i = 1, #setInfo do
-	local _, name,_,_,_, index = GetItemLinkSetInfo(getItemLinkFromItemId(setInfo[i][1][1]),false)
-
-	SetIndexes[index] = setInfo[i]
-	SetIndexes[index][3] = index
-	if index==INDEX_NO_SET then
-		table.insert(SetIndexes[index],1,"No Set")
-	else
-		table.insert(SetIndexes[index],1,name)
-	end
-
-
-end
-
-
---GetItemLinkSetInfo(string itemLink, boolean equipped)
--- Returns: boolean hasSet, string setName, number numBonuses, number numEquipped, number maxEquipped, number setId
-
--- for i = 1,#SetIndexes do
--- 	local _, a = GetItemLinkSetInfo(getItemLinkFromItemId(SetIndexes[i][1][1]),false)
-
--- 	table.insert(SetIndexes[i],1,a)
--- end
-
-
-function GetSetIndexes()
-
-	return SetIndexes
-end
-LibLazyCrafting.functionTable.GetSetIndexes = GetSetIndexes
-LibLazyCrafting.GetSetIndexes = GetSetIndexes
 
 -- IDs for stuff like Sanded Ruby Ash, Iron Ingots, etc.
 local materialItemIDs =
@@ -1588,7 +1509,7 @@ local function createSetItemIdTable(setId)
 		return lastComputedSetTable
 	end
 
-	local IdSource = LibLazyCraftingSavedVars.SetIds[setId]
+	local IdSource = LibLazyCrafting.SetIds[setId]
 	if not IdSource then
 		return
 	end
@@ -1662,8 +1583,8 @@ local function internalScrapeSetItemItemIds()
 	local apiVersionDifference = GetAPIVersion() - 101029
 	local estimatedTime = math.floor((20000*apiVersionDifference+200000)/300*25/1000)+3
 	zo_callLater(function()
-	CHAT_SYSTEM:AddMessage("LibLazyCrafting: Beginning scrape of set items. Estimated time: "..estimatedTime.."s")
-	CHAT_SYSTEM:AddMessage("This is a (usually) once per major game update scan. Please wait until it it is complete.")end
+	CHAT_ROUTER:AddSystemMessage("LibLazyCrafting: Beginning scrape of set items. Estimated time: "..estimatedTime.."s")
+	CHAT_ROUTER:AddSystemMessage("This is a (usually) once per major game update scan. Please wait until it it is complete.")end
 	, 25)
 	
 	local craftedItemIds = LibLazyCraftingSavedVars.SetIds or {}
@@ -1741,6 +1662,11 @@ local jewelryPatterns=
 	EQUIP_TYPE_RING,
 	EQUIP_TYPE_NECK,
 }
+local jewelrySwappedPatterns=
+{
+	EQUIP_TYPE_NECK,
+	EQUIP_TYPE_RING,
+}
 local woodPatterns = 
 {
 	WEAPONTYPE_BOW,
@@ -1782,7 +1708,7 @@ function IsItemLinkRobe(link)
 	return textureFileName == "/esoui/art/icons/gear_breton_light_robe_d.dds"
 end
 
-local function mapItemType(station, pattern)
+local function mapItemType(station, pattern, setId)
 	local isWeapon
 	local equipType
 	local weaponType
@@ -1819,6 +1745,10 @@ local function mapItemType(station, pattern)
 	elseif station == CRAFTING_TYPE_JEWELRYCRAFTING then
 		isWeapon = false
 		equipType = jewelryPatterns[pattern]
+		-- not sure why but we need to swap when this function is called from one spot, and shouldn't when it's called from another
+		if setId and GetSetIndexes()[setId].isSwapped then
+			equipType = jewelrySwappedPatterns[pattern]
+		end
 		return function(link) return GetItemLinkEquipType(link)==equipType end
 	elseif station == CRAFTING_TYPE_BLACKSMITHING then
 		if pattern > 7 then
@@ -1893,14 +1823,14 @@ local function computeLinkParticulars(requestTable, link)
 	end
 	local matIndex = requestTable["materialIndex"]
 	local materialQuantity =  requestTable["materialQuantity"] 
-	local cpQuality, level = levelStuff(level, isCP, quality)
+	local cpQuality, level = levelStuff(requestTable.level, requestTable.isCP, requestTable.quality)
 	local style = requestTable.style
 	if style == LLC_FREE_STYLE_CHOICE then
 		style = 1
 	end
 	-- cpQuality = 364
 	-- lvl = 50
-	link = string.format("|H1:item:%d:%d:%d:%d:%d:%d:0:0:0:0:0:0:0:0:0:%d:0:0:0:10000:0|h|h", itemId, cpQuality, lvl, enchantId, enchantCPQuality, enchantLvl,style) 
+	link = string.format("|H1:item:%d:%d:%d:%d:%d:%d:0:0:0:0:0:0:0:0:0:%d:0:0:0:10000:0|h|h", itemId, cpQuality, level, enchantId, enchantCPQuality, enchantLvl,style) 
 	return link
 end
 local linkTable = {}
@@ -1910,7 +1840,7 @@ local function getItemLinkFromRequest(requestTable)
 	local trait = requestTable.trait
 	local pattern= requestTable.pattern
 	local station= requestTable.station
-	local isLinkMatchFunction = mapItemType(station, pattern)
+	local isLinkMatchFunction = mapItemType(station, pattern, setId)
 	if not linkTable.id or linkTable.id ~= setId then
 		linkTable = {}
 		linkTable.id = setId
@@ -1918,6 +1848,7 @@ local function getItemLinkFromRequest(requestTable)
 		for i, v in pairs(IdTable) do
 			linkTable[i] = getItemLinkFromItemId(IdTable[i])
 		end
+
 	end
 	local finalLink
 	for i , v in pairs(linkTable) do
@@ -2064,7 +1995,8 @@ local function initializeSetInfo()
 	end
 	local vars = LibLazyCraftingSavedVars
 	-- Last condition is bc I forgot to actually add them before the patch increase :(
-	if not vars.SetIds or not vars.lastScrapedAPIVersion or vars.lastScrapedAPIVersion<GetAPIVersion() or LibLazyCraftingSavedVars.SetIds[695] == nil then
+	-- Due to console memory limitations, we can't scrape anymore, at least for now. Unless that changes, it will now be hardcoded.
+	if false and not vars.SetIds or not vars.lastScrapedAPIVersion or vars.lastScrapedAPIVersion<GetAPIVersion() or LibLazyCraftingSavedVars.SetIds[695] == nil then
 		-- if LibLazyCraftingSavedVars.SetIds and LibLazyCraftingSavedVars.SetIds[695] == nil then
 		-- 	d("LibLazyCrafting: Usually this scraping only runs once per major game patch, but this re-run is required to add the new sets from Blackwood.")
 		-- end

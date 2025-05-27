@@ -68,7 +68,7 @@ If you give 1 for pattern and CRAFTING_TYPE_CLOTHIER, then LLC will create a rob
 returns: The request table, which contains all the information about the craft request.
 
 ### CraftSmithingItem( *integer patternIndex, integer materialIndex, integer materialQuantity, integer styleIndex, integer traitIndex, boolean useUniversalStyleItem, integer:nilable stationOverride, integer:nilable setIndex, integer:nilable quality, boolean:nilable autocraft, anything:nilable reference, integer potencyId, integer essenceId, integer aspectId, integer smithingQuantity*)
-This function is the same as CraftSmithingItemByLevel, except it replaces isCP and level with what the game uses to decide those. Not reccommended to use, unless converting an existing non LLC addon to one that uses LLC.
+This function is the same as CraftSmithingItemByLevel, except it replaces isCP and level with what the game uses to decide those. Not recommended to use, unless converting an existing non LLC addon to one that uses LLC.
 
 ### InteractionTable:isSmithingLevelValid(*boolean isCP, integer lvl)*
 returns boolean isValidSmithingLevel -- This returns true if equipment can be created at that level. For example, if you ask for isCP = true, and lvl = 155, you will get false, because the game does not allow you to create items at CP155
@@ -130,6 +130,8 @@ Similar to alchemy, this will convert the bag and slot IDs into item IDs and use
 - Takes in the bag and glyph slots of an existing piece of gear, and an existing craft request table, and then will apply that glyph to the gear once the gear is created
 ### AddGlyphToExistingGear(existingRequestTable, gearBag, gearSlot)
 - Same as the above, but the gear already exists, and you're waiting on the glyph to be madeEnchantAttributesToGlyphIds(isCP, level, enchantId, quality) returns potencyId, essenseId, aspectId
+### CraftEnchantingGlyphDesiredResult(*isCP, level, resultItemId, quality, autocraft, reference, gearRequestTableOrQuantity*)
+- Takes in the desired glyph traits and queues the related glyph. ResultItemId is the item ID of the glyph that you want (aka the effect)
 
 ## Example usage
 

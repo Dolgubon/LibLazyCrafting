@@ -17,7 +17,7 @@ end
 
 -- Initialize libraries
 local libLoaded
-local LIB_NAME, VERSION = "LibLazyCrafting", 4.014
+local LIB_NAME, VERSION = "LibLazyCrafting", 4.015
 local LibLazyCrafting, oldminor
 if LibStub then
 	LibLazyCrafting, oldminor = LibStub:NewLibrary(LIB_NAME, VERSION)
@@ -796,27 +796,19 @@ local function CraftComplete(event, station)
 	--d("Event:completion")
 	local LLCResult = nil
 	for k,v in pairs(LibLazyCrafting.craftInteractionTables) do
-		if v:check( station) then
+		if v:check(station) then
 			if GetCraftingInteractionType()==0 then -- This is called when the user exits the crafting station while the game is crafting
 				endInteraction(EVENT_END_CRAFTING_STATION_INTERACT, station)
+			end
 				if LibLazyCrafting.recipeCurrentCraftAttempt and LibLazyCrafting.recipeCurrentCraftAttempt.recipeIndex then
 					LibLazyCrafting.craftInteractionTables[CRAFTING_TYPE_PROVISIONING]["complete"](station)
 				else
 					v["complete"]( station) 
 				end
 				LibLazyCrafting.isCurrentlyCrafting = {false, "", ""} 
-				return
-			else
-				if LibLazyCrafting.recipeCurrentCraftAttempt and LibLazyCrafting.recipeCurrentCraftAttempt.recipeIndex then
-					LibLazyCrafting.craftInteractionTables[CRAFTING_TYPE_PROVISIONING]["complete"](station)
-				else
-					v["complete"]( station) 
-				end
-				LibLazyCrafting.isCurrentlyCrafting = {false, "", ""}
-				if CraftEarliest(event, station) then
-					return
-				end
+			if GetCraftingInteractionType()~=0 and CraftEarliest(event, station) then
 			end
+			return
 		end
 	end
 	LibLazyCrafting.SendCraftEvent( LLC_NO_FURTHER_CRAFT_POSSIBLE ,  station,nil , nil )

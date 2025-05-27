@@ -1,5 +1,6 @@
 
 Smithing.lua
+SmithingData.lua
 LibLazyCrafting.lua
 LibLazyCrafting.addon
 Alchemy.lua

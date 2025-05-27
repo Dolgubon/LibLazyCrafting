@@ -45,26 +45,25 @@ local function LLC_CraftAlchemyItemByItemId(self, solventId, reagentId1, reagent
 	if not self then d("Please call with colon notation") end
 	if autocraft==nil then autocraft = self.autocraft end
 	if not solventId and reagentId1 and reagentId2 then return end -- reagentId3 optional, nil okay.
-
-	table.insert(craftingQueue[self.addonName][CRAFTING_TYPE_ALCHEMY],
-	{
+	local requestTable = {
 		["solventId"] = solventId,
 		["reagentId1"] = reagentId1,
 		["reagentId2"] = reagentId2,
 		["reagentId3"] = reagentId3,
 		["timestamp"] = GetTimeStamp(),
-		["autocraft"] = autocraft or self.autocraft,
+		["autocraft"] = autocraft,
 		["Requester"] = self.addonName,
 		["reference"] = reference or "",
 		["station"] = CRAFTING_TYPE_ALCHEMY,
 		["timesToMake"] = timesToMake or 1,
 	}
-	)
+	table.insert(craftingQueue[self.addonName][CRAFTING_TYPE_ALCHEMY],requestTable)
 	LibLazyCrafting.AddHomeMarker(nil, CRAFTING_TYPE_ALCHEMY)
 	--sortCraftQueue()
 	if GetCraftingInteractionType()==CRAFTING_TYPE_ALCHEMY then
 		LibLazyCrafting.craftInteract(event, CRAFTING_TYPE_ALCHEMY)
 	end
+	return requestTable
 end
 
 local function LLC_CraftAlchemyPotion(self, selventBagId, solventSlotId, reagent1BagId, reagent1SlotId, reagent2BagId, reagent2SlotId, reagent3BagId, reagent3SlotId, timesToMake, autocraft, reference)
@@ -74,7 +73,7 @@ local function LLC_CraftAlchemyPotion(self, selventBagId, solventSlotId, reagent
 	else
 		reagent3itemId = GetItemId(reagent3BagId, reagent3SlotId)
 	end
-	LLC_CraftAlchemyItemByItemId(self, GetItemId(selventBagId, solventSlotId),GetItemId( reagent1BagId, reagent1SlotId),GetItemId(reagent2BagId, reagent2SlotId), reagent3itemId, timesToMake,autocraft, reference)
+	return LLC_CraftAlchemyItemByItemId(self, GetItemId(selventBagId, solventSlotId),GetItemId( reagent1BagId, reagent1SlotId),GetItemId(reagent2BagId, reagent2SlotId), reagent3itemId, timesToMake,autocraft, reference)
 end
 
 
@@ -83,7 +82,6 @@ local function LLC_AlchemyCraftInteraction(station, earliest, addon , position)
 	dbug("FUNCTION:LLCAlchemyCraft")
 	if not earliest then LibLazyCrafting.SendCraftEvent( LLC_NO_FURTHER_CRAFT_POSSIBLE,  station) return end
 	if ZO_CraftingUtils_IsPerformingCraftProcess() then return end
-
 	-- Find bag locations of each material used in the crafting attempt.
 	local solventBagId, solventSlotIndex = findItemLocationById(earliest["solventId"])
 	local reagent1BagId, reagent1SlotIndex = findItemLocationById(earliest["reagentId1"])
