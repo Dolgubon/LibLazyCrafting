@@ -17,7 +17,7 @@ end
 
 -- Initialize libraries
 local libLoaded
-local LIB_NAME, VERSION = "LibLazyCrafting", 4.015
+local LIB_NAME, VERSION = "LibLazyCrafting", 4.018
 local LibLazyCrafting, oldminor
 if LibStub then
 	LibLazyCrafting, oldminor = LibStub:NewLibrary(LIB_NAME, VERSION)
@@ -319,8 +319,12 @@ function LibLazyCrafting.stackableCraftingComplete(station, lastCheck, craftingT
 		else
 			-- Loop to craft multiple copies
 			local earliest = craftingQueue[currentCraftAttempt.addon][station][currentCraftAttempt.position]
-			earliest.timesToMake = earliest.timesToMake - 1
-			currentCraftAttempt.timesToMake = earliest.timesToMake
+			if earliest then 
+				earliest.timesToMake = earliest.timesToMake - 1
+				currentCraftAttempt.timesToMake = earliest.timesToMake
+			else
+				currentCraftAttempt.timesToMake = currentCraftAttempt.timesToMake - 1
+			end
 			if GetCraftingInteractionType()==0 then zo_callLater(function() LibLazyCrafting.stackableCraftingComplete( station, true, station, currentCraftAttempt) end,100) end
 		end
 	elseif lastCheck then
@@ -693,6 +697,9 @@ function LibLazyCrafting:Init()
 
 	LLC_Global = LibLazyCrafting:AddRequestingAddon("LLC_Global",true, function(event, station, result)
 		d(GetItemLink(result.bag,result.slot).." crafted at slot "..tostring(result.slot).." with reference "..result.reference) end)
+	LLC_UserRequests = LibLazyCrafting:AddRequestingAddon("LLC_UserRequests",true, function(event, station, result)
+		if event ~= LLC_CRAFT_SUCCESS then return end
+		d("LibLazyCrafting: Crafted "..GetItemLink(result.bag,result.slot)) end)
 
 	--craftingQueue["ExampleAddon"] = nil
 end
@@ -805,7 +812,7 @@ local function CraftComplete(event, station)
 				else
 					v["complete"]( station) 
 				end
-				LibLazyCrafting.isCurrentlyCrafting = {false, "", ""} 
+				LibLazyCrafting.isCurrentlyCrafting = {false, "", ""}
 			if GetCraftingInteractionType()~=0 and CraftEarliest(event, station) then
 			end
 			return

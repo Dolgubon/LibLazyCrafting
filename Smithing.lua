@@ -30,8 +30,7 @@ local function dbug(...)
 	end
 end
 
-local INDEX_NO_SET = 0
-LibLazyCrafting.INDEX_NO_SET = INDEX_NO_SET
+local INDEX_NO_SET = LibLazyCrafting.INDEX_NO_SET
 
 local craftingQueue = LibLazyCrafting.craftingQueue
 
@@ -408,8 +407,12 @@ local function getTraitInfoFromResearch(station, pattern, traitType)
 			traitTypeKnown = known
 		end
 	end
+	if traitType == 0 then
+		traitTypeKnown = true
+	end
 	return totalKnown, traitTypeKnown
 end
+LibLazyCrafting.getTraitInfoFromResearch =  getTraitInfoFromResearch
 
 local function canCraftItem(craftRequestTable)
 	local missing =
@@ -460,8 +463,7 @@ local function canCraftItem(craftRequestTable)
 		missingInd = true
 	end
 	-- Check if the specific trait is known
-	-- d(GetSmithingResearchLineTraitInfo(craftRequestTable['station'],mapPatternToResearchLine(craftRequestTable['station'], craftRequestTable["pattern"]),  craftRequestTable["trait"] - 1 ))
-	if not specificTraitKnown then
+	if not specificTraitKnown and craftRequestTable["trait"] ~= ITEM_TRAIT_TYPE_NONE + 1 then
 		missingInd = true
 		missing.knowledge["trait"] = true
 	end
@@ -762,8 +764,250 @@ local function LLC_CraftSmithingItemByLevel(self, patternIndex, isCP , level, st
 	else
 	end
 end
+local recipeItemTypes=
+{
+	[ITEMTYPE_DRINK] = 1, [ITEMTYPE_FOOD] = 1, [ITEMTYPE_FURNISHING] = 1
+}
+local invalidTraits = {
+	[ITEM_TRAIT_TYPE_ARMOR_INTRICATE] = 1,
+	[ITEM_TRAIT_TYPE_ARMOR_ORNATE] = 1,
+	[ITEM_TRAIT_TYPE_JEWELRY_ORNATE] = 1,
+	[ITEM_TRAIT_TYPE_JEWELRY_INTRICATE] = 1,
+	[ITEM_TRAIT_TYPE_WEAPON_INTRICATE] = 1,
+	[ITEM_TRAIT_TYPE_WEAPON_ORNATE] = 1,
+}
+local function verifyLinkIsValid(link)
+	local itemType = GetItemLinkItemType(link)
+	-- if recipeItemTypes[itemType] then
+	-- 	if GetRecipeInfoFromItemId(GetItemLinkItemId(link)) then
+	-- 		return true
+	-- 	end
+	-- end
+	local _,_,_,_,_,setIndex=GetItemLinkSetInfo(link)
+	if setIndex > 0 and not LibLazyCrafting.GetSetIndexes()[setIndex] then
+		return false
+	end
+	local itemType = GetItemLinkItemType(link)
+	if itemType ~= ITEMTYPE_ARMOR and itemType ~= ITEMTYPE_WEAPON then
+		return false
+	end
+	local trait = GetItemLinkTraitInfo(link)
+	if invalidTraits[trait] then
+		return false
+	end
+	return true
+end
+
+local weaponTypes={
+	[WEAPONTYPE_BOW] = {CRAFTING_TYPE_WOODWORKING, 1,8},
+	[WEAPONTYPE_FIRE_STAFF] = {CRAFTING_TYPE_WOODWORKING, 3, 9},
+	[WEAPONTYPE_FROST_STAFF] = {CRAFTING_TYPE_WOODWORKING, 4, 10},
+	[WEAPONTYPE_HEALING_STAFF] = {CRAFTING_TYPE_WOODWORKING, 6, 12},
+	[WEAPONTYPE_LIGHTNING_STAFF] = {CRAFTING_TYPE_WOODWORKING, 5, 11},
+	[WEAPONTYPE_SHIELD] = {CRAFTING_TYPE_WOODWORKING,2, 13},
+	[WEAPONTYPE_AXE] = {CRAFTING_TYPE_BLACKSMITHING , 1 ,1},
+	[WEAPONTYPE_DAGGER] = {CRAFTING_TYPE_BLACKSMITHING , 7, 7},
+	[WEAPONTYPE_HAMMER] = {CRAFTING_TYPE_BLACKSMITHING , 2, 2},
+	[WEAPONTYPE_SWORD] = {CRAFTING_TYPE_BLACKSMITHING , 3, 3},
+	[WEAPONTYPE_TWO_HANDED_AXE] = {CRAFTING_TYPE_BLACKSMITHING , 4, 4},
+	[WEAPONTYPE_TWO_HANDED_HAMMER] = {CRAFTING_TYPE_BLACKSMITHING , 5, 5},
+	[WEAPONTYPE_TWO_HANDED_SWORD] = {CRAFTING_TYPE_BLACKSMITHING , 6, 6},
+}
+local equipTypes = {
+	[EQUIP_TYPE_CHEST] = {1, 1},
+	[EQUIP_TYPE_FEET] = {2, 2},
+	[EQUIP_TYPE_HAND] = {3, 3},
+	[EQUIP_TYPE_HEAD] = {4, 4},
+	[EQUIP_TYPE_LEGS] = {5, 5},
+	[EQUIP_TYPE_NECK] = {2, 3},
+	[EQUIP_TYPE_RING] = {1, 1},
+	[EQUIP_TYPE_SHOULDERS] = {6, 6},
+	[EQUIP_TYPE_WAIST] = {7, 7},
+}
+
+local function getPatternInfo(link, weight)
+	local equipType = GetItemLinkEquipType(link)
+	local patternDirectorInfo = equipTypes[equipType]
+	local patternId
+	if weight==0 then
+		patternId = patternDirectorInfo[1]
+	else
+		patternId = patternDirectorInfo[1]
+		if weight == ARMORTYPE_LIGHT then
+			if not IsItemLinkRobe(link) then
+				patternId = patternId + 1
+			end
+		end
+		if weight == ARMORTYPE_MEDIUM then
+			patternId = patternId + 8
+		end
+		if weight == ARMORTYPE_HEAVY then
+			patternId = patternId + 7
+		end
+	end
+	return  patternId
+end
+local subIdToQuality = { }
+local function GetEnchantQuality(itemLink)
+	local itemId, itemIdSub, enchantSub = itemLink:match("|H[^:]+:item:([^:]+):([^:]+):[^:]+:[^:]+:([^:]+):")
+	if not itemId then return 0 end
+	enchantSub = tonumber(enchantSub)
+	if enchantSub == 0 and not IsItemLinkCrafted(itemLink) then
+		local hasSet = GetItemLinkSetInfo(itemLink, false)
+		-- For non-crafted sets, the "built-in" enchantment has the same quality as the item itself
+		if hasSet then enchantSub = tonumber(itemIdSub) end
+	end
+	if enchantSub > 0 then
+		local quality = subIdToQuality[enchantSub]
+		if not quality then
+			-- Create a fake itemLink to get the quality from built-in function
+			local itemLink = string.format("|H1:item:%i:%i:50:0:0:0:0:0:0:0:0:0:0:0:0:1:1:0:0:10000:0|h|h", itemId, enchantSub)
+			quality = GetItemLinkQuality(itemLink)
+			subIdToQuality[enchantSub] = quality
+		end
+		return quality
+	end
+	return 0
+end
 
 
+
+local function LLC_CraftSmithingItemFromLink(self, itemLink, reference)
+	-- if DolgubonSetCrafter then
+		-- DolgubonSetCrafter.addByItemLinkToQueue(itemLink)
+	if not self then
+		self = LLC_UserRequests
+	end
+	if not verifyLinkIsValid(itemLink) then
+		return
+	end
+	local itemType = GetItemLinkItemType(itemLink)
+	-- if recipeItemTypes[itemType] then
+	-- 	if GetRecipeInfoFromItemId(GetItemLinkItemId(itemLink)) then
+	-- 		-- return DolgubonSetCrafter.addFurnitureByLink(itemLink)
+	-- 		return 
+	-- 	end
+	-- end
+
+	reference = reference or itemLink
+	
+	local weight = GetItemLinkArmorType(itemLink)
+	local station
+	local pattern
+	
+	if weight == ARMORTYPE_NONE then -- weapon OR shield
+		local weaponType = GetItemLinkWeaponType(itemLink)
+		local itemFilterType = GetItemLinkFilterTypeInfo(itemLink)
+		if itemFilterType == ITEMFILTERTYPE_JEWELRY then
+			station = CRAFTING_TYPE_JEWELRYCRAFTING
+			pattern = getPatternInfo(itemLink, weight)
+		else
+			station = weaponTypes[weaponType][1]
+			pattern = weaponTypes[weaponType][2]
+		end
+	else
+		if weight == ARMORTYPE_HEAVY then
+			station = CRAFTING_TYPE_BLACKSMITHING
+		elseif weight == ARMORTYPE_LIGHT or ARMORTYPE_MEDIUM then
+			station = CRAFTING_TYPE_CLOTHIER
+		end
+		pattern = getPatternInfo(itemLink, weight)
+	end
+	local isCP = GetItemLinkRequiredChampionPoints(itemLink)~=0
+	local level
+	if isCP then
+		level = GetItemLinkRequiredChampionPoints(itemLink)
+	else
+		level = GetItemLinkRequiredLevel(itemLink)
+	end
+
+	local styleIndex = GetItemLinkItemStyle(itemLink)
+	if styleIndex == nil and station ~= CRAFTING_TYPE_JEWELRYCRAFTING  then
+		ZO_Alert(UI_ALERT_CATEGORY_ERROR, SOUNDS.GENERAL_ALERT_ERROR ,"The item link is missing a style, and could not be added to the queue")
+		return
+	end
+
+	local traitIndex = GetItemLinkTraitInfo(itemLink)+1
+
+	local _,_,_,_,_,setIndex = GetItemLinkSetInfo(itemLink)
+
+	local quality = GetItemLinkFunctionalQuality(itemLink)
+
+	local enchantId = GetItemLinkAppliedEnchantId(itemLink)
+	local enchantQuality = GetEnchantQuality(itemLink)
+	if enchantId then
+		enchantCPQuality = enchantQuality or 1
+	end
+	-- GetItemLinkSetInfo
+	--  GetItemLinkRequiredChampionPoints(string itemLink)
+	--LLC_CraftSmithingItemByLevel(self, patternIndex, isCP , level, styleIndex, traitIndex, 
+	--useUniversalStyleItem, stationOverride, setIndex, quality, autocraft, reference, potencyId, essenceId, aspectId, smithingQuantity)
+	local requestTable = LLC_CraftSmithingItemByLevel(self, pattern, isCP, level, styleIndex, traitIndex, false, station, setIndex, quality, true, reference )
+	if enchantId > 0 and enchantQuality > 0 then
+		LibLazyCrafting.functionTable.CraftEnchantingGlyphByAttributes(self, isCP, level, enchantId, enchantQuality, true, reference, requestTable)
+	end
+	local link = LibLazyCrafting.getItemLinkFromRequest(requestTable)
+	CHAT_ROUTER:AddSystemMessage("LibLazyCrafting: Queued "..link.." for crafting. /Reloadui to clear queue")
+	return requestTable
+end
+LibLazyCrafting.functionTable.CraftSmithingItemFromLink = LLC_CraftSmithingItemFromLink
+
+local function importRequestFromMail()
+	local mailText = ZO_MailInboxMessageBody:GetText()
+	-- "|H1:item:56042:25:4:26580:21:5:0:0:0:0:0:0:0:0:0:1:0:0:0:10000:0|h|h"
+	for link in string.gmatch(mailText, "(|H%d:item:%d+:%d+:%d+:%d+:%d+:%d+:%d+:%d+:%d+:%d+:%d+:%d+:%d+:%d+:%d+:%d+:%d+:%d+:%d+:%d+:%d+|h|h)") do
+		if verifyLinkIsValid(link) then
+			LLC_UserRequests:CraftSmithingItemFromLink(link)
+		end
+	end
+end
+LibLazyCrafting.importCraftableLinksRequestFromMail = importRequestFromMail
+local function isThereAValidLinkInText(text)
+	for link in string.gmatch(text, "(|H%d:item:%d+:%d+:%d+:%d+:%d+:%d+:%d+:%d+:%d+:%d+:%d+:%d+:%d+:%d+:%d+:%d+:%d+:%d+:%d+:%d+:%d+|h|h)") do
+		if verifyLinkIsValid(link) then
+			return true
+		end
+	end
+	return false
+end
+LibLazyCrafting.isThereAValidCraftableLinkInText = isThereAValidLinkInText
+LibLazyCrafting.mailButtonInitialized = false
+local function initializeMailButtons()
+	if DolgubonSetCrafter then return end -- if set crafter is active, we'll let it do the mail
+	if LibLazyCrafting.mailButtonInitialized then return end
+	LibLazyCrafting.mailButtonInitialized = true
+	local inbox = ZO_MailInboxMessage
+	local subjectControl = ZO_MailInboxMessageSubject
+	local controls = {}
+	local button_name = inbox:GetName() .. "LLCMailAdd"
+	local control = inbox:CreateControl(button_name, CT_BUTTON)
+	control:SetAnchor(BOTTOMLEFT, subjectControl, BOTTOMLEFT, 0, 30)
+	control:SetWidth(200)
+	control:SetFont('ZoFontWinH4')
+	-- control:SetColor(GetInterfaceColor(INTERFACE_COLOR_TYPE_TEXT_COLORS, INTERFACE_TEXT_COLOR_NORMAL))
+	ApplyTemplateToControl(control, "ZO_DefaultButton")
+	control:SetText("LLC: Craft gear links")
+	control:SetMouseEnabled(true)
+	control:SetHandler("OnClicked", importRequestFromMail)
+	control:SetDimensions(150, 28)
+	table.insert(controls, control)
+	local original = ZO_MailInboxMessageBody.SetText
+
+	ZO_MailInboxMessageBody.SetText = function (...)
+		original( ...)
+
+		local shouldHide
+		if isThereAValidLinkInText(ZO_MailInboxMessageBody:GetText()) then
+			shouldHide = false
+		else
+			shouldHide = true
+			-- shouldHide = false
+		end
+		control:SetHidden(shouldHide)
+	end
+end
+
+-- LLC_UserRequests:CraftSmithingItemFromLink("|H1:item:195628:21:14:45867:23:15:0:0:0:0:0:0:0:0:0:33:0:0:0:10000:0|h|h")
 
 LibLazyCrafting.functionTable.CraftSmithingItem = LLC_CraftSmithingItem
 LibLazyCrafting.functionTable.CraftSmithingItemByLevel = LLC_CraftSmithingItemByLevel
@@ -914,7 +1158,9 @@ end
 
 
 local function setCorrectSetIndex_ConsolidatedStation(setIndex)
-	SMITHING:SetMode(SMITHING_MODE_CREATION)
+	if GetNumUnlockedConsolidatedSmithingSets() > 0 then
+		SMITHING:SetMode(SMITHING_MODE_CREATION)
+	end
 	if not ZO_Smithing_IsConsolidatedStationCraftingMode() then
 		return
 	end
@@ -973,7 +1219,9 @@ local function LLC_Smithing_MinorModuleInteraction(station, earliest, addon, pos
 	end
 	parameters[7] = math.min(GetMaxIterationsPossibleForSmithingItem(unpack(parameters)), earliest.smithingQuantity or 1)
 	if (earliest.smithingQuantity or 1) > GetMaxIterationsPossibleForSmithingItem(unpack(parameters)) then
+
 		d("Mismatch asked quantity: "..earliest.smithingQuantity.." actual max "..GetMaxIterationsPossibleForSmithingItem(unpack(parameters)))
+		d("Parameters: "..ZO_GenerateCommaSeparatedList(parameters))
 	end
 	if parameters[7] == 0 then
 		return
@@ -1579,7 +1827,7 @@ local function miniaturizeSetInfo(toMinify)
 end
 
 --- This was created mostly in slash commands. So variable names suck, locals are used rarely due to chat space limitations
-local function internalScrapeSetItemItemIds()
+function LibLazyCrafting.internalScrapeSetItemItemIds(setInterest)
 	local apiVersionDifference = GetAPIVersion() - 101029
 	local estimatedTime = math.floor((20000*apiVersionDifference+200000)/300*25/1000)+3
 	zo_callLater(function()
@@ -1587,7 +1835,7 @@ local function internalScrapeSetItemItemIds()
 	CHAT_ROUTER:AddSystemMessage("This is a (usually) once per major game update scan. Please wait until it it is complete.")end
 	, 25)
 	
-	local craftedItemIds = LibLazyCraftingSavedVars.SetIds or {}
+	local craftedItemIds = LibLazyCrafting.SetIds or {}
 	for k, setTable in pairs(LibLazyCrafting.GetSetIndexes()) do 
 		if craftedItemIds[setTable[4] ] ~= nil then
 			craftedItemIds[setTable[4] ].ignore = true
@@ -1618,22 +1866,23 @@ local function internalScrapeSetItemItemIds()
 			,25)
 		else 
 			
-			LibLazyCraftingSavedVars.SetIds = craftedItemIds
-			for k, v in pairs(LibLazyCraftingSavedVars.SetIds) do
+			LibLazyCrafting.SetIds = craftedItemIds
+			for k, v in pairs(LibLazyCrafting.SetIds) do
 				if v.ignore then
 					v.ignore = nil
 				else
 					table.sort(v)
-					LibLazyCraftingSavedVars.SetIds[k] = miniaturizeSetInfo(v)
+					LibLazyCrafting.SetIds[k] = miniaturizeSetInfo(v)
 				end
 			end
-			LibLazyCraftingSavedVars.SetIds[0] = itemSetIds[0]
+			LibLazyCrafting.SetIds[0] = itemSetIds[0]
 			LibLazyCraftingSavedVars.lastScrapedAPIVersion = GetAPIVersion()
+			d(LibLazyCrafting.SetIds[setInterest])
 			d("LibLazyCrafting: Item Scrape complete")
 		end
 	end
 	local lowerEnd = 1
-	if LibLazyCraftingSavedVars.SetIds and LibLazyCraftingSavedVars.SetIds[506]~= nil then
+	if LibLazyCrafting.SetIds and LibLazyCrafting.SetIds[506]~= nil then
 		lowerEnd = 163057
 	end
 
@@ -1990,18 +2239,20 @@ LibLazyCrafting.craftInteractionTables[CRAFTING_TYPE_JEWELRYCRAFTING] = copy(Lib
 LibLazyCrafting.craftInteractionTables[CRAFTING_TYPE_JEWELRYCRAFTING]["station"] = CRAFTING_TYPE_JEWELRYCRAFTING
 
 local function initializeSetInfo()
+	initializeMailButtons()
 	if not LibLazyCraftingSavedVars then 
 		LibLazyCraftingSavedVars = {}
 	end
 	local vars = LibLazyCraftingSavedVars
 	-- Last condition is bc I forgot to actually add them before the patch increase :(
 	-- Due to console memory limitations, we can't scrape anymore, at least for now. Unless that changes, it will now be hardcoded.
-	if false and not vars.SetIds or not vars.lastScrapedAPIVersion or vars.lastScrapedAPIVersion<GetAPIVersion() or LibLazyCraftingSavedVars.SetIds[695] == nil then
+	if GetDisplayName() == "@Dolgubon" and not vars.SetIds or not vars.lastScrapedAPIVersion or vars.lastScrapedAPIVersion<GetAPIVersion() or LibLazyCraftingSavedVars.SetIds[695] == nil then
 		-- if LibLazyCraftingSavedVars.SetIds and LibLazyCraftingSavedVars.SetIds[695] == nil then
 		-- 	d("LibLazyCrafting: Usually this scraping only runs once per major game patch, but this re-run is required to add the new sets from Blackwood.")
 		-- end
-		internalScrapeSetItemItemIds()
+		-- internalScrapeSetItemItemIds()
 	end
+	EVENT_MANAGER:UnregisterForEvent(LLC.name.."SmithingScan",EVENT_PLAYER_ACTIVATED)
 end
 EVENT_MANAGER:RegisterForEvent(LLC.name.."SmithingScan",EVENT_PLAYER_ACTIVATED, initializeSetInfo)
 --[[

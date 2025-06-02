@@ -1,6 +1,7 @@
 local LibLazyCrafting = _G["LibLazyCrafting"]
 LibLazyCrafting.functionTable = LibLazyCrafting.functionTable or {}
-
+local INDEX_NO_SET = 0
+LibLazyCrafting.INDEX_NO_SET = INDEX_NO_SET
 -- Returns an item link from the given itemId.
 local function getItemLinkFromItemId(itemId)
     return string.format("|H1:item:%d:%d:50:0:0:0:0:0:0:0:0:0:0:0:0:%d:%d:0:0:%d:0|h|h", itemId, 0, 0, 0, 10000) 
@@ -68,7 +69,7 @@ LibLazyCrafting.GetItemTemplateIdPatternIndex = getItemTemplateIdPatternIndex
 -- For brevity sake, sets are simply listed as 3 item IDs with the number of traits needed.
 -- The name of the set is then added in on initialization using the API.
 local setInfo =
-{ --{{Axe    , Robe  ,  6  = Bow   ,  7  = Necklace},trait_ct},
+{ --{{Axe    , Robe  ,  6  = Bow   ,  7  = Ring if not swapped, neck if swapped},trait_ct},
     {{43529  , 43549 , [6] = 43543 , [7] =  43561},0},  --  1 no set
     {{46499  , 43805 , [6] = 46518 , [7] = 137683},2},  --  2 death's wind
     {{47265  , 47279 , [6] = 47287 , [7] = 137685},2},  --  3 night's silence
@@ -147,11 +148,11 @@ local setInfo =
     {{194562 , 194582, [6] = 194569, [7] =194598 },7,isSwapped=true}, -- 695 Shattered Fate
     {{194942 , 194962, [6] = 194949, [7] =194978 },7,isSwapped=true}, -- 696 Telvanni Efficiency
     {{195322 , 195342, [6] = 195329, [7] =195358 },7,isSwapped=true}, -- 697 Seeker Synthesis
+    --{{Axe    , Robe  ,  6  = Bow   ,  7  = Necklace},trait_ct},
     {{205393 , 205413, [6] = 205400, [7] =205429 },3,isSwapped=true}, -- 763 Tharriker's Strike
     {{205773 , 205793, [6] = 205780, [7] =205809 },5,isSwapped=true}, -- 764 Highland Sentinel
     {{206153 , 206173, [6] = 206160, [7] =206189 },7,isSwapped=true}, -- 765 Threads of War
-    -- (Tide-Born Wildstalker, set id 809, 5-trait, located in the north of the zone)
-    -- I don't have the required info for this yet, will get once update goes live
+    {{215479 , 215499, [6] = 215486, [7] =215515 },5,isSwapped=true}, -- 809 Tide-Born Wildstalker
 }
 
 SetIndexes = {}
@@ -159,11 +160,17 @@ SetIndexes = {}
 for i = 1, #setInfo do
     local _, name,_,_,_, index = GetItemLinkSetInfo(getItemLinkFromItemId(setInfo[i][1][1]),false)
 
-    SetIndexes[index] = setInfo[i]
-    SetIndexes[index][3] = index
-    if index==INDEX_NO_SET then
+    
+    -- GetItemLinkName(SetIndexes[0][1][1])
+    if GetItemLinkName(getItemLinkFromItemId(setInfo[i][1][1])) == "" then
+        -- Most likely Set from PTS, so do nothing
+    elseif index==LibLazyCrafting.INDEX_NO_SET then
+        SetIndexes[index] = setInfo[i]
+        SetIndexes[index][3] = index
         table.insert(SetIndexes[index],1,"No Set")
     else
+        SetIndexes[index] = setInfo[i]
+        SetIndexes[index][3] = index
         table.insert(SetIndexes[index],1,name)
     end
 
@@ -1475,5 +1482,8 @@ LibLazyCrafting.SetIds =
     [468] = 
     {
         [1] = "155404,369",
+    },
+    [809] = {
+        "215479,369",
     },
 }

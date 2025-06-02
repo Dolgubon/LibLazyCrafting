@@ -46,7 +46,7 @@ local function LLC_CraftProvisioningItemByRecipeIndex(self, recipeListIndex, rec
 	if autocraft==nil then autocraft = self.autocraft end
 	local _,_,_,_,_,_,station = GetRecipeInfo(recipeListIndex, recipeIndex)
 	if not (recipeListIndex and recipeIndex and station) then 
-		d("LibLazyCrafting: recipeListIndex:"..recipeListIndex.." and recipeIndex:"..recipeIndex.." does not seem to refer to a valid recipe")
+		d("LibLazyCrafting: recipeListIndex:"..tostring(recipeListIndex).." and recipeIndex:"..tostring(recipeIndex).." does not seem to refer to a valid recipe")
 		return 
 	end
 	local resultLink = GetRecipeResultItemLink(recipeListIndex, recipeIndex)
@@ -65,7 +65,8 @@ local function LLC_CraftProvisioningItemByRecipeIndex(self, recipeListIndex, rec
 		["Requester"] = self.addonName,
 		["reference"] = reference,
 		["station"] = station,
-		["timesToMake"] = timesToMake or 1
+		["timesToMake"] = timesToMake or 1,
+    ["known"] = isKnown,
 	}
 	table.insert(craftingQueue[self.addonName][station], request)
 	LibLazyCrafting.AddHomeMarker(nil, station)

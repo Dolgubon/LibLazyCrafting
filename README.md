@@ -49,6 +49,9 @@ If you are using autocraft = false, this will let you specify queued items to be
 ## Smithing
 Functions available:
 
+### CraftSmithingItemFromLink( *string itemLink*, *string reference*)
+The easiest function to use, if you know exactly what you want. Pretty straightforward
+
 ### CraftSmithingItemByLevel( *integer patternIndex,boolean isCP ,integer level, integer styleIndex,integer traitIndex,boolean useUniversalStyleItem,integer stationOverride, integer setIndex,integer quality,boolean autocraft,string reference,integer potencyId, integer essenceId, integer aspectId,integer smithingQuantity*)
 This is the main function in this module. 
 * patternIndex*: Pattern Index is whether you want to make a sword, dagger, staff, etc. It is dependent on the provided station parameter. That is, if you give 1 for pattern and CRAFTING_TYPE_BLACKSMITHING for station, LLC will create an Axe.
