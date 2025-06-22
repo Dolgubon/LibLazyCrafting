@@ -470,8 +470,18 @@ local function canCraftItem(craftRequestTable)
 	-- Check if the style is known for that piece
 	if craftRequestTable["station"] == CRAFTING_TYPE_JEWELRYCRAFTING or craftRequestTable["style"]==LLC_FREE_STYLE_CHOICE or IsSmithingStyleKnown(craftRequestTable["style"], craftRequestTable["pattern"]) then
 	else
-		missingInd = true
-		missing.knowledge["style"] = true
+		-- if GetCraftingInteractionType()==0 then
+-- 			|H1:achievement:3094:8232:0|h|h
+
+-- |H1:achievement:2021:16383:1526627699|h|h
+			-- we don't have full info on it. They might partially know it
+			-- GetAchievementCriterion
+			-- GetAchievementLinkedBookCollectionId
+		-- else
+			missingInd = true
+			missing.knowledge["style"] = true
+		-- end
+		
 	end
 	if not CheckInventorySpaceSilently(1) then
 		missingInd = true
@@ -783,6 +793,8 @@ local function verifyLinkIsValid(link)
 	-- 		return true
 	-- 	end
 	-- end
+	local isCompanionGear = ZO_IsElementInNonContiguousTable({GetItemLinkFilterTypeInfo(link)},ITEMFILTERTYPE_COMPANION)
+	if isCompanionGear then return false end
 	local _,_,_,_,_,setIndex=GetItemLinkSetInfo(link)
 	if setIndex > 0 and not LibLazyCrafting.GetSetIndexes()[setIndex] then
 		return false
@@ -974,6 +986,8 @@ LibLazyCrafting.isThereAValidCraftableLinkInText = isThereAValidLinkInText
 LibLazyCrafting.mailButtonInitialized = false
 local function initializeMailButtons()
 	if DolgubonSetCrafter then return end -- if set crafter is active, we'll let it do the mail
+	if IsConsoleUI() then return end
+	-- d(IsConsoleUI())
 	if LibLazyCrafting.mailButtonInitialized then return end
 	LibLazyCrafting.mailButtonInitialized = true
 	local inbox = ZO_MailInboxMessage

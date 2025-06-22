@@ -95,14 +95,18 @@ local function LLC_AlchemyCraftInteraction(station, earliest, addon , position)
 		reagent1BagId, reagent1SlotIndex,
 		reagent2BagId, reagent2SlotIndex,
 		reagent3BagId, reagent3SlotIndex,
-		1,
 		--earliest.timesToMake,
 	}
+	local maximumCreated = GetMaxIterationsPossibleForAlchemyItem(unpack(locations))
+	local maxQuantity =  math.min(maximumCreated, earliest.timesToMake or 1 )
+	locations[9] = maxQuantity
 	if not (solventSlotIndex and reagent1SlotIndex and reagent2SlotIndex and (not earliest["reagentId3"] or reagent3SlotIndex)) then return end
 
 	dbug("CALL:ZOAlchemyCraft")
 	LibLazyCrafting.isCurrentlyCrafting = {true, "alchemy", earliest["Requester"]}
-	CraftAlchemyItem(unpack(locations))
+	-- CraftAlchemyItem(unpack(locations))
+	local l = locations
+	CraftAlchemyItem(l[1],l[2],l[3],l[4],l[5],l[6],l[7],l[8],l[9])
 
 	currentCraftAttempt= copy(earliest)
 	currentCraftAttempt.callback = LibLazyCrafting.craftResultFunctions[addon]
@@ -126,6 +130,7 @@ local function LLC_AlchemyCraftInteraction(station, earliest, addon , position)
 	currentCraftAttempt.timestamp = GetTimeStamp()
 	currentCraftAttempt.addon = addon
 	currentCraftAttempt.prevSlots = LibLazyCrafting.backpackInventory()
+	currentCraftAttempt.currentMake = maxQuantity
 end
 
 local function LLC_AlchemyCraftingComplete(station, lastCheck)

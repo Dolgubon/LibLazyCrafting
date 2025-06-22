@@ -6,9 +6,9 @@
 ; You can read the full terms at https://account.elderscrollsonline.com/add-on-terms
 
 ## APIVersion: 101045 101046
-## Title: LibLazyCrafting v4.018
-## Version: 4.018
-## AddOnVersion: 4018
+## Title: LibLazyCrafting v4.020
+## Version: 4.020
+## AddOnVersion: 4020
 ## Author: Dolgubon
 ## Contributors: ziggr
 ## OptionalDependsOn: pChat LibStub HomeStationMarker

@@ -114,7 +114,9 @@ local function LLC_ProvisioningCraftInteraction(station, earliest, addon , posit
 	if ZO_CraftingUtils_IsPerformingCraftProcess()  then return end
 
 	dbug("CALL:ZOProvisioningCraft")
-	local recipeArgs = { earliest.recipeListIndex, earliest.recipeIndex, 1}--earliest.timesToMake }
+  local maximumCreated = GetMaxIterationsPossibleForRecipe(earliest.recipeListIndex, earliest.recipeIndex)
+  local maxQuantity =  math.min(maximumCreated, earliest.timesToMake or 1 )
+	local recipeArgs = { earliest.recipeListIndex, earliest.recipeIndex, maxQuantity }
 	LibLazyCrafting.isCurrentlyCrafting = {true, "provisioning", earliest["Requester"]}
 	CraftProvisionerItem(unpack(recipeArgs))
 
@@ -128,6 +130,7 @@ local function LLC_ProvisioningCraftInteraction(station, earliest, addon , posit
 	currentCraftAttempt.prevSlots = LibLazyCrafting.backpackInventory()
 	currentCraftAttempt.recipeListIndex = earliest.recipeListIndex
 	currentCraftAttempt.recipeIndex = earliest.recipeIndex
+  currentCraftAttempt.currentMake = maxQuantity
 	LibLazyCrafting.recipeCurrentCraftAttempt = currentCraftAttempt
 	-- If we're on the glyph creation stage and these aren't set, then you get a Lua error
 	if station == CRAFTING_TYPE_ENCHANTING then

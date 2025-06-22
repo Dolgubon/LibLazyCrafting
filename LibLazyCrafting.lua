@@ -17,7 +17,7 @@ end
 
 -- Initialize libraries
 local libLoaded
-local LIB_NAME, VERSION = "LibLazyCrafting", 4.018
+local LIB_NAME, VERSION = "LibLazyCrafting", 4.020
 local LibLazyCrafting, oldminor
 if LibStub then
 	LibLazyCrafting, oldminor = LibStub:NewLibrary(LIB_NAME, VERSION)
@@ -261,6 +261,8 @@ end
 -- prevSlotsContaining and newSlotsContaining are expected to be
 -- results from backpackInventory().
 function LibLazyCrafting.findIncreasedSlotIndex(prevInventory, currInventory)
+	local grownSlots = {}
+	local found = false
 	local maxSlotId = math.max(#prevInventory, #currInventory)
 	for slotIndex = 0, maxSlotId do
 		local prev = prevInventory[slotIndex]
@@ -268,12 +270,18 @@ function LibLazyCrafting.findIncreasedSlotIndex(prevInventory, currInventory)
 
 						-- Previously nil slot now non-nil
 						-- (can happen when #curr > #prev)
-		if curr and not prev then return slotIndex end
+		if curr and not prev then 
+			found = true
+			table.insert(grownSlots, slotIndex)
+			end
 
 						-- This stack increased.
-		if prev < curr then return slotIndex end
+		if prev < curr then 
+			found = true
+			table.insert(grownSlots, slotIndex)
+			end
 	end
-	return nil
+	return found and grownSlots or nil
 end
 
 function LibLazyCrafting.tableShallowCopy(t)
@@ -298,14 +306,15 @@ function LibLazyCrafting.stackableCraftingComplete(station, lastCheck, craftingT
 	local grewSlotIndex = LibLazyCrafting.findIncreasedSlotIndex(currentCraftAttempt.prevSlots, currSlots)
 	if grewSlotIndex then
 		dbug("RESULT:StackableMade")
-		if currentCraftAttempt["timesToMake"] < 2 then
+		if currentCraftAttempt["timesToMake"] < 2 or currentCraftAttempt.currentMake == currentCraftAttempt["timesToMake"] then
 			dbug("ACTION:RemoveQueueItem")
 			table.remove( craftingQueue[currentCraftAttempt.addon][station] , currentCraftAttempt.position )
 			--LibLazyCrafting.sortCraftQueue()
 			local resultTable =
 			{
 				["bag"] = BAG_BACKPACK,
-				["slot"] = grewSlotIndex,
+				["slot"] = grewSlotIndex[1],
+				["allSlots"] = grewSlotIndex,
 				['link'] = currentCraftAttempt.link,
 				['uniqueId'] = GetItemUniqueId(BAG_BACKPACK, currentCraftAttempt.slot),
 				["quantity"] = 1,
@@ -320,10 +329,10 @@ function LibLazyCrafting.stackableCraftingComplete(station, lastCheck, craftingT
 			-- Loop to craft multiple copies
 			local earliest = craftingQueue[currentCraftAttempt.addon][station][currentCraftAttempt.position]
 			if earliest then 
-				earliest.timesToMake = earliest.timesToMake - 1
+				earliest.timesToMake = earliest.timesToMake - currentCraftAttempt.currentMake
 				currentCraftAttempt.timesToMake = earliest.timesToMake
 			else
-				currentCraftAttempt.timesToMake = currentCraftAttempt.timesToMake - 1
+				currentCraftAttempt.timesToMake = currentCraftAttempt.timesToMake - currentCraftAttempt.currentMake
 			end
 			if GetCraftingInteractionType()==0 then zo_callLater(function() LibLazyCrafting.stackableCraftingComplete( station, true, station, currentCraftAttempt) end,100) end
 		end
