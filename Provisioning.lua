@@ -110,7 +110,7 @@ end
 local function LLC_ProvisioningCraftInteraction(station, earliest, addon , position)
 	dbug("FUNCTION:LLCProvisioningCraft")
 	if not earliest then LibLazyCrafting.SendCraftEvent( LLC_NO_FURTHER_CRAFT_POSSIBLE,  station) return end
-	if IsPerformingCraftProcess()  then return end
+	if ZO_CraftingUtils_IsPerformingCraftProcess()  then return end
 
 	dbug("CALL:ZOProvisioningCraft")
 	local recipeArgs = { earliest.recipeListIndex, earliest.recipeIndex, 1}--earliest.timesToMake }

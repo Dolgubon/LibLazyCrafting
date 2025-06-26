@@ -37,6 +37,14 @@ Next, register your addon with LibLazyCrafting (LLC) in the addon initialized fu
 ### See reference section at the end for info on LLC Event names, what the reference parameter is, what the request table is, and what an Item ID is
 The reference section also contains some useful information about the game's API.
 
+### interactionTable:CraftAllItems()
+If you are using autocraft = false, calling this function will cause all queued items to be crafted
+
+### InteractionTable:craftItem(*int station, int optionalPosition*)
+If you are using autocraft = false, this will let you specify queued items to be crafted.
+* station*: Crafting station to craft items for
+* optionalPosition*: The position of the request you want to craft in the queue, not the reference given.
+
 
 ## Smithing
 Functions available:
@@ -46,7 +54,8 @@ This is the main function in this module.
 * patternIndex*: Pattern Index is whether you want to make a sword, dagger, staff, etc. It is dependent on the provided station parameter. That is, if you give 1 for pattern and CRAFTING_TYPE_BLACKSMITHING for station, LLC will create an Axe.
 If you give 1 for pattern and CRAFTING_TYPE_CLOTHIER, then LLC will create a robe.
 * isCP, level* -> Self explanatory, unless you don't play ESO
-* styleIndex, traitIndex*: Matches the game's values
+* styleIndex*: Matches the values used by the game's smithing API
+* traitIndex*: Matches the values used by the game's own smithing API. These are offset from the ITEM_TRAIT_TYPE_ constant groups by 1, so if you're using those you'll need to add 1.
 * useUniversalStyleItem*: AKA mimic stone
 * stationOverride*: Allows you to set a specific crafting station. Default is the station you are at. If you are not at a station and do not pass a value, the function will fail.
 * setIndex*: An integer determining the crafted set you wish to create. The default is 1, which signifies no set. A list of set indexes can be found in the Smithing.lua file, or with GetSetIndexes()
@@ -59,7 +68,7 @@ If you give 1 for pattern and CRAFTING_TYPE_CLOTHIER, then LLC will create a rob
 returns: The request table, which contains all the information about the craft request.
 
 ### CraftSmithingItem( *integer patternIndex, integer materialIndex, integer materialQuantity, integer styleIndex, integer traitIndex, boolean useUniversalStyleItem, integer:nilable stationOverride, integer:nilable setIndex, integer:nilable quality, boolean:nilable autocraft, anything:nilable reference, integer potencyId, integer essenceId, integer aspectId, integer smithingQuantity*)
-This function is the same as CraftSmithingItemByLevel, except it replaces isCP and level with what the game uses to decide those. Not reccommended to use, unless converting an existing non LLC addon to one that uses LLC.
+This function is the same as CraftSmithingItemByLevel, except it replaces isCP and level with what the game uses to decide those. Not recommended to use, unless converting an existing non LLC addon to one that uses LLC.
 
 ### InteractionTable:isSmithingLevelValid(*boolean isCP, integer lvl)*
 returns boolean isValidSmithingLevel -- This returns true if equipment can be created at that level. For example, if you ask for isCP = true, and lvl = 155, you will get false, because the game does not allow you to create items at CP155

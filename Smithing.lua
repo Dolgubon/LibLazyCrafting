@@ -90,7 +90,7 @@ end
 
 -- Returns an item link from the given itemId.
 local function getItemLinkFromItemId(itemId)
-	return string.format("|H1:item:%d:%d:50:0:0:0:0:0:0:0:0:0:0:0:0:%d:%d:0:0:%d:0|h|h", itemId, 0, ITEMSTYLE_NONE, 0, 10000)
+	return string.format("|H1:item:%d:%d:50:0:0:0:0:0:0:0:0:0:0:0:0:%d:%d:0:0:%d:0|h|h", itemId, 0, 0, 0, 10000)
 end
 
 
@@ -261,7 +261,6 @@ local function maxStyle (craftRequestTable) -- Searches to find the style that t
 end
 
 
-
 function enoughMaterials(craftRequestTable)
 
 	local missing =
@@ -418,7 +417,7 @@ local function canCraftItem(craftRequestTable)
 		missingInd = true
 	end
 	-- Check if the specific trait is known
-	if not IsSmithingTraitKnownForResult(patternIndex, craftRequestTable["materialIndex"], craftRequestTable["materialQuantity"],craftRequestTable["style"], craftRequestTable["trait"]) then
+	if not IsSmithingTraitKnownForPattern(patternIndex, craftRequestTable["trait"] - 1) then
 		missingInd = true
 		missing.knowledge["trait"] = true
 	end
@@ -606,7 +605,8 @@ end
 LLC_FREE_STYLE_CHOICE = "free style choice"
 local function LLC_CraftSmithingItem(self, patternIndex, materialIndex, materialQuantity, styleIndex, traitIndex, useUniversalStyleItem, stationOverride, setIndex, quality, autocraft, reference, potencyId, essenceId, aspectId, smithingQuantity)
 	dbug("FUNCTION:LLCSmithing")
-
+-- /script local o = ZO_Menu_SetLastCommandWasFromMenu ZO_Menu_SetLastCommandWasFromMenu = function(...)ZO_ChatWindowTextEntryEditBox:SetText("Hi")ZO_ChatWindowTextEntryEditBox.addonChangedText = false o(...) end
+-- /script local a = true local o = ZO_ChatWindowTextEntryEditBox.GetText ZO_ChatWindowTextEntryEditBox.GetText = function(...)ZO_ChatWindowTextEntryEditBox.addonChangedText = false if a then a = false return "blabla" else return o(...) end end
 	if reference == nil then reference = "" end
 	if not self then d("Please call with colon notation") end
 	if autocraft==nil then autocraft = self.autocraft end
@@ -682,7 +682,7 @@ local function LLC_CraftSmithingItem(self, patternIndex, materialIndex, material
 	table.insert(craftingQueue[self.addonName][station],requestTable)
 
 	--sortCraftQueue()
-	if not IsPerformingCraftProcess() and GetCraftingInteractionType()~=0 then
+	if not ZO_CraftingUtils_IsPerformingCraftProcess() and GetCraftingInteractionType()~=0 then
 		LibLazyCrafting.craftInteract(nil, GetCraftingInteractionType())
 	end
 
@@ -723,7 +723,7 @@ LibLazyCrafting.functionTable.CraftSmithingItemByLevel = LLC_CraftSmithingItemBy
 -- /script local a = {1, 16, 36} for i = 1, 3 do LLC_Global:CraftSmithingItemByLevel(5, false, a[i],3 ,ITEM_TRAIT_TYPE_ARMOR_TRAINING ,false, CRAFTING_TYPE_CLOTHIER, 0, ITEM_QUALITY_ARCANE,true) end
 -- /script LLC_Global:CraftSmithingItemByLevel(3, false, 4,3 ,1 ,false, CRAFTING_TYPE_CLOTHIER, 0, 2,true, nil, nil, nil,nil, 2)
 -- /script for i= 2, 25 do LLC_Global:CraftSmithingItemByLevel(3, false, i*2,3 ,1 ,false, CRAFTING_TYPE_CLOTHIER, 0, 3,true) end
--- /script LLC_Global:CraftSmithingItemByLevel(3, true, 140,3 ,1 ,false, CRAFTING_TYPE_CLOTHIER, 0, 5,true)
+-- /script LLC_Global:CraftSmithingItemByLevel(3, true, 10,3 ,1 ,false, CRAFTING_TYPE_CLOTHIER, 0, 2,true)
 
 
 -- We do take the bag and slot index here, because we need to know what to upgrade
@@ -774,7 +774,7 @@ local function InternalImproveSmithingItem(self, BagIndex, SlotIndex, newQuality
 
 	table.insert(craftingQueue[self.addonName][station], craftingRequestTable)
 	--sortCraftQueue()
-	if not IsPerformingCraftProcess() and GetCraftingInteractionType()~=0 and not LibLazyCrafting.isCurrentlyCrafting[1] then
+	if not ZO_CraftingUtils_IsPerformingCraftProcess() and GetCraftingInteractionType()~=0 and not LibLazyCrafting.isCurrentlyCrafting[1] then
 		LibLazyCrafting.craftInteract(nil, GetCraftingInteractionType())
 	end
 	return craftingRequestTable
@@ -819,7 +819,7 @@ local function LLC_DeconstructItem(self, bagIndex, slotIndex, autocraft, referen
 		["type"] = "deconstruct"
 	}
 	table.insert(craftingQueue[self.addonName][station], craftingRequestTable)
-	if not IsPerformingCraftProcess() and GetCraftingInteractionType()~=0 and not LibLazyCrafting.isCurrentlyCrafting[1] then
+	if not ZO_CraftingUtils_IsPerformingCraftProcess() and GetCraftingInteractionType()~=0 and not LibLazyCrafting.isCurrentlyCrafting[1] then
 		LibLazyCrafting.craftInteract(nil, GetCraftingInteractionType())
 	end
 	return craftingRequestTable
@@ -957,7 +957,7 @@ end
 local function LLC_improvement_MinorModuleInteraction(station, earliest, addon, position)
 	local parameters = {}
 	local currentSkill, maxSkill = getImprovementLevel(station)
-	local currentItemQuality = GetItemLinkQuality(GetItemLink(earliest.ItemBagID, earliest.ItemSlotID))
+	local currentItemQuality = GetItemLinkFunctionalQuality(GetItemLink(earliest.ItemBagID, earliest.ItemSlotID))
 	if earliest.quality == currentItemQuality then
 		dbug("ACTION:RemoveImprovementRequest")
 		d("Item is already at final quality, but LLC did not improve the item. It may have been improved by the user or another addon")
@@ -976,11 +976,11 @@ local function LLC_improvement_MinorModuleInteraction(station, earliest, addon, 
 		-- cancel if quality is already blue and skill is not max
 		-- This is to save on improvement mats.
 
-		if earliest.quality>2 and currentItemQuality >ITEM_QUALITY_MAGIC then
+		if earliest.quality>2 and currentItemQuality >ITEM_FUNCTIONAL_QUALITY_MAGIC then
 			d("Improvement skill is not at maximum. Improvement prevented to save mats.")
 			return
 		end
-		if station == CRAFTING_TYPE_JEWELRYCRAFTING and earliest.quality>1 and currentItemQuality >ITEM_QUALITY_NORMAL then
+		if station == CRAFTING_TYPE_JEWELRYCRAFTING and earliest.quality>1 and currentItemQuality >ITEM_FUNCTIONAL_QUALITY_NORMAL then
 			d("Improvement skill is not at maximum. Improvement prevented to save mats.")
 			return
 		end
@@ -1048,7 +1048,7 @@ local function LLC_SmithingCraftInteraction( station, earliest, addon , position
 	--abc = abc + 1 if abc>50 then d("raft")return end
 
 	local earliest, addon , position = LibLazyCrafting.findEarliestRequest(station)
-	if earliest and not IsPerformingCraftProcess() then
+	if earliest and not ZO_CraftingUtils_IsPerformingCraftProcess() then
 		smithingMinorModuleFunctions[earliest.type](station, earliest, addon, position)
 			--ImproveSmithingItem(number itemToImproveBagId, number itemToImproveSlotIndex, number numBoostersToUse)
 			--GetSmithingImprovedItemLink(number itemToImproveBagId, number itemToImproveSlotIndex, number TradeskillType craftingSkillType, number LinkStyle linkStyle)
@@ -1063,36 +1063,34 @@ local function WasItemCrafted(bag, slot)
 	dbug("CHECK:WasItemCrafted")
 	--abc = abc + 1 if abc>50 then d("wascrafted")return end
 	local checkPosition = {BAG_BACKPACK, slot}
-	if GetItemName(unpack(checkPosition))==GetItemLinkName(currentCraftAttempt.link) then
-		if GetItemLinkQuality(GetItemLink(unpack(checkPosition))) ==ITEM_QUALITY_NORMAL then
-			if GetItemRequiredLevel(unpack(checkPosition))== GetItemLinkRequiredLevel(currentCraftAttempt.link) then
-				if GetItemRequiredChampionPoints(unpack(checkPosition)) == GetItemLinkRequiredChampionPoints(currentCraftAttempt.link) then
-					if GetItemId(unpack(checkPosition)) == GetItemLinkItemId(currentCraftAttempt.link) then
-						if GetItemLinkItemStyle(GetItemLink(unpack(checkPosition))) ==GetItemLinkItemStyle(currentCraftAttempt.link) then
-							return true
-						else
-							return false
-						end
-					else
-						return false
-					end
-				else
-					return false
-				end
-			else
-				return false
-			end
-		else
-			return false
-		end
-	else
+	local craftedLink = GetItemLink(unpack(checkPosition))
+	if GetItemName(unpack(checkPosition))~=GetItemLinkName(currentCraftAttempt.link) then
 		return false
 	end
-
+	if GetItemLinkFunctionalQuality(craftedLink) ~=ITEM_FUNCTIONAL_QUALITY_NORMAL then
+		return false
+	end
+	if GetItemRequiredLevel(unpack(checkPosition))~= GetItemLinkRequiredLevel(currentCraftAttempt.link) then
+		return false
+	end
+	if GetItemRequiredChampionPoints(unpack(checkPosition)) ~= GetItemLinkRequiredChampionPoints(currentCraftAttempt.link) then
+		return false
+	end
+	if GetItemRequiredChampionPoints(unpack(checkPosition)) ~= GetItemLinkRequiredChampionPoints(currentCraftAttempt.link) then
+		return false
+	end
+	if GetItemId(unpack(checkPosition)) ~= GetItemLinkItemId(currentCraftAttempt.link) then
+		return false
+	end
+	if GetItemLinkItemStyle(craftedLink) ~=GetItemLinkItemStyle(currentCraftAttempt.link) then
+		return false
+	end
+	return true
 end
+
 local function WasItemImproved(currentCraftAttempt)
 		--GetItemLinkQuality(GetItemLink(earliest.ItemBagID, earliest.ItemSlotID))
-	return GetItemLinkQuality(GetItemLink(currentCraftAttempt.ItemBagID,currentCraftAttempt.ItemSlotID))==currentCraftAttempt.quality
+	return GetItemLinkFunctionalQuality(GetItemLink(currentCraftAttempt.ItemBagID,currentCraftAttempt.ItemSlotID))==currentCraftAttempt.quality
 
 end
 local backupPosition
@@ -1236,7 +1234,7 @@ local function SmithingCraftCompleteFunction(station)
 			else
 				d("Bad request. No addon attached to crafting request")
 			end
-		elseif GetItemLinkQuality(GetItemLink(currentCraftAttempt.ItemBagID,currentCraftAttempt.ItemSlotID)) > currentCraftAttempt.previousQuality then
+		elseif GetItemLinkFunctionalQuality(GetItemLink(currentCraftAttempt.ItemBagID,currentCraftAttempt.ItemSlotID)) > currentCraftAttempt.previousQuality then
 			LibLazyCrafting.SendCraftEvent( LLC_CRAFT_PARTIAL_IMPROVEMENT,  station,currentCraftAttempt.Requester, currentCraftAttempt )
 		end
 		currentCraftAttempt = {}
@@ -1357,8 +1355,8 @@ local setInfo =
 	{{147948 , 147968, [6] = 147955, [7] =147984 },8,},	-- 49 Coldharbour's Favourite
 	{{148318 , 148338, [6] = 148325, [7] =148354 },5,},	-- 50 Senche Raht's Grit
 	{{148688 , 148708, [6] = 148695, [7] =148724 },3,},	-- 51 Vasterie's Tutelage
-	{{155778 , 155798, [6] = 155785, [7] =155813 },8,},	-- 52 Ancient Dragonguard
-	{{155404 , 155424, [6] = 155411, [7] =155439 },5,},	-- 53 Daring Corsair
+	{{155778 , 155798, [6] = 155785, [7] =155813 },6,},	-- 52 Ancient Dragonguard
+	{{155404 , 155424, [6] = 155411, [7] =155439 },3,},	-- 53 Daring Corsair
 	{{156152 , 156172, [6] = 156159, [7] =156187 },3,isSwapped=true},	-- 54 New Moon Acolyte -- Note, set ring and neck are swapped. neck ID is 156188
 	{{158546 , 158496, [6] = 158553, [7] =158358 },3,isSwapped=true}, -- 55 Critical Riposte
 	{{158920 , 158870, [6] = 158927, [7] =158732 },3,isSwapped=true}, -- 56 Unchained Aggressor
@@ -1384,8 +1382,8 @@ local setInfo =
 	{{194562 , 194582, [6] = 194569, [7] =194598 },7,isSwapped=true}, -- 695 Shattered Fate
 	{{194942 , 194962, [6] = 194949, [7] =194978 },7,isSwapped=true}, -- 696 Telvanni Efficiency
 	{{195322 , 195342, [6] = 195329, [7] =195358 },7,isSwapped=true}, -- 697 Seeker Synthesis
-	{{205773 , 205793, [6] = 205780, [7] =205809 },5,isSwapped=true}, -- 764 Highland Sentinel
 	{{205393 , 205413, [6] = 205400, [7] =205429 },3,isSwapped=true}, -- 763 Tharriker's Strike
+	{{205773 , 205793, [6] = 205780, [7] =205809 },5,isSwapped=true}, -- 764 Highland Sentinel
 	{{206153 , 206173, [6] = 206160, [7] =206189 },7,isSwapped=true}, -- 765 Threads of War
 }
 
@@ -1541,6 +1539,8 @@ function compileRequirements(request, requirements)-- Ingot/style mat/trait mat/
 		if station ~= 7 then
 			if request.useUniversalStyleItem then
 				requirements[ 71668] = 1 -- mimic stone Item ID
+			elseif request.style == LLC_FREE_STYLE_CHOICE then
+				requirements[ LLC_FREE_STYLE_CHOICE] = 1
 			else
 				requirements[ GetItemLinkItemId( GetItemStyleMaterialLink(request.style , 0))] = 1
 			end
@@ -1894,9 +1894,13 @@ local function computeLinkParticulars(requestTable, link)
 	local matIndex = requestTable["materialIndex"]
 	local materialQuantity =  requestTable["materialQuantity"]
 	local cpQuality, level = levelStuff(level, isCP, quality)
+	local style = requestTable.style
+	if style == LLC_FREE_STYLE_CHOICE then
+		style = 1
+	end
 	-- cpQuality = 364
 	-- lvl = 50
-	link = string.format("|H1:item:%d:%d:%d:%d:%d:%d:0:0:0:0:0:0:0:0:0:%d:0:0:0:10000:0|h|h", itemId, cpQuality, level, enchantId, enchantCPQuality, enchantLvl,requestTable.style)
+	link = string.format("|H1:item:%d:%d:%d:%d:%d:%d:0:0:0:0:0:0:0:0:0:%d:0:0:0:10000:0|h|h", itemId, cpQuality, level, enchantId, enchantCPQuality, enchantLvl,style)
 	return link
 end
 local linkTable = {}
@@ -1953,6 +1957,9 @@ local function fillOutFromParticulars(level, isCP, quality,style, potencyId, ess
 				enchantCPQuality = enchantCPQuality + i -1
 			end
 		end
+	end
+	if style == LLC_FREE_STYLE_CHOICE then
+		style = 3
 	end
 	local cpQuality, lvl = levelStuff(level, isCP, quality)
 	link = string.format("|H1:item:%d:%d:%d:%d:%d:%d:0:0:0:0:0:0:0:0:0:%d:0:0:0:10000:0|h|h", itemId, cpQuality, lvl, enchantId, enchantCPQuality, enchantLvl,style)
@@ -2022,7 +2029,7 @@ LibLazyCrafting.craftInteractionTables[CRAFTING_TYPE_BLACKSMITHING] =
 		if request["type"] == "improvement" then
 			local numBooster = GetMaxImprovementMats( request.ItemBagID,request.ItemSlotID,station)
 			if not numBooster then return false end
-			local _,_,stackSize = GetSmithingImprovementItemInfo(station, GetItemLinkQuality(GetItemLink(request.ItemBagID, request.ItemSlotID)))
+			local _,_,stackSize = GetSmithingImprovementItemInfo(station, GetItemLinkFunctionalQuality(GetItemLink(request.ItemBagID, request.ItemSlotID)))
 			if stackSize< numBooster then
 				return false
 			end
