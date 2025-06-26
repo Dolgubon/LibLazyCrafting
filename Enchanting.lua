@@ -275,6 +275,19 @@ local function getEnchantingResultItemId(enchantId)
 	end
 end
 
+local function getEssenceInfoForResult(resultItemId)
+	for i = 1, #glyphInfo do
+		if glyphInfo[i][3] == resultItemId then
+			parity = -1
+			essenceId = glyphInfo[i][9]
+		elseif glyphInfo[i][4] == resultItemId then
+			parity = 1
+			essenceId = glyphInfo[i][9]
+		end
+	end
+	return parity, essenceId
+end
+
 
 local function findNextPotencyByLevel(isCP, level, parity)
 	-- first find the level wanted
@@ -344,17 +357,39 @@ local function getComponentRunesForGlyphItemLink(itemLink)
 end
 LibLazyCrafting.getComponentRunesForGlyphItemLink = getComponentRunesForGlyphItemLink
 
--- Currently not properly implemented
-local function LLC_CraftEnchantingGlyphAttributes(self, isCP, level, enchantId, quality, autocraft, reference, gearRequestTable)
+-- Currently not properly implemented (Maybe? it seems fine so might have just forgotten to remove this comment)
+local function LLC_CraftEnchantingGlyphAttributes(self, isCP, level, enchantId, quality, autocraft, reference, gearRequestTableOrQuantity)
 	local _, parity, essenceId = getEnchantingResultItemId(enchantId)
 	local potencyId = findNextPotencyByLevel(isCP, level, parity)
 	local aspectId = qualityItemIdInfo[quality]
-	local a = LLC_CraftEnchantingGlyphItemID(self, potencyId, essenceId, aspectId, autocraft, reference, gearRequestTable, gearRequestTable.smithingQuantity)
+	local quantity
+	if type(gearRequestTableOrQuantity) == "table" then
+		quantity = gearRequestTableOrQuantity.smithingQuantity
+	else
+		quantity = gearRequestTableOrQuantity or 1
+	end
+	local a = LLC_CraftEnchantingGlyphItemID(self, potencyId, essenceId, aspectId, autocraft, reference, gearRequestTableOrQuantity, quantity)
 	return a
 	-- LLC_Global:CraftEnchantingGlyphItemID(self, GetItemId(potencyBagId, potencySlot),GetItemId(essenceBagId, essenceSlot),GetItemId(aspectBagId,aspectSlot),autocraft, reference)
 end
 
 LibLazyCrafting.functionTable.CraftEnchantingGlyphByAttributes = LLC_CraftEnchantingGlyphAttributes
+
+local function LLC_CraftEnchantingGlyphDesiredResult(self, isCP, level, resultItemId, quality, autocraft, reference, gearRequestTableOrQuantity)
+	local parity, essenceId = getEssenceInfoForResult(resultItemId)
+	local potencyId = findNextPotencyByLevel(isCP, level, parity)
+	local aspectId = qualityItemIdInfo[quality]
+	local quantity
+	if type(gearRequestTableOrQuantity) == "table" then
+		quantity = gearRequestTableOrQuantity.smithingQuantity
+	else
+		quantity = gearRequestTableOrQuantity or 1
+	end
+	local a = LLC_CraftEnchantingGlyphItemID(self, potencyId, essenceId, aspectId, autocraft, reference, gearRequestTableOrQuantity, quantity)
+	return a
+	-- LLC_Global:CraftEnchantingGlyphItemID(self, GetItemId(potencyBagId, potencySlot),GetItemId(essenceBagId, essenceSlot),GetItemId(aspectBagId,aspectSlot),autocraft, reference)
+end
+LibLazyCrafting.functionTable.CraftEnchantingGlyphDesiredResult = LLC_CraftEnchantingGlyphDesiredResult
 
 local function LLC_EnchantAttributesToGlyphIds(isCP, level, enchantId, quality)
 	local _, parity, essenceId = getEnchantingResultItemId(enchantId)
@@ -366,8 +401,8 @@ end
 LibLazyCrafting.functionTable.EnchantAttributesToGlyphIds = LLC_EnchantAttributesToGlyphIds
 LibLazyCrafting.EnchantAttributesToGlyphIds = LLC_EnchantAttributesToGlyphIds
 
-function LLC_GetEnchantingResultItemLinkByAttributes(isCP, level, enchantId, quality, autocraft, reference)
-	local itemId = getEnchantingResultItemId(enchantId)
+function LLC_GetEnchantingResultItemLinkByAttributes(isCP, level, enchantId, quality)
+	local itemId = getEnchantingResultItemId(enchantId) or enchantId
 	local quality1, quality2 = getQualityInfo(isCP, level, quality)
 	return string.format("|H1:item:%d:%d:%d:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0|h|h", itemId, quality1, quality2)
 end
@@ -425,13 +460,14 @@ local function LLC_EnchantingCraftinteraction(station, earliest, addon, position
 				currentCraftAttempt.allRunesKnown= false
 				currentCraftAttempt.locations = locations
 			end
-
-			ENCHANTING.potencySound = SOUNDS["NONE"]
-			ENCHANTING.potencyLength = 0
-			ENCHANTING.essenceSound = SOUNDS["NONE"]
-			ENCHANTING.essenceLength = 0
-			ENCHANTING.aspectSound = SOUNDS["NONE"]
-			ENCHANTING.aspectLength = 0
+			if ENCHANTING then
+				ENCHANTING.potencySound = SOUNDS["NONE"]
+				ENCHANTING.potencyLength = 0
+				ENCHANTING.essenceSound = SOUNDS["NONE"]
+				ENCHANTING.essenceLength = 0
+				ENCHANTING.aspectSound = SOUNDS["NONE"]
+				ENCHANTING.aspectLength = 0
+			end
 
 		end
 	end

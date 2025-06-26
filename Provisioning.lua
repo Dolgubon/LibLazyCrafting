@@ -46,7 +46,7 @@ local function LLC_CraftProvisioningItemByRecipeIndex(self, recipeListIndex, rec
 	if autocraft==nil then autocraft = self.autocraft end
 	local _,_,_,_,_,_,station = GetRecipeInfo(recipeListIndex, recipeIndex)
 	if not (recipeListIndex and recipeIndex and station) then
-		d("LibLazyCrafting: recipeListIndex:"..recipeListIndex.." and recipeIndex:"..recipeIndex.." does not seem to refer to a valid recipe")
+		d("LibLazyCrafting: recipeListIndex:"..tostring(recipeListIndex).." and recipeIndex:"..tostring(recipeIndex).." does not seem to refer to a valid recipe")
 		return
 	end
 	local resultLink = GetRecipeResultItemLink(recipeListIndex, recipeIndex)
@@ -65,7 +65,8 @@ local function LLC_CraftProvisioningItemByRecipeIndex(self, recipeListIndex, rec
 		["Requester"] = self.addonName,
 		["reference"] = reference,
 		["station"] = station,
-		["timesToMake"] = timesToMake or 1
+		["timesToMake"] = timesToMake or 1,
+    ["known"] = isKnown,
 	}
 	table.insert(craftingQueue[self.addonName][station], request)
 	LibLazyCrafting.AddHomeMarker(nil, station)
@@ -113,7 +114,9 @@ local function LLC_ProvisioningCraftInteraction(station, earliest, addon , posit
 	if ZO_CraftingUtils_IsPerformingCraftProcess()  then return end
 
 	dbug("CALL:ZOProvisioningCraft")
-	local recipeArgs = { earliest.recipeListIndex, earliest.recipeIndex, 1}--earliest.timesToMake }
+  local maximumCreated = GetMaxIterationsPossibleForRecipe(earliest.recipeListIndex, earliest.recipeIndex)
+  local maxQuantity =  math.min(maximumCreated, earliest.timesToMake or 1 )
+	local recipeArgs = { earliest.recipeListIndex, earliest.recipeIndex, maxQuantity }
 	LibLazyCrafting.isCurrentlyCrafting = {true, "provisioning", earliest["Requester"]}
 	CraftProvisionerItem(unpack(recipeArgs))
 
@@ -127,6 +130,7 @@ local function LLC_ProvisioningCraftInteraction(station, earliest, addon , posit
 	currentCraftAttempt.prevSlots = LibLazyCrafting.backpackInventory()
 	currentCraftAttempt.recipeListIndex = earliest.recipeListIndex
 	currentCraftAttempt.recipeIndex = earliest.recipeIndex
+  currentCraftAttempt.currentMake = maxQuantity
 	LibLazyCrafting.recipeCurrentCraftAttempt = currentCraftAttempt
 	-- If we're on the glyph creation stage and these aren't set, then you get a Lua error
 	if station == CRAFTING_TYPE_ENCHANTING then

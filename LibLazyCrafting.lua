@@ -17,7 +17,7 @@ end
 
 -- Initialize libraries
 local libLoaded
-local LIB_NAME, VERSION = "LibLazyCrafting", 4014
+local LIB_NAME, VERSION = "LibLazyCrafting", 4022
 local LibLazyCrafting, oldminor
 if LibStub then
 	LibLazyCrafting, oldminor = LibStub:NewLibrary(LIB_NAME, VERSION)
@@ -261,6 +261,8 @@ end
 -- prevSlotsContaining and newSlotsContaining are expected to be
 -- results from backpackInventory().
 function LibLazyCrafting.findIncreasedSlotIndex(prevInventory, currInventory)
+	local grownSlots = {}
+	local found = false
 	local maxSlotId = math.max(#prevInventory, #currInventory)
 	for slotIndex = 0, maxSlotId do
 		local prev = prevInventory[slotIndex]
@@ -268,12 +270,18 @@ function LibLazyCrafting.findIncreasedSlotIndex(prevInventory, currInventory)
 
 						-- Previously nil slot now non-nil
 						-- (can happen when #curr > #prev)
-		if curr and not prev then return slotIndex end
+		if curr and not prev then
+			found = true
+			table.insert(grownSlots, slotIndex)
+			end
 
 						-- This stack increased.
-		if prev < curr then return slotIndex end
+		if prev < curr then
+			found = true
+			table.insert(grownSlots, slotIndex)
+			end
 	end
-	return nil
+	return found and grownSlots or nil
 end
 
 function LibLazyCrafting.tableShallowCopy(t)
@@ -298,14 +306,15 @@ function LibLazyCrafting.stackableCraftingComplete(station, lastCheck, craftingT
 	local grewSlotIndex = LibLazyCrafting.findIncreasedSlotIndex(currentCraftAttempt.prevSlots, currSlots)
 	if grewSlotIndex then
 		dbug("RESULT:StackableMade")
-		if currentCraftAttempt["timesToMake"] < 2 then
+		if currentCraftAttempt["timesToMake"] < 2 or currentCraftAttempt.currentMake == currentCraftAttempt["timesToMake"] then
 			dbug("ACTION:RemoveQueueItem")
 			table.remove( craftingQueue[currentCraftAttempt.addon][station] , currentCraftAttempt.position )
 			--LibLazyCrafting.sortCraftQueue()
 			local resultTable =
 			{
 				["bag"] = BAG_BACKPACK,
-				["slot"] = grewSlotIndex,
+				["slot"] = grewSlotIndex[1],
+				["allSlots"] = grewSlotIndex,
 				['link'] = currentCraftAttempt.link,
 				['uniqueId'] = GetItemUniqueId(BAG_BACKPACK, currentCraftAttempt.slot),
 				["quantity"] = 1,
@@ -319,8 +328,12 @@ function LibLazyCrafting.stackableCraftingComplete(station, lastCheck, craftingT
 		else
 			-- Loop to craft multiple copies
 			local earliest = craftingQueue[currentCraftAttempt.addon][station][currentCraftAttempt.position]
-			earliest.timesToMake = earliest.timesToMake - 1
-			currentCraftAttempt.timesToMake = earliest.timesToMake
+			if earliest then
+				earliest.timesToMake = earliest.timesToMake - currentCraftAttempt.currentMake
+				currentCraftAttempt.timesToMake = earliest.timesToMake
+			else
+				currentCraftAttempt.timesToMake = currentCraftAttempt.timesToMake - currentCraftAttempt.currentMake
+			end
 			if GetCraftingInteractionType()==0 then zo_callLater(function() LibLazyCrafting.stackableCraftingComplete( station, true, station, currentCraftAttempt) end,100) end
 		end
 	elseif lastCheck then
@@ -692,6 +705,9 @@ function LibLazyCrafting:Init()
 
 	LLC_Global = LibLazyCrafting:AddRequestingAddon("LLC_Global",true, function(event, station, result)
 		d(GetItemLink(result.bag,result.slot).." crafted at slot "..tostring(result.slot).." with reference "..result.reference) end)
+	LLC_UserRequests = LibLazyCrafting:AddRequestingAddon("LLC_UserRequests",true, function(event, station, result)
+		if event ~= LLC_CRAFT_SUCCESS then return end
+		d("LibLazyCrafting: Crafted "..GetItemLink(result.bag,result.slot)) end)
 
 	--craftingQueue["ExampleAddon"] = nil
 end
@@ -795,27 +811,19 @@ local function CraftComplete(event, station)
 	--d("Event:completion")
 	local LLCResult = nil
 	for k,v in pairs(LibLazyCrafting.craftInteractionTables) do
-		if v:check( station) then
+		if v:check(station) then
 			if GetCraftingInteractionType()==0 then -- This is called when the user exits the crafting station while the game is crafting
 				endInteraction(EVENT_END_CRAFTING_STATION_INTERACT, station)
-				if LibLazyCrafting.recipeCurrentCraftAttempt and LibLazyCrafting.recipeCurrentCraftAttempt.recipeIndex then
-					LibLazyCrafting.craftInteractionTables[CRAFTING_TYPE_PROVISIONING]["complete"](station)
-				else
-					v["complete"]( station)
-				end
-				LibLazyCrafting.isCurrentlyCrafting = {false, "", ""}
-				return
-			else
-				if LibLazyCrafting.recipeCurrentCraftAttempt and LibLazyCrafting.recipeCurrentCraftAttempt.recipeIndex then
-					LibLazyCrafting.craftInteractionTables[CRAFTING_TYPE_PROVISIONING]["complete"](station)
-				else
-					v["complete"]( station)
-				end
-				LibLazyCrafting.isCurrentlyCrafting = {false, "", ""}
-				if CraftEarliest(event, station) then
-					return
-				end
 			end
+				if LibLazyCrafting.recipeCurrentCraftAttempt and LibLazyCrafting.recipeCurrentCraftAttempt.recipeIndex then
+					LibLazyCrafting.craftInteractionTables[CRAFTING_TYPE_PROVISIONING]["complete"](station)
+				else
+					v["complete"]( station)
+				end
+				LibLazyCrafting.isCurrentlyCrafting = {false, "", ""}
+			if GetCraftingInteractionType()~=0 and CraftEarliest(event, station) then
+			end
+			return
 		end
 	end
 	LibLazyCrafting.SendCraftEvent( LLC_NO_FURTHER_CRAFT_POSSIBLE ,  station,nil , nil )
@@ -841,3 +849,7 @@ local function OnAddonLoaded()
 end
 
 EVENT_MANAGER:RegisterForEvent(LIB_NAME, EVENT_ADD_ON_LOADED, OnAddonLoaded)
+
+if GetDisplayName() == "@J3zdaz" or GetDisplayName() == "@Dolgubon" then
+	SLASH_COMMANDS['/memorycheck'] = function() d(GetTotalUserAddOnMemoryPoolUsageMB().."MB is being used by addons") end
+end
