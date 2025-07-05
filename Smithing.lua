@@ -890,7 +890,7 @@ local function GetEnchantQuality(itemLink)
 		return quality
 	end
 	return 0
-
+end
 -- /script LLC_Global:CraftSmithingItemFromLink("|H1:item:52244:21:16:0:0:0:0:0:0:0:0:0:0:0:0:7:1:0:0:10000:0|h|h") LLC_Global:CraftSmithingItemFromLink("|H1:item:49514:21:16:0:0:0:0:0:0:0:0:0:0:0:0:7:1:0:0:10000:0|h|h") LLC_Global:CraftSmithingItemFromLink("|H1:item:47664:21:16:0:0:0:0:0:0:0:0:0:0:0:0:7:1:0:0:10000:0|h|h")
 
 local function LLC_CraftSmithingItemFromLink(self, itemLink, reference)
