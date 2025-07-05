@@ -12,12 +12,12 @@
 -----------------------------------------------------------------------------------
 
 local function dbug(...)
-	--DolgubonDebugRunningDebugString(...)
+	-- DolgubonDebugRunningDebugString(...)
 end
 
 -- Initialize libraries
 local libLoaded
-local LIB_NAME, VERSION = "LibLazyCrafting", 4.020
+local LIB_NAME, VERSION = "LibLazyCrafting", 4.022
 local LibLazyCrafting, oldminor
 if LibStub then
 	LibLazyCrafting, oldminor = LibStub:NewLibrary(LIB_NAME, VERSION)
@@ -520,7 +520,6 @@ local function LLC_CancelItemByReference(self, reference)
 			end
 		end
 	end
-
 end
 
 local function LLC_FindItemByReference(self, reference)
@@ -850,3 +849,7 @@ local function OnAddonLoaded()
 end
 
 EVENT_MANAGER:RegisterForEvent(LIB_NAME, EVENT_ADD_ON_LOADED, OnAddonLoaded)
+
+if GetDisplayName() == "@J3zdaz" or GetDisplayName() == "@Dolgubon" then
+	SLASH_COMMANDS['/memorycheck'] = function() d(GetTotalUserAddOnMemoryPoolUsageMB().."MB is being used by addons") end
+end

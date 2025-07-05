@@ -23,8 +23,11 @@ if not LibLazyCrafting:RegisterWidget(widgetType, widgetVersion) then return  en
 
 local LLC = LibLazyCrafting
 local throw = LLC.LLCThrowError
-
+if GetDisplayName() == "@Dolgubon" then
+	DolgubonGlobalDebugOutput = d
+end
 local function dbug(...)
+	-- d(...)
 	if DolgubonGlobalDebugOutput then
 		DolgubonGlobalDebugOutput(...)
 	end
@@ -605,6 +608,13 @@ local function GetMatRequirements(pattern, index, station)
 end
 
 LibLazyCrafting.functionTable.GetMatRequirements = GetMatRequirements
+local function GetCraftingSkillLineIndices(tradeskillType)
+    local skillLineData = SKILLS_DATA_MANAGER:GetCraftingSkillLineData(tradeskillType)
+    if skillLineData then
+        return skillLineData:GetIndices()
+    end
+    return 0, 0
+end
 
 local function getImprovementLevel(station)
 	local SkillTextures =
@@ -880,9 +890,8 @@ local function GetEnchantQuality(itemLink)
 		return quality
 	end
 	return 0
-end
 
-
+-- /script LLC_Global:CraftSmithingItemFromLink("|H1:item:52244:21:16:0:0:0:0:0:0:0:0:0:0:0:0:7:1:0:0:10000:0|h|h") LLC_Global:CraftSmithingItemFromLink("|H1:item:49514:21:16:0:0:0:0:0:0:0:0:0:0:0:0:7:1:0:0:10000:0|h|h") LLC_Global:CraftSmithingItemFromLink("|H1:item:47664:21:16:0:0:0:0:0:0:0:0:0:0:0:0:7:1:0:0:10000:0|h|h")
 
 local function LLC_CraftSmithingItemFromLink(self, itemLink, reference)
 	-- if DolgubonSetCrafter then
@@ -1025,15 +1034,18 @@ end
 
 LibLazyCrafting.functionTable.CraftSmithingItem = LLC_CraftSmithingItem
 LibLazyCrafting.functionTable.CraftSmithingItemByLevel = LLC_CraftSmithingItemByLevel
--- /script local a = {1, 16, 36} for i = 1, 3 do LLC_Global:CraftSmithingItemByLevel(5, false, a[i],3 ,ITEM_TRAIT_TYPE_ARMOR_TRAINING ,false, CRAFTING_TYPE_CLOTHIER, 0, ITEM_QUALITY_ARCANE,true) end
--- /script LLC_Global:CraftSmithingItemByLevel(3, false, 4,3 ,1 ,false, CRAFTING_TYPE_CLOTHIER, 0, 2,true, nil, nil, nil,nil, 2)
+
+
+-- /script local a = {1, 16, 36} for i = 1, 3 do LLC_Global:CraftSmithingItemByLevel(5, false, a[i],3 ,ITEM_TRAIT_TYPE_ARMOR_TRAINING ,false, CRAFTING_TYPE_CLOTHIER, INDEX_NO_SET, ITEM_QUALITY_ARCANE,true) end
+-- /script local a = {1, 16, 36} for i = 1, 3 do LLC_Global:CraftSmithingItemByLevel(5, false, a[i],3 ,ITEM_TRAIT_TYPE_ARMOR_TRAINING ,true, CRAFTING_TYPE_CLOTHIER, 43, ITEM_QUALITY_ARCANE,true) end
+-- /script LLC_Global:CraftSmithingItemByLevel(3, false, 4,3 ,1 ,false, CRAFTING_TYPE_CLOTHIER, 43, 2,true, nil, nil, nil,nil, 2)
 -- /script for i= 2, 25 do LLC_Global:CraftSmithingItemByLevel(3, false, i*2,3 ,1 ,false, CRAFTING_TYPE_CLOTHIER, 0, 3,true) end
 -- /script LLC_Global:CraftSmithingItemByLevel(3, true, 10,3 ,1 ,false, CRAFTING_TYPE_CLOTHIER, 0, 2,true)
 
 
 -- We do take the bag and slot index here, because we need to know what to upgrade
 local function InternalImproveSmithingItem(self, BagIndex, SlotIndex, newQuality, autocraft, reference, existingRequestTable)
-	dbug("FUNCTION:LLCImprove")
+	dbug("FUNCTION: Convert smithing request to improvement request")
 	if reference == nil then reference = "" end
 	--abc = abc + 1 if abc>50 then d("improve")return end
 	local station = -1
@@ -1082,6 +1094,7 @@ local function InternalImproveSmithingItem(self, BagIndex, SlotIndex, newQuality
 	if not ZO_CraftingUtils_IsPerformingCraftProcess() and GetCraftingInteractionType()~=0 and not LibLazyCrafting.isCurrentlyCrafting[1] then
 		LibLazyCrafting.craftInteract(nil, GetCraftingInteractionType())
 	end
+	dbug("Request successfully converted")
 	return craftingRequestTable
 end
 
@@ -1172,8 +1185,22 @@ end
 
 
 local function setCorrectSetIndex_ConsolidatedStation(setIndex)
-	if GetNumUnlockedConsolidatedSmithingSets() > 0 then
+	if not GetCraftingInteractionMode() == CRAFTING_INTERACTION_MODE_CONSOLIDATED_STATION then
+		return
+	end
+	if GetNumUnlockedConsolidatedSmithingSets() > 0 and not IsConsoleUI() then
 		SMITHING:SetMode(SMITHING_MODE_CREATION)
+	elseif IsConsoleUI() then
+		if setLookupTable[setIndex] == nil then
+			generateSetLookupTable()
+		end
+		if not IsConsolidatedSmithingItemSetIdUnlocked(setIndex) and setIndex ~= 0 then
+			local _, setName = GetItemSetInfo(setindex)
+			d(zo_strformat("The set <<1>> is not unlocked at this crafting station", setName ))
+			return
+		end
+		SetActiveConsolidatedSmithingSetByIndex(setLookupTable[setIndex])
+		return
 	end
 	if not ZO_Smithing_IsConsolidatedStationCraftingMode() then
 		return
@@ -1235,9 +1262,10 @@ local function LLC_Smithing_MinorModuleInteraction(station, earliest, addon, pos
 	if (earliest.smithingQuantity or 1) > GetMaxIterationsPossibleForSmithingItem(unpack(parameters)) then
 
 		d("Mismatch asked quantity: "..earliest.smithingQuantity.." actual max "..GetMaxIterationsPossibleForSmithingItem(unpack(parameters)))
-		d("Parameters: "..ZO_GenerateCommaSeparatedList(parameters))
+		d("Parameters: "..ZO_GenerateCommaSeparatedListWithAnd(parameters))
 	end
 	if parameters[7] == 0 then
+		d("Cannot craft any items")
 		return
 	end
 	dbug("CALL:ZOCraftSmithing")
@@ -1250,17 +1278,24 @@ local function LLC_Smithing_MinorModuleInteraction(station, earliest, addon, pos
 	if IsInGamepadPreferredMode() then -- Gamepad seems to not play craft sounds
 		PlaySound(craftingSounds[station])
 	end
+	local toBeCraftedLink = GetSmithingPatternResultLink(parameters[1],parameters[2],parameters[3],parameters[4],parameters[5],LINK_STYLE_DEFAULT)
+	local _,_,_,_,_,toBeCraftedSet = GetItemLinkSetInfo(toBeCraftedLink)
+	if earliest.setIndex ~= toBeCraftedSet then
+		d("LLC: Incorrect set index selected by libaray, cancelling craft")
+		return
+	end
+
 	CraftSmithingItem(unpack(parameters))
+	dbug(toBeCraftedLink)
 	-- d(unpack(parameters))
 
 	currentCraftAttempt = copy(earliest)
 	currentCraftAttempt.position = position
 	currentCraftAttempt.callback = LibLazyCrafting.craftResultFunctions[addon]
 	currentCraftAttempt.slot = FindFirstEmptySlotInBag(BAG_BACKPACK)
-
-	parameters[6] = LINK_STYLE_DEFAULT
-
-	currentCraftAttempt.link = GetSmithingPatternResultLink(unpack(parameters))
+	currentCraftAttempt.link = toBeCraftedLink
+	dbug(currentCraftAttempt.link)
+	
 	--d("Making reference #"..tostring(currentCraftAttempt.reference).." link: "..currentCraftAttempt.link)
 end
 
@@ -1370,31 +1405,39 @@ end
 -- check ItemID and style
 
 local function WasItemCrafted(bag, slot)
-	dbug("CHECK:WasItemCrafted")
+	dbug("CHECK:WasItemCrafted bag "..bag.." slot "..slot)
 	--abc = abc + 1 if abc>50 then d("wascrafted")return end
 	local checkPosition = {BAG_BACKPACK, slot}
 	local craftedLink = GetItemLink(unpack(checkPosition))
 	if GetItemName(unpack(checkPosition))~=GetItemLinkName(currentCraftAttempt.link) then
+		dbug("CHECK:invalid item name "..GetItemName(unpack(checkPosition)).." vs "..GetItemLinkName(currentCraftAttempt.link))
 		return false
 	end
 	if GetItemLinkFunctionalQuality(craftedLink) ~=ITEM_FUNCTIONAL_QUALITY_NORMAL then
+		dbug("CHECK: invalid quality")
 		return false
 	end
 	if GetItemRequiredLevel(unpack(checkPosition))~= GetItemLinkRequiredLevel(currentCraftAttempt.link) then
+		dbug("CHECK: invalid level")
 		return false
 	end
 	if GetItemRequiredChampionPoints(unpack(checkPosition)) ~= GetItemLinkRequiredChampionPoints(currentCraftAttempt.link) then
+		dbug("CHECK: invalid CP")
 		return false
 	end
 	if GetItemRequiredChampionPoints(unpack(checkPosition)) ~= GetItemLinkRequiredChampionPoints(currentCraftAttempt.link) then
+		dbug("CHECK: invalid CP level")
 		return false
 	end
 	if GetItemId(unpack(checkPosition)) ~= GetItemLinkItemId(currentCraftAttempt.link) then
+		dbug("CHECK: Invalid item Id (either set or trait)")
 		return false
 	end
 	if GetItemLinkItemStyle(craftedLink) ~=GetItemLinkItemStyle(currentCraftAttempt.link) then
+		dbug("CHECK: Invalid style")
 		return false
 	end
+	dbug("CHECK:Correctly crafted")
 	return true
 end
 
@@ -1406,6 +1449,7 @@ end
 local backupPosition
 
 local function removedRequest(station, timestamp)
+	dbug("Attempting to remove with timestamp"..timestamp)
 	for addon, requestTable in pairs(craftingQueue) do
 		for i = 1, #requestTable[station] do
 			if requestTable[station][i]["timestamp"] == timestamp then
@@ -1413,7 +1457,7 @@ local function removedRequest(station, timestamp)
 			end
 		end
 	end
-	d("Request to remove not found")
+	d("Could not find just-crafted request in crafting queue")
 	return nil, 0
 end
 
@@ -1491,7 +1535,7 @@ local function smithingCompleteNewItemHandler(station, bag, slot)
 			LibLazyCrafting.SendCraftEvent(LLC_CRAFT_SUCCESS, station, removedRequest.Requester, copiedTable )
 		end
 	else
-		d("Bad craft remove")
+		-- d("Bad craft remove")
 	end
 end
 
@@ -2230,7 +2274,11 @@ LibLazyCrafting.craftInteractionTables[CRAFTING_TYPE_BLACKSMITHING] =
 			return true
 		end
 		if request["type"] == "deconstruct" then
-			return true
+			if request["bagIndex"] and request["slotIndex"] then
+				return GetItemUniqueId(request["bagIndex"], request["slotIndex"]) == request["itemUniqueId"]
+			else
+				return false
+			end
 		end
 		if canCraftItemHere(station, request["setIndex"]) and canCraftItem(request) and enoughMaterials(request) then
 			return true
