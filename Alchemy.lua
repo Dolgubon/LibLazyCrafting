@@ -106,6 +106,7 @@ local function LLC_AlchemyCraftInteraction(station, earliest, addon , position)
 	LibLazyCrafting.isCurrentlyCrafting = {true, "alchemy", earliest["Requester"]}
 	local l = locations
 	CraftAlchemyItem(l[1],l[2],l[3],l[4],l[5],l[6],l[7],l[8],l[9])
+	-- d(GetAlchemyResultingItemLink(l[1],l[2],l[3],l[4],l[5],l[6],l[7],l[8],l[9]))
 
 	currentCraftAttempt= copy(earliest)
 	currentCraftAttempt.callback = LibLazyCrafting.craftResultFunctions[addon]
@@ -124,7 +125,7 @@ local function LLC_AlchemyCraftInteraction(station, earliest, addon , position)
 						--
 						-- Maybe later. For now, no slot for you!
 	currentCraftAttempt.slot = nil -- FindFirstEmptySlotInBag(BAG_BACKPACK)
-	currentCraftAttempt.link = GetAlchemyResultingItemLink(unpack(locations))
+	currentCraftAttempt.link = GetAlchemyResultingItemLink(l[1],l[2],l[3],l[4],l[5],l[6],l[7],l[8],l[9])
 	currentCraftAttempt.position = position
 	currentCraftAttempt.timestamp = GetTimeStamp()
 	currentCraftAttempt.addon = addon

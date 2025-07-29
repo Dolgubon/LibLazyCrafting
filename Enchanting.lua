@@ -429,6 +429,11 @@ local lastSlotUsed = nil
 local function LLC_EnchantingCraftinteraction(station, earliest, addon, position)
 	dbug("FUNCTION:LLCEnchantCraft")
 	if not earliest then  LibLazyCrafting.SendCraftEvent( LLC_NO_FURTHER_CRAFT_POSSIBLE,  station) end
+	if earliest.type == "deconstruct" then
+		currentCraftAttempt.type = "deconstruct"
+		LibLazyCrafting.craftInteractionTables[CRAFTING_TYPE_BLACKSMITHING]["function"]( station, earliest, addon , position)
+		return
+	end
 	if earliest and not ZO_CraftingUtils_IsPerformingCraftProcess() then
 		local locations = 
 		{
@@ -460,13 +465,12 @@ local function LLC_EnchantingCraftinteraction(station, earliest, addon, position
 				currentCraftAttempt.allRunesKnown= false
 				currentCraftAttempt.locations = locations
 			end
-			if ENCHANTING then
-				ENCHANTING.potencySound = SOUNDS["NONE"]
-				ENCHANTING.potencyLength = 0
-				ENCHANTING.essenceSound = SOUNDS["NONE"]
-				ENCHANTING.essenceLength = 0
-				ENCHANTING.aspectSound = SOUNDS["NONE"]
-				ENCHANTING.aspectLength = 0
+			-- GetRunestoneSoundInfo(unpack(findItemLocationById(earliest["potencyItemID"])))
+			local visibleEnchant = ZO_Enchanting_GetVisibleEnchanting()
+			if visibleEnchant then
+				visibleEnchant.potencySound, visibleEnchant.potencyLength = GetRunestoneSoundInfo(findItemLocationById(earliest["potencyItemID"]))
+				visibleEnchant.essenceSound, visibleEnchant.essenceLength =GetRunestoneSoundInfo(findItemLocationById(earliest["essenceItemID"]))
+				visibleEnchant.aspectSound, visibleEnchant.aspectLength =GetRunestoneSoundInfo(findItemLocationById(earliest["aspectItemID"]))
 			end
 			
 		end
@@ -586,6 +590,11 @@ local function handleEnchantComplete(station, slot)
 end
 
 local function LLC_EnchantingCraftingComplete(station, lastCheck)
+	if currentCraftAttempt.type == "deconstruct" then
+		LibLazyCrafting.craftInteractionTables[CRAFTING_TYPE_BLACKSMITHING]["complete"]( station, earliest, addon , position)
+		currentCraftAttempt.type = nil
+		return
+	end
 	if currentCraftAttempt.allRunesKnown==false then -- User didn't know all the glyphs, so we get the item link *now* since now they know them
 	-- Hopefully they have more than one
 		currentCraftAttempt.link = GetEnchantingResultingItemLink(unpack(currentCraftAttempt.locations))

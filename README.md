@@ -24,9 +24,10 @@ Note: If you wish to use this library and run into issues or have questions, sen
 Add the following to your manifest.txt file:
 \#\# DependsOn: LibLazyCrafting
 
-Next, register your addon with LibLazyCrafting (LLC) in the addon initialized function. This will let you associate craft requests with your addon, as well as set various parameters when your addon calls LLC functions
+Next, register your addon with LibLazyCrafting (LLC) in the addon initialized function. This will let you associate craft requests with your addon, as well as set various parameters when your addon calls LLC functions.
+Note that you can register multiple times with a different addon name, if it makes it easier for you to manage the queue separately (For example, Writ Crafter has separate registrations for daily writs and master writs)
 
-### local interactionTable = LibLazyCrafting:AddRequestingAddon(*String addonName, boolean autoCraft, function callbackFunction, string optionalDebugAuthor, table optionalStyleTable*)
+### local interactionTable = LibLazyCrafting:AddRequestingAddon(*String addonName, boolean autoCraft, function callbackFunction, string optionalDebugAuthor, tableOrFunction optionalStyleTable*)
 * *String addonName*: The name of the requesting addon.  
 * *boolean autoCraft*: Whether requests from this addon should by default be crafted as soon as possible, or if your addon will initiate the crafts (usually upon request by the user)  
 * *function callbackFunction* (* String event, integer CraftingType, table requestTable*) : The function that should be called when a requested craft is either complete, or failed for some reason. Different parameters may be returned depending on the event  

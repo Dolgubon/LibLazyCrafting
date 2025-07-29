@@ -1286,7 +1286,7 @@ local function LLC_Smithing_MinorModuleInteraction(station, earliest, addon, pos
 	end
 
 	CraftSmithingItem(unpack(parameters))
-	dbug(toBeCraftedLink)
+	dbug("Expecting to craft "..toBeCraftedLink)
 	-- d(unpack(parameters))
 
 	currentCraftAttempt = copy(earliest)
@@ -1363,6 +1363,13 @@ end
 	-- ["type"] = "deconstruct"
 local function LLC_Deconstruction_MinorModuleInteraction(station, earliest, addon, position)
 	if GetItemUniqueId(earliest.bagIndex, earliest.slotIndex) == earliest.itemUniqueId then
+		local visibleEnchant = ZO_Enchanting_GetVisibleEnchanting()
+		visibleEnchant.potencySound = SOUNDS["NONE"]
+		visibleEnchant.potencyLength = 0
+		visibleEnchant.essenceSound = SOUNDS["NONE"]
+		visibleEnchant.essenceLength = 0
+		visibleEnchant.aspectSound = SOUNDS["NONE"]
+		visibleEnchant.aspectLength = 0
 		currentCraftAttempt = {}
 		currentCraftAttempt = copy(earliest)
 		PrepareDeconstructMessage() 
@@ -1400,7 +1407,6 @@ local function LLC_SmithingCraftInteraction( station, earliest, addon , position
 	else
 		LibLazyCrafting.SendCraftEvent( LLC_NO_FURTHER_CRAFT_POSSIBLE,  station)
 	end
-
 end
 -- check ItemID and style
 

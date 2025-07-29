@@ -17,7 +17,7 @@ end
 
 -- Initialize libraries
 local libLoaded
-local LIB_NAME, VERSION = "LibLazyCrafting", 4.022
+local LIB_NAME, VERSION = "LibLazyCrafting", 4.027
 local LibLazyCrafting, oldminor
 if LibStub then
 	LibLazyCrafting, oldminor = LibStub:NewLibrary(LIB_NAME, VERSION)
@@ -467,6 +467,7 @@ end
 
 local function LLC_CraftItem(self, station, position)
 	if GetCraftingInteractionType() == 0 then return end
+	if station == nil then station = GetCraftingInteractionType() end
 	if position == nil then
 		for i = 1, #craftingQueue[self.addonName][station] do
 			craftingQueue[self.addonName][station][i]["craftNow"] = true
@@ -474,6 +475,7 @@ local function LLC_CraftItem(self, station, position)
 	else
 		craftingQueue[self.addonName][station][position]["craftNow"] = true
 	end
+	LibLazyCrafting.craftInteract(nil, station)
 end
 
 local function LLC_StopCraftAllItems(self)
@@ -501,6 +503,9 @@ local function LLC_CancelItem(self, station, position)
 				LLC_CancelItem(self, i, nil)
 			end
 		else
+			if station == 0 or station == 8 then
+				return
+			end
 			for i = 1, #craftingQueue[self.addonName][station] do
 				LLC_CancelItem(self, station, 1)
 			end
@@ -634,6 +639,13 @@ local function compileNonCraftableReasons(self)
 	return results
 end
 
+local function getAddonCraftingQueue(self, station)
+	if not station then
+		return craftingQueue[self.addonName]
+	end
+	return craftingQueue[self.addonName][station]
+end
+
 
 function LibLazyCrafting:Init()
 	LibLazyCrafting.addonInteractionTables = {}
@@ -658,8 +670,10 @@ function LibLazyCrafting:Init()
 		LLCAddonInteractionTable["personalQueue"]  = craftingQueue[addonName]
 		LLCAddonInteractionTable["styleTable"] = styleTable
 		LLCAddonInteractionTable["compileNonCraftableReasons"] = compileNonCraftableReasons
+		LLCAddonInteractionTable["getAddonCraftingQueue"] = getAddonCraftingQueue
 
 		LLC.debugDisplayNames[addonName] = optionalDebugAuthor
+
 
 		-- Add all the functions to the interaction table!!
 		-- On the other hand, then addon devs can mess up the functions?
