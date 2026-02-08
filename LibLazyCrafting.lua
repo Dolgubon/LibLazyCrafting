@@ -17,7 +17,7 @@ end
 
 -- Initialize libraries
 local libLoaded
-local LIB_NAME, VERSION = "LibLazyCrafting", 4.027
+local LIB_NAME, VERSION = "LibLazyCrafting", 4.030
 local LibLazyCrafting, oldminor
 if LibStub then
 	LibLazyCrafting, oldminor = LibStub:NewLibrary(LIB_NAME, VERSION)
@@ -447,9 +447,10 @@ local function findEarliestRequest(station)
 
 	end
 	if addonName then
-
+		dbug("Request found to craft")
 		return earliest, addonName , position
 	else
+		dbug("No possible craft request found")
 		return nil, nil , 0
 	end
 end
@@ -775,9 +776,11 @@ LLC.LLCThrowError = LLCThrowError
 -- Helper function. Finds the earliest craftable request, then crafts it using the relevant crafting function
 -- Return true if we started crafting something
 local function CraftEarliest(event, station)
+	dbug("CraftEarliest called")
 	local stationInteractionTable = LibLazyCrafting.craftInteractionTables[station]
 	local earliest, addon , position = LibLazyCrafting.findEarliestRequest(station)
 	if not earliest then return false end
+	dbug("Earliest found")
 	if earliest.recipeIndex then -- is furniture/recipe
 		LibLazyCrafting.craftInteractionTables[CRAFTING_TYPE_PROVISIONING]["function"]( station, earliest, addon , position)
 		return true

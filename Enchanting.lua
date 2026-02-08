@@ -434,7 +434,7 @@ local function LLC_EnchantingCraftinteraction(station, earliest, addon, position
 		LibLazyCrafting.craftInteractionTables[CRAFTING_TYPE_BLACKSMITHING]["function"]( station, earliest, addon , position)
 		return
 	end
-	if earliest and not ZO_CraftingUtils_IsPerformingCraftProcess() then
+	if earliest and not IsAwaitingCraftingProcessResponse() then
 		local locations = 
 		{
 			select(1,findItemLocationById(earliest["potencyItemID"])),
@@ -467,7 +467,7 @@ local function LLC_EnchantingCraftinteraction(station, earliest, addon, position
 			end
 			-- GetRunestoneSoundInfo(unpack(findItemLocationById(earliest["potencyItemID"])))
 			local visibleEnchant = ZO_Enchanting_GetVisibleEnchanting()
-			if visibleEnchant then
+			if visibleEnchant and not LibLazyCraftingSavedVars.enchantingSoundOff then
 				visibleEnchant.potencySound, visibleEnchant.potencyLength = GetRunestoneSoundInfo(findItemLocationById(earliest["potencyItemID"]))
 				visibleEnchant.essenceSound, visibleEnchant.essenceLength =GetRunestoneSoundInfo(findItemLocationById(earliest["essenceItemID"]))
 				visibleEnchant.aspectSound, visibleEnchant.aspectLength =GetRunestoneSoundInfo(findItemLocationById(earliest["aspectItemID"]))
@@ -703,6 +703,8 @@ LibLazyCrafting.craftInteractionTables[CRAFTING_TYPE_ENCHANTING] =
 LibLazyCrafting.functionTable.CraftEnchantingItemId = LLC_CraftEnchantingGlyphItemID
 LibLazyCrafting.functionTable.CraftEnchantingGlyph = LLC_CraftEnchantingGlyph
 LibLazyCrafting.functionTable.CraftEnchantingItem = LLC_CraftEnchantingGlyph
+
+SLASH_COMMANDS['/llcsoundoff'] = function() LibLazyCraftingSavedVars.enchantingSoundOff = not LibLazyCraftingSavedVars.enchantingSoundOff end
 
 --- testers:
 -- /script LLC_Global:CraftEnchantingItemId(45830, 45838, 45851)

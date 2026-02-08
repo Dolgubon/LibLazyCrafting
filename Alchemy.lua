@@ -98,6 +98,10 @@ local function LLC_AlchemyCraftInteraction(station, earliest, addon , position)
 		--earliest.timesToMake,
 	}
 	local maximumCreated = GetMaxIterationsPossibleForAlchemyItem(unpack(locations))
+	if maximumCreated == 0 then
+		dbug("Cannot create any alchemy items")
+		return
+	end
 	local maxQuantity =  math.min(maximumCreated, earliest.timesToMake or 1 )
 	locations[9] = maxQuantity
 	if not (solventSlotIndex and reagent1SlotIndex and reagent2SlotIndex and (not earliest["reagentId3"] or reagent3SlotIndex)) then return end
@@ -107,6 +111,7 @@ local function LLC_AlchemyCraftInteraction(station, earliest, addon , position)
 	local l = locations
 	CraftAlchemyItem(l[1],l[2],l[3],l[4],l[5],l[6],l[7],l[8],l[9])
 	-- d(GetAlchemyResultingItemLink(l[1],l[2],l[3],l[4],l[5],l[6],l[7],l[8],l[9]))
+	-- d(GetAlchemyResultingItemInfo(l[1],l[2],l[3],l[4],l[5],l[6],l[7],l[8],l[9]))
 
 	currentCraftAttempt= copy(earliest)
 	currentCraftAttempt.callback = LibLazyCrafting.craftResultFunctions[addon]

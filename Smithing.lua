@@ -702,6 +702,11 @@ local function LLC_CraftSmithingItem(self, patternIndex, materialIndex, material
 	else
 		station =stationOverride
 	end
+	if station == 0 or station > 7 then
+		d("LLC: No station specified, and you are not at a crafting station")
+		throw(self, "No station specified, and you are not at a crafting station")
+		return
+	end
 	--Handle the extra values. If they're nil, assign default values.
 	if not setIndex then setIndex = INDEX_NO_SET end
 	if not quality then quality = 0 end
@@ -771,7 +776,11 @@ LibLazyCrafting.functionTable.isSmithingLevelValid = isValidLevel
 
 local function LLC_CraftSmithingItemByLevel(self, patternIndex, isCP , level, styleIndex, traitIndex, 
 	useUniversalStyleItem, stationOverride, setIndex, quality, autocraft, reference, potencyId, essenceId, aspectId, smithingQuantity)
-
+	if stationOverride == 0 or stationOverride > 7 then
+		d("LLC: Invalid station specified, and you are not at a crafting station")
+		throw(self, "Invalid station specified, and you are not at a crafting station")
+		return
+	end
 	if isValidLevel( isCP ,level) then
 		local materialIndex = findMatIndex(level, isCP)
 
@@ -782,6 +791,7 @@ local function LLC_CraftSmithingItemByLevel(self, patternIndex, isCP , level, st
 		requestTable.isCP = isCP
 		return requestTable
 	else
+		d("LLC: Invalid level for gear crafting isCP: "..tostring(isCP).." level/CP: "..tostring(level))
 	end
 end
 local recipeItemTypes=
@@ -1185,7 +1195,7 @@ end
 
 
 local function setCorrectSetIndex_ConsolidatedStation(setIndex)
-	if not GetCraftingInteractionMode() == CRAFTING_INTERACTION_MODE_CONSOLIDATED_STATION then
+	if GetCraftingInteractionMode() ~= CRAFTING_INTERACTION_MODE_CONSOLIDATED_STATION then
 		return
 	end
 	if GetNumUnlockedConsolidatedSmithingSets() > 0 and not IsConsoleUI() then
@@ -2229,13 +2239,29 @@ local function internalGetItemLinkFromParticulars(setId, trait, pattern, station
 	return finalLink
 end
 
-local function getItemLinkFromParticulars(setId, trait, pattern, station,level, isCP, quality,style,  potencyId, essenceId , aspectId)
-	local wasError, result = pcall(function() return internalGetItemLinkFromParticulars(setId, trait, pattern, station,level, isCP, quality,style,  potencyId, essenceId , aspectId) end )
-	if wasError then
-		return result
-	else
-		return nil
-	end
+-- LLC_Global:getItemLinkFromParticulars(3,false, 4, 3, 1, CRAFTING_TYPE_CLOTHIER, 43, 2)
+local function getItemLinkFromParticulars(self, pattern, isCP , level, style, trait, station, setIndex, quality, potencyId, essenceId, aspectId)
+	local materialIndex = findMatIndex(level, isCP)
+	local materialQuantity = GetMatRequirements(pattern, materialIndex, station)
+
+	local requestTable = {}
+	requestTable["type"] = "smithing"
+	requestTable["pattern"] =pattern
+	requestTable["style"] = style
+	requestTable["trait"] = trait
+	requestTable["materialIndex"] = materialIndex
+	requestTable["materialQuantity"] = materialQuantity
+	requestTable["station"] = station
+	requestTable["setIndex"] = setIndex
+	requestTable["quality"] = quality
+	requestTable["reference"] = "TemporaryForItemLink"
+	requestTable["smithingQuantity"] = 0
+	requestTable["potencyItemID"] = potencyId
+	requestTable["essenceItemID"] = essenceId
+	requestTable["aspectItemID"] = aspectId
+	requestTable["level"] = level
+	requestTable["isCP"] = isCP
+	return getItemLinkFromRequest(requestTable) 
 end
 
 

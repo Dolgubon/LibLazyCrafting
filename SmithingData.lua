@@ -153,6 +153,9 @@ local setInfo =
     {{205773 , 205793, [6] = 205780, [7] =205809 },5,isSwapped=true}, -- 764 Highland Sentinel
     {{206153 , 206173, [6] = 206160, [7] =206189 },7,isSwapped=true}, -- 765 Threads of War
     {{215479 , 215499, [6] = 215486, [7] =215515 },5,isSwapped=true}, -- 809 Tide-Born Wildstalker
+    {{215099 , 215119, [6] = 215106, [7] =215135 },3,isSwapped=true}, -- 808 Shared Burden
+    {{215859 , 215879, [6] = 215866, [7] =215895 },7,isSwapped=true}, -- 810 Fellowship's Fortitude
+
 }
 
 SetIndexes = {}

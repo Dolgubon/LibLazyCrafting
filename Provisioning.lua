@@ -175,6 +175,9 @@ end
 
 local function getRecipeItemIdFromResultItemId(resultId)
   local offset = LibLazyCrafting.recipeMap[resultId]
+  if offset == nil and LibRecipe_SavedVariables then
+    offset = LibRecipe_SavedVariables.recipeData and LibRecipe_SavedVariables.recipeData[resultId] or (LibRecipe.recipe_data and LibRecipe.recipe_data[resultId])
+  end
   if offset == nil then
     return nil
   end
