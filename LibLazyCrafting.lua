@@ -457,6 +457,39 @@ end
 
 LibLazyCrafting.findEarliestRequest = findEarliestRequest
 
+-- Finds the highest priority deconstruct request across all stations.
+local function findEarliestDeconstructRequest()
+	local earliest = {["timestamp"] = GetTimeStamp() + 100000}
+	local addonName = nil
+	local position = 0
+	local station = nil
+	for addon, requestTable in pairs(craftingQueue) do
+		for stationIndex = 1, #requestTable do
+			for i = 1, #requestTable[stationIndex] do
+				local request = requestTable[stationIndex][i]
+				if request and request["type"] == "deconstruct"
+					and isItemCraftable(request, stationIndex)
+					and (request["autocraft"] or request["craftNow"]) then
+					if request["timestamp"] < earliest["timestamp"] then
+						earliest = request
+						addonName = addon
+						position = i
+						station = stationIndex
+					end
+					break
+				end
+			end
+		end
+	end
+	if addonName then
+		dbug("Deconstruct request found to craft")
+		return earliest, addonName, position, station
+	else
+		dbug("No possible deconstruct request found")
+		return nil, nil, 0, nil
+	end
+end
+
 local function LLC_CraftAllItems(self)
 	if GetCraftingInteractionType() == 0 then return end
 	for i = 1, #craftingQueue[self.addonName] do
@@ -783,9 +816,21 @@ local function CraftEarliest(event, station)
 	dbug("Earliest found")
 	if earliest.recipeIndex then -- is furniture/recipe
 		LibLazyCrafting.craftInteractionTables[CRAFTING_TYPE_PROVISIONING]["function"]( station, earliest, addon , position)
-		return true
 	else
 		stationInteractionTable["function"]( station, earliest, addon , position)
+	end
+	return true
+end
+
+local function DeconEarliest(event, station)
+	local earliest, addon, position, requestStation = findEarliestDeconstructRequest()
+	if earliest and requestStation and LibLazyCrafting.craftInteractionTables[requestStation] then
+		local stationInteractionTable = LibLazyCrafting.craftInteractionTables[requestStation]
+		if stationInteractionTable.deconstructOnly then
+			stationInteractionTable.deconstructOnly(requestStation, earliest, addon, position)
+		else
+			stationInteractionTable["function"](requestStation, earliest, addon, position)
+		end
 		return true
 	end
 end
@@ -793,6 +838,13 @@ end
 -- Called when a crafting station is opened. Should then craft anything needed in the queue
 local function CraftInteract(event, station)
 	if ZO_CraftingUtils_IsPerformingCraftProcess() then
+		return
+	end
+	if station == 0 and GetCraftingInteractionMode() == CRAFTING_INTERACTION_MODE_UNIVERSAL_DECONSTRUCTION then
+		if DeconEarliest(event, station) then
+			return
+		end
+		LibLazyCrafting.SendCraftEvent( LLC_NO_FURTHER_CRAFT_POSSIBLE ,  station, addon , nil )
 		return
 	end
 	for k,v in pairs(LibLazyCrafting.craftInteractionTables) do
@@ -829,16 +881,19 @@ local function CraftComplete(event, station)
 	local LLCResult = nil
 	for k,v in pairs(LibLazyCrafting.craftInteractionTables) do
 		if v:check(station) then
-			if GetCraftingInteractionType()==0 then -- This is called when the user exits the crafting station while the game is crafting
+			local isUniversalDecon = GetCraftingInteractionMode() == CRAFTING_INTERACTION_MODE_UNIVERSAL_DECONSTRUCTION
+			if GetCraftingInteractionType()==0 and not isUniversalDecon then -- This is called when the user exits the crafting station while the game is crafting
 				endInteraction(EVENT_END_CRAFTING_STATION_INTERACT, station)
 			end
-				if LibLazyCrafting.recipeCurrentCraftAttempt and LibLazyCrafting.recipeCurrentCraftAttempt.recipeIndex then
-					LibLazyCrafting.craftInteractionTables[CRAFTING_TYPE_PROVISIONING]["complete"](station)
-				else
-					v["complete"]( station) 
-				end
-				LibLazyCrafting.isCurrentlyCrafting = {false, "", ""}
+			if LibLazyCrafting.recipeCurrentCraftAttempt and LibLazyCrafting.recipeCurrentCraftAttempt.recipeIndex then
+				LibLazyCrafting.craftInteractionTables[CRAFTING_TYPE_PROVISIONING]["complete"](station)
+			else
+				v["complete"]( station) 
+			end
+			LibLazyCrafting.isCurrentlyCrafting = {false, "", ""}
 			if GetCraftingInteractionType()~=0 and CraftEarliest(event, station) then
+			elseif isUniversalDecon then
+				CraftInteract(event, station)
 			end
 			return
 		end

@@ -1147,8 +1147,13 @@ local function LLC_DeconstructItem(self, bagIndex, slotIndex, autocraft, referen
 		["type"] = "deconstruct"
 	}
 	table.insert(craftingQueue[self.addonName][station], craftingRequestTable)
-	if not ZO_CraftingUtils_IsPerformingCraftProcess() and GetCraftingInteractionType()~=0 and not LibLazyCrafting.isCurrentlyCrafting[1] then
-		LibLazyCrafting.craftInteract(nil, GetCraftingInteractionType())
+	if not ZO_CraftingUtils_IsPerformingCraftProcess() and not LibLazyCrafting.isCurrentlyCrafting[1] then
+		local interactionType = GetCraftingInteractionType()
+		if interactionType ~= 0 then
+			LibLazyCrafting.craftInteract(nil, interactionType)
+		elseif GetCraftingInteractionMode() == CRAFTING_INTERACTION_MODE_UNIVERSAL_DECONSTRUCTION and station then
+			LibLazyCrafting.craftInteract(nil, station)
+		end
 	end
 	return craftingRequestTable
 end
@@ -1559,6 +1564,11 @@ end
 
 local function SmithingCraftCompleteFunction(station)
 	dbug("EVENT:CraftComplete")
+	if station == 0 and GetCraftingInteractionMode() == CRAFTING_INTERACTION_MODE_UNIVERSAL_DECONSTRUCTION then
+		if currentCraftAttempt and currentCraftAttempt.station then
+			station = currentCraftAttempt.station
+		end
+	end
 
 	if currentCraftAttempt.type == "smithing" and hasNewItemBeenMade then
 		hasNewItemBeenMade = false
@@ -2287,11 +2297,26 @@ LibLazyCrafting.getItemLinkFromRequest = getItemLinkFromRequest
 
 -- LibLazyCrafting.functionTable.getItemLinkFromRequest = getItemLinkFromRequest
 
+local function smithingInteractionCheck(self, station)
+	if station == self.station then
+		return true
+	end
+	if station == 0 and GetCraftingInteractionMode() == CRAFTING_INTERACTION_MODE_UNIVERSAL_DECONSTRUCTION then
+		if currentCraftAttempt and currentCraftAttempt.type == "deconstruct" and currentCraftAttempt.station == self.station then
+			return true
+		end
+	end
+	return false
+end
+
 LibLazyCrafting.craftInteractionTables[CRAFTING_TYPE_BLACKSMITHING] =
 {
 	["station"] = CRAFTING_TYPE_BLACKSMITHING,
-	["check"] = function(self, station) return station == self.station end,
+	["check"] = smithingInteractionCheck,
 	["function"] = LLC_SmithingCraftInteraction,
+	["deconstructOnly"] = function(station, earliest, addon, position)
+		smithingMinorModuleFunctions["deconstruct"](station, earliest, addon, position)
+	end,
 	["complete"] = SmithingCraftCompleteFunction,
 	["endInteraction"] = function(self, station) --[[endInteraction()]] end,
 	["isItemCraftable"] = function(self, station, request)
