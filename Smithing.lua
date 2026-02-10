@@ -2251,8 +2251,25 @@ end
 
 -- LLC_Global:getItemLinkFromParticulars(3,false, 4, 3, 1, CRAFTING_TYPE_CLOTHIER, 43, 2)
 local function getItemLinkFromParticulars(self, pattern, isCP , level, style, trait, station, setIndex, quality, potencyId, essenceId, aspectId)
+	-- just... pretend this if doesn't exist... 
+	if type(self) ~= "table" then
+		aspectId = essenceId
+		essenceId = potencyId
+		potencyId = quality
+		quality = setIndex
+		setIndex = station
+		station = trait
+		trait = style
+		style = level
+		level = isCP
+		isCP = pattern
+		pattern = self
+	end
 	local materialIndex = findMatIndex(level, isCP)
 	local materialQuantity = GetMatRequirements(pattern, materialIndex, station)
+	if style == "LLC_FREE_STYLE_CHOICE" then
+		style = 1 -- if they're using free style choice just give them breton for the link
+	end
 
 	local requestTable = {}
 	requestTable["type"] = "smithing"
