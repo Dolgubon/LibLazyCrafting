@@ -417,6 +417,19 @@ local function getTraitInfoFromResearch(station, pattern, traitType)
 end
 LibLazyCrafting.getTraitInfoFromResearch =  getTraitInfoFromResearch
 
+function LibLazyCrafting.getPatternFromResearchLine(station, researchLine)
+	if station == CRAFTING_TYPE_CLOTHIER and researchLine > 1 then
+		return researchLine + 1
+	end
+	if station == CRAFTING_TYPE_WOODWORKING then
+		local map = {
+			1, 3,4,5,6,2
+		}
+		return map[pattern]
+	end
+	return researchLine
+end
+
 local function canCraftItem(craftRequestTable)
 	local missing =
 	{
@@ -2279,8 +2292,8 @@ local function getItemLinkFromParticulars(self, pattern, isCP , level, style, tr
 	requestTable["materialIndex"] = materialIndex
 	requestTable["materialQuantity"] = materialQuantity
 	requestTable["station"] = station
-	requestTable["setIndex"] = setIndex
-	requestTable["quality"] = quality
+	requestTable["setIndex"] = setIndex or 0
+	requestTable["quality"] = quality or 0
 	requestTable["reference"] = "TemporaryForItemLink"
 	requestTable["smithingQuantity"] = 0
 	requestTable["potencyItemID"] = potencyId
