@@ -2293,7 +2293,7 @@ local function getItemLinkFromParticulars(self, pattern, isCP , level, style, tr
 	requestTable["materialQuantity"] = materialQuantity
 	requestTable["station"] = station
 	requestTable["setIndex"] = setIndex or 0
-	requestTable["quality"] = quality or 0
+	requestTable["quality"] = quality or 1
 	requestTable["reference"] = "TemporaryForItemLink"
 	requestTable["smithingQuantity"] = 0
 	requestTable["potencyItemID"] = potencyId
