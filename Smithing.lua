@@ -996,16 +996,23 @@ local function LLC_CraftSmithingItemFromLink(self, itemLink, reference)
 end
 LibLazyCrafting.functionTable.CraftSmithingItemFromLink = LLC_CraftSmithingItemFromLink
 
-local function importRequestFromMail()
-	local mailText = ZO_MailInboxMessageBody:GetText()
+local function importRequestFromString(self,text)
 	-- "|H1:item:56042:25:4:26580:21:5:0:0:0:0:0:0:0:0:0:1:0:0:0:10000:0|h|h"
-	for link in string.gmatch(mailText, "(|H%d:item:%d+:%d+:%d+:%d+:%d+:%d+:%d+:%d+:%d+:%d+:%d+:%d+:%d+:%d+:%d+:%d+:%d+:%d+:%d+:%d+:%d+|h|h)") do
+	for link in string.gmatch(text, "(|H%d:item:%d+:%d+:%d+:%d+:%d+:%d+:%d+:%d+:%d+:%d+:%d+:%d+:%d+:%d+:%d+:%d+:%d+:%d+:%d+:%d+:%d+|h|h)") do
 		if verifyLinkIsValid(link) then
-			LLC_UserRequests:CraftSmithingItemFromLink(link)
+			self:CraftSmithingItemFromLink(link)
 		end
 	end
 end
+
+local function importRequestFromMail()
+	local mailText = ZO_MailInboxMessageBody:GetText()
+	-- "|H1:item:56042:25:4:26580:21:5:0:0:0:0:0:0:0:0:0:1:0:0:0:10000:0|h|h"
+	importRequestFromString(text)
+end
 LibLazyCrafting.importCraftableLinksRequestFromMail = importRequestFromMail
+
+LibLazyCrafting.functionTable.importCraftableLinksFromString = importRequestFromString
 local function isThereAValidLinkInText(text)
 	for link in string.gmatch(text, "(|H%d:item:%d+:%d+:%d+:%d+:%d+:%d+:%d+:%d+:%d+:%d+:%d+:%d+:%d+:%d+:%d+:%d+:%d+:%d+:%d+:%d+:%d+|h|h)") do
 		if verifyLinkIsValid(link) then
