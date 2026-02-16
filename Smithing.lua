@@ -998,11 +998,13 @@ LibLazyCrafting.functionTable.CraftSmithingItemFromLink = LLC_CraftSmithingItemF
 
 local function importRequestFromString(self,text)
 	-- "|H1:item:56042:25:4:26580:21:5:0:0:0:0:0:0:0:0:0:1:0:0:0:10000:0|h|h"
+	local addedRequests = {}
 	for link in string.gmatch(text, "(|H%d:item:%d+:%d+:%d+:%d+:%d+:%d+:%d+:%d+:%d+:%d+:%d+:%d+:%d+:%d+:%d+:%d+:%d+:%d+:%d+:%d+:%d+|h|h)") do
 		if verifyLinkIsValid(link) then
-			self:CraftSmithingItemFromLink(link)
+			table.insert(addedRequests ,self:CraftSmithingItemFromLink(link))
 		end
 	end
+	return addedRequests
 end
 
 local function importRequestFromMail()
