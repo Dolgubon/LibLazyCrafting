@@ -5,10 +5,10 @@
 ; States and/or other countries. All rights reserved.
 ; You can read the full terms at https://account.elderscrollsonline.com/add-on-terms
 
-## APIVersion: 101048
-## Title: LibLazyCrafting v4.031
-## Version: 4.031
-## AddOnVersion: 4031
+## APIVersion: 101049
+## Title: LibLazyCrafting v4.035
+## Version: 4.035
+## AddOnVersion: 4035
 ## Author: Dolgubon
 ## Contributors: ziggr
 ## OptionalDependsOn: pChat LibStub HomeStationMarker LibRecipe
@@ -24,3 +24,4 @@ Alchemy.lua
 Enchanting.lua
 Provisioning.lua
 Smithing.lua
+	

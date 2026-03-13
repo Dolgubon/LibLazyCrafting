@@ -532,8 +532,10 @@ local function applyGlyphToItem(requestTable)
 				local _,equipSlot = searchUniqueId(equipUniqueId)
 				LibLazyCrafting:SetItemStatusNew(equipSlot) 
 			end, 550 )
-
-			LibLazyCrafting.SendCraftEvent(LLC_CRAFT_SUCCESS, 0, requestTable.Requester, requestTable )
+			local returnedTable = LibLazyCrafting.tableShallowCopy(requestTable)
+			returnedTable.quantity = 1
+			returnedTable.smithingQuantity = 1
+			LibLazyCrafting.SendCraftEvent(LLC_CRAFT_SUCCESS, 0, requestTable.Requester, returnedTable )
 		end, (numLoops-i+1)*260
 		
 		)

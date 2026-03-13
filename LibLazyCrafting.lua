@@ -17,7 +17,7 @@ end
 
 -- Initialize libraries
 local libLoaded
-local LIB_NAME, VERSION = "LibLazyCrafting", 4.031
+local LIB_NAME, VERSION = "LibLazyCrafting", 4.035
 local LibLazyCrafting, oldminor
 if LibStub then
 	LibLazyCrafting, oldminor = LibStub:NewLibrary(LIB_NAME, VERSION)
@@ -268,18 +268,12 @@ function LibLazyCrafting.findIncreasedSlotIndex(prevInventory, currInventory)
 		local prev = prevInventory[slotIndex]
 		local curr = currInventory[slotIndex]
 
-						-- Previously nil slot now non-nil
-						-- (can happen when #curr > #prev)
-		if curr and not prev then 
+		-- First case: Previously nil slot now non-nil
+		-- (can happen when #curr > #prev)
+		if (curr and not prev) or (prev < curr) then -- This stack increased.
 			found = true
 			table.insert(grownSlots, slotIndex)
-			end
-
-						-- This stack increased.
-		if prev < curr then 
-			found = true
-			table.insert(grownSlots, slotIndex)
-			end
+		end
 	end
 	return found and grownSlots or nil
 end
@@ -317,7 +311,7 @@ function LibLazyCrafting.stackableCraftingComplete(station, lastCheck, craftingT
 				["allSlots"] = grewSlotIndex,
 				['link'] = currentCraftAttempt.link,
 				['uniqueId'] = GetItemUniqueId(BAG_BACKPACK, currentCraftAttempt.slot),
-				["quantity"] = 1,
+				["quantity"] = currentCraftAttempt["timesToMake"],
 				["recipeListIndex"] = currentCraftAttempt.recipeListIndex,
 				["recipeIndex"] = currentCraftAttempt.recipeIndex,
 				["reference"] = currentCraftAttempt.reference,

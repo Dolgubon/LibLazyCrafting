@@ -448,16 +448,12 @@ local function canCraftItem(craftRequestTable)
 
 	-- This offset index was used in the call GetSmithingPatternInfo, but not in IsSmithingTraitKnownForResult
 	-- which caused the check to fail if you didn't have the same traits known for both rings and necklaces in sets.
-	local patternIndex = craftRequestTable["pattern"] + setPatternOffset[craftRequestTable["station"]]
-	local patternToUseForTraits
-	if GetSetIndexes()[craftRequestTable["setIndex"]] and GetSetIndexes()[craftRequestTable["setIndex"]].isSwapped and station == CRAFTING_TYPE_JEWELRYCRAFTING then
-		if craftRequestTable["pattern"] == 1 then
-			patternToUseForTraits = 2
-		else
-			patternToUseForTraits = 1
-		end
+
+	local patternToUseForTraitInfo = craftRequestTable["pattern"]
+	if craftRequestTable.isJewelrySwapped then
+		patternToUseForTraitInfo = craftRequestTable["pattern"] == 1 and 2 or 1
 	end
-	local traitsKnown, specificTraitKnown = getTraitInfoFromResearch(craftRequestTable['station'], craftRequestTable["pattern"], craftRequestTable["trait"])
+	local traitsKnown, specificTraitKnown = getTraitInfoFromResearch(craftRequestTable['station'], patternToUseForTraitInfo, craftRequestTable["trait"])
 	local traitsRequired = GetSetIndexes()[craftRequestTable["setIndex"]][3]
 
 	local level, max =  getCraftLevel(craftRequestTable['station'])
@@ -756,6 +752,7 @@ local function LLC_CraftSmithingItem(self, patternIndex, materialIndex, material
 	requestTable["smithingQuantity"] = smithingQuantity or 1
 	requestTable["initialQuantity"] = quantity
 	if GetSetIndexes()[setIndex] and GetSetIndexes()[setIndex].isSwapped and station == CRAFTING_TYPE_JEWELRYCRAFTING then -- New Moon Acolyte pattern indexes and beyond are swapped for jewelry!
+		requestTable.isJewelrySwapped = true
 		if requestTable.pattern == 1 then
 			requestTable.pattern = 2
 		else
@@ -1010,7 +1007,7 @@ end
 local function importRequestFromMail()
 	local mailText = ZO_MailInboxMessageBody:GetText()
 	-- "|H1:item:56042:25:4:26580:21:5:0:0:0:0:0:0:0:0:0:1:0:0:0:10000:0|h|h"
-	importRequestFromString(text)
+	importRequestFromString(LLC_Global, mailText)
 end
 LibLazyCrafting.importCraftableLinksRequestFromMail = importRequestFromMail
 
@@ -1297,7 +1294,6 @@ local function LLC_Smithing_MinorModuleInteraction(station, earliest, addon, pos
 	end
 	parameters[7] = math.min(GetMaxIterationsPossibleForSmithingItem(unpack(parameters)), earliest.smithingQuantity or 1)
 	if (earliest.smithingQuantity or 1) > GetMaxIterationsPossibleForSmithingItem(unpack(parameters)) then
-
 		d("Mismatch asked quantity: "..earliest.smithingQuantity.." actual max "..GetMaxIterationsPossibleForSmithingItem(unpack(parameters)))
 		d("Parameters: "..ZO_GenerateCommaSeparatedListWithAnd(parameters))
 	end
@@ -1387,9 +1383,6 @@ local function LLC_improvement_MinorModuleInteraction(station, earliest, addon, 
 	currentCraftAttempt.link = GetSmithingImprovedItemLink(earliest.ItemBagID, earliest.ItemSlotID, station)
 end
 
-local function findAllDeconstructable()
-end
-
 	-- ["reference"] = reference or "",
 	-- ["autocraft"] = autocraft or true,
 	-- ["ItemLink"] = GetItemLink(bagIndex, slotIndex),
@@ -1409,14 +1402,23 @@ local function LLC_Deconstruction_MinorModuleInteraction(station, earliest, addo
 		visibleEnchant.aspectLength = 0
 		currentCraftAttempt = {}
 		currentCraftAttempt = copy(earliest)
-		PrepareDeconstructMessage() 
-		AddItemToDeconstructMessage(earliest.bagIndex, earliest.slotIndex, 1)  
-		SendDeconstructMessage()
+		if IsConsoleUI() then
+			zo_callLater(function()
+				PrepareDeconstructMessage() 
+				AddItemToDeconstructMessage(earliest.bagIndex, earliest.slotIndex, 1)  
+				SendDeconstructMessage()
+			end, 200)
+		else
+			PrepareDeconstructMessage() 
+			AddItemToDeconstructMessage(earliest.bagIndex, earliest.slotIndex, 1)  
+			SendDeconstructMessage()
+		end
 	end
 	dbug("Not implemented yet")
 
 end
-
+-- /script for i = 1, 215 do if CanItemBeDeconstructed(1,i) then d(GetItemLink(1,i)..i) end end
+-- /script LLC_Global:DeconstructSmithingItem(1,212, true)
 local function LLC_Research_MinorModuleInteraction(station, earliest, addon, position)
 	dbug("Not implemented yet")
 end
@@ -2287,6 +2289,7 @@ local function getItemLinkFromParticulars(self, pattern, isCP , level, style, tr
 		isCP = pattern
 		pattern = self
 	end
+
 	local materialIndex = findMatIndex(level, isCP)
 	local materialQuantity = GetMatRequirements(pattern, materialIndex, station)
 	if style == "LLC_FREE_STYLE_CHOICE" then
@@ -2310,6 +2313,9 @@ local function getItemLinkFromParticulars(self, pattern, isCP , level, style, tr
 	requestTable["aspectItemID"] = aspectId
 	requestTable["level"] = level
 	requestTable["isCP"] = isCP
+	if requestTable["potencyItemID"] ~= nil and requestTable["essenceItemID"] ~= nil and requestTable["aspectItemID"] ~= nil then
+		requestTable["dualEnchantingSmithing"] = true
+	end
 	return getItemLinkFromRequest(requestTable) 
 end
 
