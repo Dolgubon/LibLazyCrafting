@@ -27,7 +27,6 @@ if GetDisplayName() == "@Dolgubon" then
 	DolgubonGlobalDebugOutput = d
 end
 local function dbug(...)
-	-- d(...)
 	if DolgubonGlobalDebugOutput then
 		DolgubonGlobalDebugOutput(...)
 	end
@@ -425,7 +424,7 @@ function LibLazyCrafting.getPatternFromResearchLine(station, researchLine)
 		local map = {
 			1, 3,4,5,6,2
 		}
-		return map[pattern]
+		return map[researchLine]
 	end
 	return researchLine
 end
@@ -508,7 +507,6 @@ end
 
 -- Returns SetIndex, Set Full Name, Traits Required
 local function GetCurrentSetInteractionIndex()
-	local baseSetPatternName
 	local itemLink
 	local currentStation = GetCraftingInteractionType()
 	-- Get info based on what station it is.
@@ -519,7 +517,7 @@ local function GetCurrentSetInteractionIndex()
 	elseif currentStation == CRAFTING_TYPE_WOODWORKING then
 		itemLink = GetSmithingPatternResultLink(7,1,3,1,1,0)
 	elseif currentStation == CRAFTING_TYPE_JEWELRYCRAFTING then
-		itemLink = GetSmithingPatternResultLink(4,1,3,nil,1,0)
+		itemLink = GetSmithingPatternResultLink(4,1,3,0,1,0)
 	else
 		return nil , nil, nil, nil
 	end
@@ -750,7 +748,7 @@ local function LLC_CraftSmithingItem(self, patternIndex, materialIndex, material
 	requestTable["Requester"] = self.addonName
 	requestTable["reference"] = reference
 	requestTable["smithingQuantity"] = smithingQuantity or 1
-	requestTable["initialQuantity"] = quantity
+	requestTable["initialQuantity"] = smithingQuantity or 1
 	if GetSetIndexes()[setIndex] and GetSetIndexes()[setIndex].isSwapped and station == CRAFTING_TYPE_JEWELRYCRAFTING then -- New Moon Acolyte pattern indexes and beyond are swapped for jewelry!
 		requestTable.isJewelrySwapped = true
 		if requestTable.pattern == 1 then
@@ -949,7 +947,7 @@ local function LLC_CraftSmithingItemFromLink(self, itemLink, reference)
 	else
 		if weight == ARMORTYPE_HEAVY then
 			station = CRAFTING_TYPE_BLACKSMITHING
-		elseif weight == ARMORTYPE_LIGHT or ARMORTYPE_MEDIUM then
+		elseif weight == ARMORTYPE_LIGHT or weight == ARMORTYPE_MEDIUM then
 			station = CRAFTING_TYPE_CLOTHIER
 		end
 		pattern = getPatternInfo(itemLink, weight)
@@ -1179,7 +1177,7 @@ end
 
 LibLazyCrafting.functionTable.DeconstructSmithingItem = LLC_DeconstructItem
 
-LibLazyCrafting.functionTable.AddExistingGlyphToGear = LLC_AddExistingGlyph
+LibLazyCrafting.functionTable.AddExistingGlyphToGear = LLC_AddExistingGlyphToGear
 
 LibLazyCrafting.functionTable.ImproveSmithingItem = LLC_ImproveSmithingItem
 -- Examples
@@ -1229,7 +1227,7 @@ local function setCorrectSetIndex_ConsolidatedStation(setIndex)
 			generateSetLookupTable()
 		end
 		if not IsConsolidatedSmithingItemSetIdUnlocked(setIndex) and setIndex ~= 0 then
-			local _, setName = GetItemSetInfo(setindex)
+			local _, setName = GetItemSetInfo(setIndex)
 			d(zo_strformat("The set <<1>> is not unlocked at this crafting station", setName ))
 			return
 		end
@@ -1562,6 +1560,7 @@ local function smithingCompleteNewItemHandler(station, bag, slot)
 				})
 				removedRequest.equipCreated = true
 				if removedRequest.glyphInfo and #removedRequest.glyphInfo>0 then
+					d("Applying glyph to newly crafted item")
 					LibLazyCrafting.applyGlyphToItem(removedRequest)
 					return
 				else
@@ -1624,7 +1623,7 @@ local function SmithingCraftCompleteFunction(station)
 					else
 						LibLazyCrafting:SetItemStatusNew(returnTable.ItemSlotID)
 						local copiedTable = LibLazyCrafting.tableShallowCopy(returnTable)
-						copiedTable.slot = slot
+						copiedTable.slot = returnTable.ItemSlotID
 						copiedTable.smithingQuantity = 1
 						LibLazyCrafting.SendCraftEvent( LLC_INITIAL_CRAFT_SUCCESS,  station,copiedTable.Requester, copiedTable )
 					end
@@ -1681,7 +1680,7 @@ local function slotUpdateHandler(event, bag, slot, isNew, itemSoundCategory, inv
 	local itemType = GetItemType(bag, slot)
 	if itemType ==ITEMTYPE_ARMOR or itemType ==ITEMTYPE_WEAPON then else return end
 	hasNewItemBeenMade = true
-	if LibLazyCrafting.IsPerformingCraftProcess() and ( currentCraftAttempt.slot ~= slot or not currentCraftAttempt.slot ) then
+	if LibLazyCrafting:IsPerformingCraftProcess() and ( currentCraftAttempt.slot ~= slot or not currentCraftAttempt.slot ) then
 		backupPosition = slot
 
 	end
@@ -2202,8 +2201,10 @@ local function getItemLinkFromRequest(requestTable)
 		linkTable = {}
 		linkTable.id = setId
 		local IdTable = createSetItemIdTable(setId)
-		for i, v in pairs(IdTable) do
-			linkTable[i] = getItemLinkFromItemId(IdTable[i])
+		if IdTable then
+			for i, v in pairs(IdTable) do
+				linkTable[i] = getItemLinkFromItemId(IdTable[i])
+			end
 		end
 
 	end
@@ -2326,7 +2327,7 @@ end
 
 local function getNonCraftableReasons(request)
 	local results = {}
-	results.canCraftHere =  canCraftItemHere(station, request["setIndex"])
+	results.canCraftHere =  canCraftItemHere(request["station"], request["setIndex"])
 	local canCraft, canCraftMissings = canCraftItem(request)
 	local enoughMats, missingMats = enoughMaterials(request)
 	results.missingKnowledge = canCraftMissings

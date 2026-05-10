@@ -409,7 +409,8 @@ end
 local function sortCraftQueue()
 	for name, requests in pairs(craftingQueue) do
 		for i = 1, 6 do
-			table.sort(requests[i], function(a, b) if a and b then return a["timestamp"]<b["timestamp"] else return a end end)
+			table.sort(requests[i], function(a, b) return (a and a.timestamp or 0) < (b and b.timestamp or 0)
+			end)
 		end
 	end
 end
@@ -838,7 +839,7 @@ local function CraftInteract(event, station)
 		if DeconEarliest(event, station) then
 			return
 		end
-		LibLazyCrafting.SendCraftEvent( LLC_NO_FURTHER_CRAFT_POSSIBLE ,  station, addon , nil )
+		LibLazyCrafting.SendCraftEvent( LLC_NO_FURTHER_CRAFT_POSSIBLE ,  station, nil , nil )
 		return
 	end
 	for k,v in pairs(LibLazyCrafting.craftInteractionTables) do
@@ -848,7 +849,7 @@ local function CraftInteract(event, station)
 			end
 		end
 	end
-	LibLazyCrafting.SendCraftEvent( LLC_NO_FURTHER_CRAFT_POSSIBLE ,  station,addon , nil )
+	LibLazyCrafting.SendCraftEvent( LLC_NO_FURTHER_CRAFT_POSSIBLE ,  station, nil , nil )
 end
 
 LibLazyCrafting.craftInteract = CraftInteract
