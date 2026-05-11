@@ -1560,7 +1560,6 @@ local function smithingCompleteNewItemHandler(station, bag, slot)
 				})
 				removedRequest.equipCreated = true
 				if removedRequest.glyphInfo and #removedRequest.glyphInfo>0 then
-					d("Applying glyph to newly crafted item")
 					LibLazyCrafting.applyGlyphToItem(removedRequest)
 					return
 				else
