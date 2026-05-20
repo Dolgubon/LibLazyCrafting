@@ -425,7 +425,7 @@ function LibLazyCrafting.getPatternFromResearchLine(station, researchLine)
 		local map = {
 			1, 3,4,5,6,2
 		}
-		return map[pattern]
+		return map[researchLine]
 	end
 	return researchLine
 end
@@ -508,7 +508,6 @@ end
 
 -- Returns SetIndex, Set Full Name, Traits Required
 local function GetCurrentSetInteractionIndex()
-	local baseSetPatternName
 	local itemLink
 	local currentStation = GetCraftingInteractionType()
 	-- Get info based on what station it is.
@@ -750,7 +749,7 @@ local function LLC_CraftSmithingItem(self, patternIndex, materialIndex, material
 	requestTable["Requester"] = self.addonName
 	requestTable["reference"] = reference
 	requestTable["smithingQuantity"] = smithingQuantity or 1
-	requestTable["initialQuantity"] = quantity
+	requestTable["initialQuantity"] = smithingQuantity or 1
 	if GetSetIndexes()[setIndex] and GetSetIndexes()[setIndex].isSwapped and station == CRAFTING_TYPE_JEWELRYCRAFTING then -- New Moon Acolyte pattern indexes and beyond are swapped for jewelry!
 		requestTable.isJewelrySwapped = true
 		if requestTable.pattern == 1 then
@@ -949,7 +948,7 @@ local function LLC_CraftSmithingItemFromLink(self, itemLink, reference)
 	else
 		if weight == ARMORTYPE_HEAVY then
 			station = CRAFTING_TYPE_BLACKSMITHING
-		elseif weight == ARMORTYPE_LIGHT or ARMORTYPE_MEDIUM then
+		elseif weight == ARMORTYPE_LIGHT or weight==ARMORTYPE_MEDIUM then
 			station = CRAFTING_TYPE_CLOTHIER
 		end
 		pattern = getPatternInfo(itemLink, weight)
@@ -1024,8 +1023,8 @@ LibLazyCrafting.isThereAValidCraftableLinkInText = isThereAValidLinkInText
 LibLazyCrafting.mailButtonInitialized = false
 local function initializeMailButtons()
 	if DolgubonSetCrafter then return end -- if set crafter is active, we'll let it do the mail
-	if IsConsoleUI() then return end
-	-- d(IsConsoleUI())
+	if ZO_IsConsoleOrGameCoreUI() then return end
+	-- d(ZO_IsConsoleOrGameCoreUI())
 	if LibLazyCrafting.mailButtonInitialized then return end
 	LibLazyCrafting.mailButtonInitialized = true
 	local inbox = ZO_MailInboxMessage
@@ -1179,7 +1178,7 @@ end
 
 LibLazyCrafting.functionTable.DeconstructSmithingItem = LLC_DeconstructItem
 
-LibLazyCrafting.functionTable.AddExistingGlyphToGear = LLC_AddExistingGlyph
+LibLazyCrafting.functionTable.AddExistingGlyphToGear = LLC_AddExistingGlyphToGear
 
 LibLazyCrafting.functionTable.ImproveSmithingItem = LLC_ImproveSmithingItem
 -- Examples
@@ -1222,14 +1221,14 @@ local function setCorrectSetIndex_ConsolidatedStation(setIndex)
 	if GetCraftingInteractionMode() ~= CRAFTING_INTERACTION_MODE_CONSOLIDATED_STATION then
 		return
 	end
-	if GetNumUnlockedConsolidatedSmithingSets() > 0 and not IsConsoleUI() then
+	if GetNumUnlockedConsolidatedSmithingSets() > 0 and not ZO_IsConsoleOrGameCoreUI() then
 		SMITHING:SetMode(SMITHING_MODE_CREATION)
-	elseif IsConsoleUI() then
+	elseif ZO_IsConsoleOrGameCoreUI() then
 		if setLookupTable[setIndex] == nil then
 			generateSetLookupTable()
 		end
 		if not IsConsolidatedSmithingItemSetIdUnlocked(setIndex) and setIndex ~= 0 then
-			local _, setName = GetItemSetInfo(setindex)
+			local _, setName = GetItemSetInfo(setIndex)
 			d(zo_strformat("The set <<1>> is not unlocked at this crafting station", setName ))
 			return
 		end
@@ -1402,7 +1401,7 @@ local function LLC_Deconstruction_MinorModuleInteraction(station, earliest, addo
 		visibleEnchant.aspectLength = 0
 		currentCraftAttempt = {}
 		currentCraftAttempt = copy(earliest)
-		if IsConsoleUI() then
+		if ZO_IsConsoleOrGameCoreUI() then
 			zo_callLater(function()
 				PrepareDeconstructMessage() 
 				AddItemToDeconstructMessage(earliest.bagIndex, earliest.slotIndex, 1)  
@@ -1624,7 +1623,6 @@ local function SmithingCraftCompleteFunction(station)
 					else
 						LibLazyCrafting:SetItemStatusNew(returnTable.ItemSlotID)
 						local copiedTable = LibLazyCrafting.tableShallowCopy(returnTable)
-						copiedTable.slot = slot
 						copiedTable.smithingQuantity = 1
 						LibLazyCrafting.SendCraftEvent( LLC_INITIAL_CRAFT_SUCCESS,  station,copiedTable.Requester, copiedTable )
 					end
@@ -1896,7 +1894,6 @@ local function createSetItemIdTable(setId)
 	lastComputedSetTable = workingTable
 	return workingTable
 end
-LLCTestingexpandSetItemTable = createSetItemIdTable
 -------
 -- SCANNING FUNCTIONALITY
 -------
@@ -2192,6 +2189,7 @@ local function computeLinkParticulars(requestTable, link)
 end
 local linkTable = {}
 local function getItemLinkFromRequest(requestTable)
+	d(requestTable)
 	local setId= requestTable.setIndex
 
 	local trait = requestTable.trait
@@ -2202,8 +2200,10 @@ local function getItemLinkFromRequest(requestTable)
 		linkTable = {}
 		linkTable.id = setId
 		local IdTable = createSetItemIdTable(setId)
-		for i, v in pairs(IdTable) do
-			linkTable[i] = getItemLinkFromItemId(IdTable[i])
+		if IdTable then
+			for i, v in pairs(IdTable) do
+				linkTable[i] = getItemLinkFromItemId(IdTable[i])
+			end
 		end
 
 	end
@@ -2326,7 +2326,7 @@ end
 
 local function getNonCraftableReasons(request)
 	local results = {}
-	results.canCraftHere =  canCraftItemHere(station, request["setIndex"])
+	results.canCraftHere =  canCraftItemHere(request["station"], request["setIndex"])
 	local canCraft, canCraftMissings = canCraftItem(request)
 	local enoughMats, missingMats = enoughMaterials(request)
 	results.missingKnowledge = canCraftMissings

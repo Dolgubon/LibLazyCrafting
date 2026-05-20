@@ -17,7 +17,7 @@ end
 
 -- Initialize libraries
 local libLoaded
-local LIB_NAME, VERSION = "LibLazyCrafting", 4.035
+local LIB_NAME, VERSION = "LibLazyCrafting", 4.036
 local LibLazyCrafting, oldminor
 if LibStub then
 	LibLazyCrafting, oldminor = LibStub:NewLibrary(LIB_NAME, VERSION)
@@ -393,7 +393,7 @@ function LibLazyCrafting.HaveMaterials(materialList)
             if haveCt < mat.requiredCt then
             			-- Zig: What's the correct way to report "skipping this
             			-- request beccause you're out of Perfect Roe"?
-                d("LibLazyCrafting: insufficient materials: "..tostring(itemLink)
+                dbug("LibLazyCrafting: insufficient materials: "..tostring(itemLink)
                     ..": require "..tostring(mat.requiredCt)
                     .."  have "..tostring(haveCt))
                 return false
@@ -409,7 +409,7 @@ end
 local function sortCraftQueue()
 	for name, requests in pairs(craftingQueue) do
 		for i = 1, 6 do
-			table.sort(requests[i], function(a, b) if a and b then return a["timestamp"]<b["timestamp"] else return a end end)
+			table.sort(requests[i], function(a, b) if a and b then return a["timestamp"]<b["timestamp"] else return a or b end end)
 		end
 	end
 end
@@ -838,7 +838,7 @@ local function CraftInteract(event, station)
 		if DeconEarliest(event, station) then
 			return
 		end
-		LibLazyCrafting.SendCraftEvent( LLC_NO_FURTHER_CRAFT_POSSIBLE ,  station, addon , nil )
+		LibLazyCrafting.SendCraftEvent( LLC_NO_FURTHER_CRAFT_POSSIBLE ,  station, nil , nil )
 		return
 	end
 	for k,v in pairs(LibLazyCrafting.craftInteractionTables) do
@@ -848,7 +848,7 @@ local function CraftInteract(event, station)
 			end
 		end
 	end
-	LibLazyCrafting.SendCraftEvent( LLC_NO_FURTHER_CRAFT_POSSIBLE ,  station,addon , nil )
+	LibLazyCrafting.SendCraftEvent( LLC_NO_FURTHER_CRAFT_POSSIBLE ,  station,nil , nil )
 end
 
 LibLazyCrafting.craftInteract = CraftInteract

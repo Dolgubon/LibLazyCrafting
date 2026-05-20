@@ -87,7 +87,7 @@ local function LLC_CraftEnchantingGlyphItemID(self, potencyItemID, essenceItemID
 
 	--sortCraftQueue()
 	if GetCraftingInteractionType()==CRAFTING_TYPE_ENCHANTING then 
-		LibLazyCrafting.craftInteract(event, CRAFTING_TYPE_ENCHANTING)
+		LibLazyCrafting.craftInteract(nil, CRAFTING_TYPE_ENCHANTING)
 	end
 	return requestTable
 end
@@ -276,6 +276,8 @@ local function getEnchantingResultItemId(enchantId)
 end
 
 local function getEssenceInfoForResult(resultItemId)
+	local parity
+	local essenceId
 	for i = 1, #glyphInfo do
 		if glyphInfo[i][3] == resultItemId then
 			parity = -1
@@ -521,8 +523,8 @@ local function applyGlyphToItem(requestTable)
 			LibLazyCrafting.SendCraftEvent(LLC_ENCHANTMENT_FAILED, 0, requestTable.Requester, requestTable )
 			return
 		end
-		table.remove(glyphInfo)
-		local equipUniqueId = table.remove(equipInfo).uniqueId
+		table.remove(glyphInfo,i)
+		local equipUniqueId = table.remove(equipInfo,i).uniqueId
 		-- Enchanting too many too fast will get you kicked!
 		zo_callLater(function()
 			EnchantItem(equipBag, equipSlot, glyphBag , glyphSlot)
@@ -539,8 +541,8 @@ local function applyGlyphToItem(requestTable)
 		end, (numLoops-i+1)*260
 		
 		)
-		currentCraftAttempt = {}
 	end
+	currentCraftAttempt = {}
 end
 
 local function wasItemMade(bag, slot)
@@ -593,7 +595,7 @@ end
 
 local function LLC_EnchantingCraftingComplete(station, lastCheck)
 	if currentCraftAttempt.type == "deconstruct" then
-		LibLazyCrafting.craftInteractionTables[CRAFTING_TYPE_BLACKSMITHING]["complete"]( station, earliest, addon , position)
+		LibLazyCrafting.craftInteractionTables[CRAFTING_TYPE_BLACKSMITHING]["complete"]( station)
 		currentCraftAttempt.type = nil
 		return
 	end
@@ -604,42 +606,30 @@ local function LLC_EnchantingCraftingComplete(station, lastCheck)
 	dbug("EVENT:CraftComplete")
 	if not currentCraftAttempt.addon then return end
 	local bag, slot = LibLazyCrafting.findNextSlotIndex(wasItemMade)
-	local found = false
-	local removedTable
-	while slot ~= nil do
-		removedTable = handleEnchantComplete(station, slot)
-		bag, slot = LibLazyCrafting.findNextSlotIndex(wasItemMade, slot+1)
-		found = true
-	end
+	local found = slot~=nil
 	if found then
+		local removedTable = handleEnchantComplete(station, slot)
 		if removedTable.equipInfo and #removedTable.equipInfo>0 then
 			applyGlyphToItem(removedTable)
+			currentCraftAttempt = {}
 			return
 		else
 			local copiedTable = LibLazyCrafting.tableShallowCopy(removedTable)
 			copiedTable.slot = slot
 			copiedTable.quantity = 1
 			LibLazyCrafting.SendCraftEvent(LLC_INITIAL_CRAFT_SUCCESS, station, removedTable.Requester, copiedTable)
+			currentCraftAttempt = {}
 			return
 		end
-		currentCraftAttempt = {}
-		return
 	end
 
 	if lastCheck then
 		-- give up on finding it.
 		currentCraftAttempt = {}
-	elseif lastSlotUsed then
-		if GetItemLinkName(GetItemLink(BAG_BACKPACK, lastSlotUsed,0)) == GetItemLinkName(currentCraftAttempt.link)
-			and GetItemLinkFunctionalQuality(GetItemLink(BAG_BACKPACK, lastSlotUsed,0)) == GetItemLinkFunctionalQuality(currentCraftAttempt.link) then
-				currentCraftAttempt.slot = lastSlotUsed
-				lastSlotUsed = nil
-				return LLC_EnchantingCraftingComplete(event, station, lastCheck)
-		end
 	else
 		-- further search
 		-- search again later
-		if GetCraftingInteractionType()==0 then zo_callLater(function() LLC_EnchantingCraftingComplete(event, station, true) end,100) end
+		if GetCraftingInteractionType()==0 then zo_callLater(function() LLC_EnchantingCraftingComplete(station, true) end,100) end
 	end
 
 
