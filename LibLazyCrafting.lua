@@ -17,7 +17,7 @@ end
 
 -- Initialize libraries
 local libLoaded
-local LIB_NAME, VERSION = "LibLazyCrafting", 4.036
+local LIB_NAME, VERSION = "LibLazyCrafting", 4.040
 local LibLazyCrafting, oldminor
 if LibStub then
 	LibLazyCrafting, oldminor = LibStub:NewLibrary(LIB_NAME, VERSION)
@@ -350,12 +350,9 @@ function LibLazyCrafting:setWatchingForNewItems(state)
 	LibLazyCrafting.newItemsSeen = {}
 end
 
-function LibLazyCrafting.findNextSlotIndex(itemCheck, startSlot)
-	if startSlot == nil then
-		startSlot = -1
-	end
+function LibLazyCrafting.findNextSlotIndex(itemCheck)
 	for k, item in pairs(LibLazyCrafting.newItemsSeen) do
-		if item.slotId>=startSlot and itemCheck(item.bagId, item.slotId) then
+		if itemCheck(item.bagId, item.slotId) then
 			table.remove(LibLazyCrafting.newItemsSeen , k)
 			return item.bagId, item.slotId
 		end

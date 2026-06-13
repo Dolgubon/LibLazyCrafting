@@ -234,11 +234,12 @@ LibLazyCrafting.enchantCPQualityInfo = cpQualityInfo
 
 local function getQualityInfo(isCP, level, quality)
 	if not isCP then
-		return 20,  math.floor(level/5) * 5 + 5 + quality
+		return 19+quality,  math.floor(level/5) * 5 + 5
 	end
 
 	return cpQualityInfo[level][quality], 50
 end
+LibLazyCrafting.getGlyphQualityInfo = getQualityInfo
 
 local function closestGlyphLevel(isCP, level)
 	if not isCP then
@@ -254,8 +255,21 @@ local function closestGlyphLevel(isCP, level)
 		end
 	end
 end
+	local aspectToQuality = 
+{
+	[45850] = 1,
+	[45851] = 2,
+	[45852] = 3,
+	[45853] = 4,
+	[45854] = 5,
+}
+local function getAspectResultQuality(aspectItemID)
+	return aspectToQuality[aspectItemID]
+end
+
 LibLazyCrafting.closestGlyphLevel = closestGlyphLevel
 LibLazyCrafting.getGlyphInfo = function () return glyphInfo, enchantLevelInfo,qualityItemIdInfo  end
+LibLazyCrafting.getAspectResultQuality = getAspectResultQuality
 
 
 --[[
@@ -529,7 +543,6 @@ local function applyGlyphToItem(requestTable)
 		zo_callLater(function()
 			EnchantItem(equipBag, equipSlot, glyphBag , glyphSlot)
 
-			
 			zo_callLater( function() 
 				local _,equipSlot = searchUniqueId(equipUniqueId)
 				LibLazyCrafting:SetItemStatusNew(equipSlot) 
@@ -555,6 +568,7 @@ local function handleEnchantComplete(station, slot)
 	local removedTable = craftingQueue[currentCraftAttempt.Requester][CRAFTING_TYPE_ENCHANTING][currentCraftAttempt.position]
 	if (currentCraftAttempt.quantity or 1) <= 1 then
 		removedTable = table.remove(craftingQueue[currentCraftAttempt.Requester][CRAFTING_TYPE_ENCHANTING] , currentCraftAttempt.position )
+		removedTable.quantity = removedTable.quantity or 1
 		removedTable.quantity = removedTable.quantity - 1
 		currentCraftAttempt.quantity = currentCraftAttempt.quantity - 1
 
@@ -605,22 +619,24 @@ local function LLC_EnchantingCraftingComplete(station, lastCheck)
 	end
 	dbug("EVENT:CraftComplete")
 	if not currentCraftAttempt.addon then return end
-	local bag, slot = LibLazyCrafting.findNextSlotIndex(wasItemMade)
-	local found = slot~=nil
-	if found then
-		local removedTable = handleEnchantComplete(station, slot)
+	local anyFound = false
+	local bag, slot, found, removedTable
+	bag, slot = LibLazyCrafting.findNextSlotIndex(wasItemMade)
+	found = slot~=nil
+	anyFound = found
+	while found do
+		removedTable = handleEnchantComplete(station, slot)
 		if removedTable.equipInfo and #removedTable.equipInfo>0 then
-			applyGlyphToItem(removedTable)
-			currentCraftAttempt = {}
-			return
-		else
 			local copiedTable = LibLazyCrafting.tableShallowCopy(removedTable)
 			copiedTable.slot = slot
 			copiedTable.quantity = 1
 			LibLazyCrafting.SendCraftEvent(LLC_INITIAL_CRAFT_SUCCESS, station, removedTable.Requester, copiedTable)
-			currentCraftAttempt = {}
-			return
 		end
+		bag, slot = LibLazyCrafting.findNextSlotIndex(wasItemMade)
+		found = slot~=nil
+	end
+	if anyFound and removedTable and removedTable.equipInfo and #removedTable.equipInfo>0 then
+		applyGlyphToItem(removedTable)
 	end
 
 	if lastCheck then

@@ -273,13 +273,18 @@ function enoughMaterials(craftRequestTable)
 	local smithingQuantity = 1
 	smithingQuantity = craftRequestTable.smithingQuantity or 1
 	if craftRequestTable["style"] 
-		and craftRequestTable['station']~= CRAFTING_TYPE_JEWELRYCRAFTING and not craftRequestTable["useUniversalStyleItem"] then
-		if craftRequestTable["style"]==LLC_FREE_STYLE_CHOICE then
-			if maxStyle(craftRequestTable) <0 then
+		and craftRequestTable['station']~= CRAFTING_TYPE_JEWELRYCRAFTING then
+		if not craftRequestTable["useUniversalStyleItem"] then
+			if craftRequestTable["style"]==LLC_FREE_STYLE_CHOICE then
+				if maxStyle(craftRequestTable) <0 then
+					missing.materials["style"] = true
+					missingSomething = true
+				end
+			elseif GetCurrentSmithingStyleItemCount(craftRequestTable["style"]) < 1*smithingQuantity then
 				missing.materials["style"] = true
 				missingSomething = true
 			end
-		elseif GetCurrentSmithingStyleItemCount(craftRequestTable["style"]) < 1*smithingQuantity then
+		elseif craftRequestTable["useUniversalStyleItem"] and GetCurrentSmithingStyleItemCount(GetUniversalStyleId()) < 1*smithingQuantity then
 			missing.materials["style"] = true
 			missingSomething = true
 		end
@@ -1598,7 +1603,7 @@ local function SmithingCraftCompleteFunction(station)
 		local bag, slot = LibLazyCrafting.findNextSlotIndex(WasItemCrafted)
 		while slot ~= nil do
 			smithingCompleteNewItemHandler(station, bag, slot)
-			bag, slot = LibLazyCrafting.findNextSlotIndex(WasItemCrafted, slot+1)
+			bag, slot = LibLazyCrafting.findNextSlotIndex(WasItemCrafted)
 		end
 		currentCraftAttempt = {}
 		--sortCraftQueue()
@@ -1779,7 +1784,7 @@ local function compileImprovementRequirements(request, requirements)
 	if request.equipCreated then
 		return requirements
 	end
-	local currentQuality = GetItemQuality(request.ItemBagID, request.ItemSlotID)
+	local currentQuality = GetItemFunctionalQuality(request.ItemBagID, request.ItemSlotID)
 	local improvementLevel = getImprovementLevel(station)
 
 	for i  = currentQuality, request.quality - 1 do
@@ -2148,16 +2153,19 @@ local function computeLinkParticulars(requestTable, link)
 	local enchantLvl = 0
 	if requestTable.dualEnchantingSmithing then
 		if requestTable.link then
-			-- extract link portions needed
 		else
+			-- extract link portions needed
 			local essence, potency = LibLazyCrafting.getGlyphInfo()
 			-- first, find potency parity
 			local potencyId = requestTable.potencyItemID
 			local essenceId = requestTable.essenceItemID
+			local aspectId  = requestTable.aspectItemID
 			local parity
+			local enchantLevel
 			for i = 1, #potency do 
 				if potency[i][2]==potencyId then
 					parity = potency[i][1]
+					enchantLevel = potency[i].lvl or potency[i].cp
 				end
 			end
 			for i = 1, #essence do
@@ -2170,6 +2178,8 @@ local function computeLinkParticulars(requestTable, link)
 				end
 			end
 
+			enchantCPQuality, enchantLvl = LibLazyCrafting.getGlyphQualityInfo(requestTable.isCP,enchantLevel,LibLazyCrafting.getAspectResultQuality(aspectId))
+			-- LibLazyCrafting.enchantCPQualityInfo
 			-- compute link portions needed
 			-- 1. get table from enchanting
 			-- 2. loop through to find what's needed
@@ -2189,7 +2199,6 @@ local function computeLinkParticulars(requestTable, link)
 end
 local linkTable = {}
 local function getItemLinkFromRequest(requestTable)
-	d(requestTable)
 	local setId= requestTable.setIndex
 
 	local trait = requestTable.trait
