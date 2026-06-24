@@ -24,7 +24,7 @@ if not LibLazyCrafting:RegisterWidget(widgetType, widgetVersion) then return  en
 local LLC = LibLazyCrafting
 local throw = LLC.LLCThrowError
 if GetDisplayName() == "@Dolgubon" then
-	DolgubonGlobalDebugOutput = d
+	-- DolgubonGlobalDebugOutput = d
 end
 local function dbug(...)
 	-- d(...)

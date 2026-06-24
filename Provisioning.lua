@@ -116,6 +116,10 @@ local function LLC_ProvisioningCraftInteraction(station, earliest, addon , posit
 	dbug("CALL:ZOProvisioningCraft")
   local maximumCreated = GetMaxIterationsPossibleForRecipe(earliest.recipeListIndex, earliest.recipeIndex)
   local maxQuantity =  math.min(maximumCreated, earliest.timesToMake or 1 )
+  if maxQuantity == 0 then
+    dbug("Error: Could not craft item. User may have no inventory space")
+    return
+  end
 	local recipeArgs = { earliest.recipeListIndex, earliest.recipeIndex, maxQuantity }
 	LibLazyCrafting.isCurrentlyCrafting = {true, "provisioning", earliest["Requester"]}
 	CraftProvisionerItem(unpack(recipeArgs))
@@ -170,6 +174,10 @@ local function LLC_ProvisioningIsItemCraftable(self, station, request)
 			table.insert(materialList, mat)
 		end
 	end
+  local maximumPossible = GetMaxIterationsPossibleForRecipe(request.recipeListIndex, request.recipeIndex)
+  if maximumPossible == 0 then
+    return false
+  end
 	return LibLazyCrafting.HaveMaterials(materialList)
 end
 
