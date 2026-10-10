@@ -1175,7 +1175,7 @@ local function LLC_DeconstructItem(self, bagIndex, slotIndex, autocraft, referen
 		if interactionType ~= 0 then
 			LibLazyCrafting.craftInteract(nil, interactionType)
 		elseif GetCraftingInteractionMode() == CRAFTING_INTERACTION_MODE_UNIVERSAL_DECONSTRUCTION and station then
-			LibLazyCrafting.craftInteract(nil, station)
+			LibLazyCrafting.craftInteract(nil, 0)
 		end
 	end
 	return craftingRequestTable

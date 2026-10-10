@@ -17,7 +17,7 @@ end
 
 -- Initialize libraries
 local libLoaded
-local LIB_NAME, VERSION = "LibLazyCrafting", 4.041
+local LIB_NAME, VERSION = "LibLazyCrafting", 4.042
 local LibLazyCrafting, oldminor
 if LibStub then
 	LibLazyCrafting, oldminor = LibStub:NewLibrary(LIB_NAME, VERSION)
@@ -455,19 +455,21 @@ local function findEarliestDeconstructRequest()
 	local position = 0
 	local station = nil
 	for addon, requestTable in pairs(craftingQueue) do
-		for stationIndex = 1, #requestTable do
-			for i = 1, #requestTable[stationIndex] do
-				local request = requestTable[stationIndex][i]
-				if request and request["type"] == "deconstruct"
-					and isItemCraftable(request, stationIndex)
-					and (request["autocraft"] or request["craftNow"]) then
-					if request["timestamp"] < earliest["timestamp"] then
-						earliest = request
-						addonName = addon
-						position = i
-						station = stationIndex
+		for stationIndex = 1, 7 do
+			local stationQueue = requestTable[stationIndex]
+			if type(stationQueue) == "table" then
+				for i = 1, #stationQueue do
+					local request = stationQueue[i]
+					if request and request["type"] == "deconstruct"
+						and isItemCraftable(request, stationIndex)
+						and (request["autocraft"] or request["craftNow"]) then
+						if request["timestamp"] < earliest["timestamp"] then
+							earliest = request
+							addonName = addon
+							position = i
+							station = stationIndex
+						end
 					end
-					break
 				end
 			end
 		end
@@ -815,14 +817,15 @@ end
 
 local function DeconEarliest(event, station)
 	local earliest, addon, position, requestStation = findEarliestDeconstructRequest()
-	if earliest and requestStation and LibLazyCrafting.craftInteractionTables[requestStation] then
-		local stationInteractionTable = LibLazyCrafting.craftInteractionTables[requestStation]
-		if stationInteractionTable.deconstructOnly then
-			stationInteractionTable.deconstructOnly(requestStation, earliest, addon, position)
-		else
-			stationInteractionTable["function"](requestStation, earliest, addon, position)
+	if earliest and requestStation then
+		local smithingHandler = LibLazyCrafting.craftInteractionTables[requestStation]
+		if not (smithingHandler and smithingHandler.deconstructOnly) then
+			smithingHandler = LibLazyCrafting.craftInteractionTables[CRAFTING_TYPE_BLACKSMITHING]
 		end
-		return true
+		if smithingHandler and smithingHandler.deconstructOnly then
+			smithingHandler.deconstructOnly(requestStation, earliest, addon, position)
+			return true
+		end
 	end
 end
 
@@ -869,10 +872,21 @@ end
 local function CraftComplete(event, station)
 
 	--d("Event:completion")
+	local isUniversalDecon = GetCraftingInteractionMode() == CRAFTING_INTERACTION_MODE_UNIVERSAL_DECONSTRUCTION
+	if isUniversalDecon and GetCraftingInteractionType() == CRAFTING_TYPE_INVALID then
+		-- SmithingCraftCompleteFunction reads currentCraftAttempt in Smithing.lua; must not gate on v:check(event station).
+		local smithingHandler = LibLazyCrafting.craftInteractionTables[CRAFTING_TYPE_BLACKSMITHING]
+		if smithingHandler and smithingHandler.complete then
+			smithingHandler.complete(station)
+		end
+		LibLazyCrafting.isCurrentlyCrafting = {false, "", ""}
+		CraftInteract(event, 0)
+		return
+	end
+
 	local LLCResult = nil
 	for k,v in pairs(LibLazyCrafting.craftInteractionTables) do
 		if v:check(station) then
-			local isUniversalDecon = GetCraftingInteractionMode() == CRAFTING_INTERACTION_MODE_UNIVERSAL_DECONSTRUCTION
 			if GetCraftingInteractionType()==0 and not isUniversalDecon then -- This is called when the user exits the crafting station while the game is crafting
 				endInteraction(EVENT_END_CRAFTING_STATION_INTERACT, station)
 			end
@@ -884,7 +898,7 @@ local function CraftComplete(event, station)
 			LibLazyCrafting.isCurrentlyCrafting = {false, "", ""}
 			if GetCraftingInteractionType()~=0 and CraftEarliest(event, station) then
 			elseif isUniversalDecon then
-				CraftInteract(event, station)
+				CraftInteract(event, 0)
 			end
 			return
 		end
